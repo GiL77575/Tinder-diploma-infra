@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 1. Основная база данных с поддержкой геолокации (PostGIS)
+  postgres:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: tinder_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tinder_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
+    ports:
+      # Завязываем порт строго на localhost (127.0.0.1) для безопасности!
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Redis — быстрый кэш для свайпов, сессий и гео-индексов
+  redis:
+    image: redis:7-alpine
+    container_name: tinder_redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 3. MinIO — локальное S3-хранилище для аватарок и фото профилей
+  minio:
+    image: minio/minio:RELEASE.2023-09-04T19-57-37Z
+    container_name: tinder_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "127.0.0.1:9000:9000"       # API для загрузки фото бэкендом
+      - "127.0.0.1:9001:9001"       # Веб-админка MinIO
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
