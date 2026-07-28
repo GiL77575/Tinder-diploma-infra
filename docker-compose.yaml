@@ -11,17 +11,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
     ports:
-      # Завязываем порт строго на localhost (127.0.0.1) для безопасности!
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-tinder_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # 2. Redis — быстрый кэш для свайпов, сессий и гео-индексов
+  # 2. Redis — быстрый кэш и сессии
   redis:
     image: redis:7-alpine
     container_name: tinder_redis
@@ -31,7 +30,7 @@ services:
     volumes:
       - redis_data:/data
 
-  # 3. MinIO — локальное S3-хранилище для аватарок и фото профилей
+  # 3. MinIO — локальное S3-хранилище для фото
   minio:
     image: minio/minio:RELEASE.2023-09-04T19-57-37Z
     container_name: tinder_minio
@@ -40,11 +39,33 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "127.0.0.1:9000:9000"       # API для загрузки фото бэкендом
-      - "127.0.0.1:9001:9001"       # Веб-админка MinIO
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+
+  # 4. Django Бэкенд + Шаблоны (HTMX / JS / CSS)
+  web:
+    build: ./backend
+    container_name: tinder_django
+    restart: always
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=${POSTGRES_DB:-tinder_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-secretpassword}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
   postgres_data:
