@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # 1. Основная база данных с поддержкой геолокации (PostGIS)
+  # 1. Основная база данных (PostgreSQL)
   postgres:
-    image: postgis/postgis:15-3.3-alpine
+    image: postgres:15-alpine
     container_name: tinder_postgres
     restart: always
     environment:
