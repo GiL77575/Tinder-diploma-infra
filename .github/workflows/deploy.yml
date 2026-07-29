@@ -1,0 +1,28 @@
+name: CI/CD Pipeline & Security Checks
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Config
+        run: |
+          docker compose config
+
+      - name: Build Docker Services
+        run: |
+          docker compose build
+
+      - name: Trigger Deploy on Render
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
