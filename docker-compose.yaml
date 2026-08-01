@@ -38,6 +38,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
+      - ./frontend:/frontend
     ports:
       - "127.0.0.1:8000:8000"
     environment:

@@ -1,18 +1,25 @@
-# Tinder Diploma Infrastructure
+# Crushme (Tinder Clone)
 
-Инфраструктурный слой для диплома.
+Веб-сервіс знайомств з режимом Friend Finder (BFF).
 
-## Быстрый запуск
+## Швидкий запуск
 
-1. Скопируйте файл окружения:
+1. Скопіюйте файл оточення:
    `cp .env.example .env`
 
-2. Запустите сервисы в Docker:
-   `docker compose up -d`
+2. Запустіть сервіси в Docker:
+   `docker compose up -d --build`
 
-## Доступные сервисы
+3. Застосуйте міграції:
+   `docker compose exec web python manage.py migrate`
 
-* **PostgreSQL (PostGIS):** `localhost:5432`
+## Доступні сервіси
+
+* **Django:** `http://localhost:8000`
+* **PostgreSQL:** `localhost:5432`
 * **Redis:** `localhost:6379`
-* **MinIO API:** `localhost:9000`
-* **MinIO Console (Web UI):** `http://localhost:9001`
+
+## Структура
+
+* `backend/` — Django apps, моделі, settings
+* `frontend/` — templates і static (HTML, CSS, JS, HTMX)
