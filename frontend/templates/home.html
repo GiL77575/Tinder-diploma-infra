@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Головна</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>Вітаємо, {{ request.user.username }}!</h2>
+        <p style="text-align: center; color: #a0aec0; margin-bottom: 1.5rem;">
+            Ви успішно авторизувалися в системі.
+        </p>
+        
+        <a href="{% url 'logout' %}" style="display: block; text-align: center; color: #4a90e2; text-decoration: none;">
+            Вийти з акаунту
+        </a>
+    </div>
+
+</body>
+</html>

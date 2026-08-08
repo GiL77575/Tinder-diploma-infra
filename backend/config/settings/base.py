@@ -25,11 +25,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+
+    # Third-party
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
+    # Local apps
     'accounts',
     'profiles',
     'matching',
     'messaging',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -39,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -88,14 +100,20 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.EmailOrUsernameModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
 LANGUAGE_CODE = 'uk'
 TIME_ZONE = 'Europe/Kyiv'
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-_static_dir = PROJECT_ROOT / 'frontend' / 'static'
-STATICFILES_DIRS = [_static_dir] if _static_dir.is_dir() else []
+STATICFILES_DIRS = [
+    PROJECT_ROOT / 'frontend' / 'static',
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -103,3 +121,19 @@ MAX_PHOTOS_PER_PROFILE = 6
 
 REDIS_URL = os.environ.get('REDIS_URL', '')
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '')
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+LOGIN_REDIRECT_URL = '/auth/'
+LOGOUT_REDIRECT_URL = '/auth/login/'
+ACCOUNT_LOGOUT_ON_GET = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Актуальні налаштування django-allauth
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_AUTO_SIGNUP = True
