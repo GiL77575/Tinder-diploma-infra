@@ -4,20 +4,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Головна</title>
+    <title>crush — Create Real Unique Stories Here</title>
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <style>
+        .home-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .hero-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 3.5rem 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+            max-width: 540px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-sizing: border-box;
+        }
+
+        .hero-title {
+            font-size: 3.2rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .hero-description {
+            color: #475569;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .features-badges {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(124, 58, 237, 0.18);
+            padding: 0.45rem 1rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: #4338ca;
+            font-weight: 500;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #7c3aed 100%);
+            color: #ffffff;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            text-align: center;
+            border: none;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.95;
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            background-color: rgba(255, 255, 255, 0.85);
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .btn-secondary:hover {
+            background-color: #ffffff;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+    </style>
 </head>
 <body>
 
-    <div class="login-card">
-        <h2>Вітаємо, {{ request.user.username }}!</h2>
-        <p style="text-align: center; color: #a0aec0; margin-bottom: 1.5rem;">
-            Ви успішно авторизувалися в системі.
-        </p>
-        
-        <a href="{% url 'logout' %}" style="display: block; text-align: center; color: #4a90e2; text-decoration: none;">
-            Вийти з акаунту
-        </a>
+    <div class="home-container">
+        <div class="hero-card">
+            <h1 class="hero-title">crush</h1>
+            <div class="hero-subtitle">Create Real Unique Stories Here</div>
+
+            <p class="hero-description">
+                Платформа для пошуку романтичних знайомств та однодумців за спільними інтересами, подіями та мовним обміном.
+            </p>
+
+            <div class="features-badges">
+                <span class="badge">Dating Mode</span>
+                <span class="badge">Friend Mode</span>
+                <span class="badge">Crush Moments</span>
+            </div>
+
+            {% if user.is_authenticated %}
+                <div style="margin-bottom: 1.5rem; color: #64748b; font-size: 0.95rem;">
+                    Ви увійшли як: <strong style="color: #0f172a;">{{ user.username }}</strong>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'logout' %}" class="btn-secondary">Вийти</a>
+                </div>
+            {% else %}
+                <div class="btn-group">
+                    <a href="{% url 'register' %}" class="btn-primary">Реєстрація</a>
+                    <a href="{% url 'login' %}" class="btn-secondary">Увійти</a>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
 </body>

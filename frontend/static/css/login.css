@@ -1,130 +1,183 @@
-/* Основні налаштування сторінки */
-body {
+* {
     margin: 0;
     padding: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #1a1d20; /* Темно-сірий графітовий фон */
-    color: #f8f9fa;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Контейнер форми */
+body {
+    background-color: #f4f4f6;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.05) 0px, transparent 50%);
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Напівпрозора картка входу/реєстрації */
 .login-card {
-    background-color: #24282d; /* Трохи світліший графіт для картки */
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
     padding: 2.5rem;
-    border-radius: 16px; /* Заокруглені кутики */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     width: 100%;
-    max-width: 380px;
-    box-sizing: border-box;
+    max-width: 420px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
 }
 
 .login-card h2 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
     text-align: center;
-    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
-/* Групи полів вводу */
+.login-card p.subtitle {
+    color: #64748b;
+    text-align: center;
+    font-size: 0.9rem;
+    margin-bottom: 1.75rem;
+}
+
+/* Поля вводу */
 .form-group {
     margin-bottom: 1.25rem;
 }
 
 .form-group label {
     display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #475569;
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    color: #a0aec0;
 }
 
 .form-group input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid #3f444e;
-    border-radius: 8px;
-    background-color: #1a1d20;
-    color: #ffffff;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: border-color 0.2s ease;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.2s ease;
 }
 
 .form-group input:focus {
-    outline: none;
-    border-color: #4a90e2;
-}
-
-/* Поле пароля з кнопкою перемикання (око) */
-.password-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.password-wrapper input {
-    padding-right: 2.75rem; /* Місце для іконки ока */
-}
-
-.toggle-password {
-    position: absolute;
-    right: 0.75rem;
-    background: transparent;
-    border: none;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 0.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    transition: transform 0.1s ease;
-}
-
-.toggle-password:active {
-    transform: scale(0.9);
-}
-
-/* Підказки під інпутами */
-.form-help {
-    display: block;
-    font-size: 0.8rem;
-    color: #718096;
-    margin-top: 0.35rem;
-    line-height: 1.3;
-}
-
-/* Головна кнопка відправки форми */
-.btn-submit {
-    width: 100%;
-    padding: 0.85rem;
-    background-color: #4a90e2;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    margin-top: 0.5rem;
-}
-
-.btn-submit:hover {
-    background-color: #357abd;
+    background: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
 }
 
 /* Повідомлення про помилки */
-.error-message {
-    background-color: rgba(225, 29, 72, 0.1);
-    border: 1px solid #e11d48;
-    color: #fda4af;
-    padding: 0.75rem;
-    border-radius: 8px;
+.messages {
+    list-style: none;
     margin-bottom: 1.25rem;
+}
+
+.messages li {
+    padding: 0.75rem 1rem;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
+    color: #dc2626;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Кнопки з градієнтом */
+.btn-submit {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, #0284c7 0%, #3b82f6 50%, #7c3aed 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.btn-submit:hover {
+    opacity: 0.95;
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Кнопка Google OAuth */
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #334155;
     font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-google:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+}
+
+/* Розділювач */
+.divider {
+    display: flex;
+    align-items: center;
     text-align: center;
-    line-height: 1.4;
+    margin: 1.5rem 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.divider:not(:empty)::before {
+    margin-right: 0.75rem;
+}
+
+.divider:not(:empty)::after {
+    margin-left: 0.75rem;
+}
+
+/* Посилання внизу */
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.auth-footer a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
 }
