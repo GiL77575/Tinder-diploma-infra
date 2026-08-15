@@ -114,6 +114,8 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     PROJECT_ROOT / 'frontend' / 'static',
 ]
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -127,12 +129,13 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
 ]
 
-LOGIN_REDIRECT_URL = '/auth/'
-LOGOUT_REDIRECT_URL = '/auth/login/'
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_LOGOUT_ON_GET = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
-# Актуальні налаштування django-allauth
+# allauth лише для Google; email/пароль — accounts.views
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'none'

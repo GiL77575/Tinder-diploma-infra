@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ profile.display_name }} — crush</title>
+    <link rel="stylesheet" href="{% static 'css/profile-detail.css' %}">
+</head>
+<body>
+    <div class="detail-wrap">
+        <header class="detail-top">
+            <a href="{% url 'home' %}" class="brand">crush</a>
+            <nav class="detail-nav">
+                <a href="{% url 'profile_edit' %}" class="btn-primary">Редагувати</a>
+                <a href="{% url 'logout' %}" class="btn-ghost">Вийти</a>
+            </nav>
+        </header>
+
+        <section class="gallery">
+            {% for photo in profile.photos.all %}
+                <img src="{{ photo.url }}" alt="Фото {{ profile.display_name }}">
+            {% empty %}
+                <div class="gallery-empty">Немає фото</div>
+            {% endfor %}
+        </section>
+
+        <section class="profile-card">
+            <p class="mode-pill">{{ profile.get_active_mode_display }}</p>
+            <h1>{{ profile.display_name }}, {{ profile.age }}</h1>
+            <p class="username">@{{ profile.user.username }}</p>
+            <ul class="facts">
+                {% if profile.city %}<li>{{ profile.city }}</li>{% endif %}
+                {% if profile.job %}<li>{{ profile.job }}</li>{% endif %}
+                <li>{{ profile.get_gender_display }}</li>
+                <li>{{ profile.get_orientation_display }}</li>
+                {% if profile.height_cm %}<li>{{ profile.height_cm }} см</li>{% endif %}
+                {% if profile.smoking %}<li>{{ profile.get_smoking_display }}</li>{% endif %}
+                {% if profile.children %}<li>Діти: {{ profile.get_children_display }}</li>{% endif %}
+            </ul>
+            <p class="visibility">
+                {% if profile.is_discoverable %}Профіль видно в пошуку{% else %}Профіль прихований з пошуку{% endif %}
+            </p>
+        </section>
+
+        <section class="mode-block mode-block--dating">
+            <h2>Знайомства</h2>
+            {% if dating %}
+                <p class="meta">
+                    Шукає: {{ dating.looking_for_label }}
+                    · {{ dating.min_age }}–{{ dating.max_age }} років
+                </p>
+                {% if dating.bio %}<p class="bio">{{ dating.bio }}</p>{% endif %}
+                <div class="chips">
+                    {% for item in dating_interests %}
+                        <span class="chip">{{ item.tag.name }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="muted">Цей контур ще не заповнено.</p>
+            {% endif %}
+        </section>
+
+        <section class="mode-block mode-block--bff">
+            <h2>Пошук друзів</h2>
+            {% if bff %}
+                <p class="meta">Шукає: {{ bff.looking_for_label }}</p>
+                {% if bff.bio %}<p class="bio">{{ bff.bio }}</p>{% endif %}
+                {% if bff_hobbies %}
+                    <h3>Хобі</h3>
+                    <div class="chips">
+                        {% for item in bff_hobbies %}
+                            <span class="chip">{{ item.tag.name }}{% if item.level %} · {{ item.level_label }}{% endif %}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if bff_languages %}
+                    <h3>Мови</h3>
+                    <div class="chips">
+                        {% for item in bff_languages %}
+                            <span class="chip">{{ item.tag.name }}{% if item.level %} · {{ item.level_label }}{% endif %}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if bff_interests %}
+                    <h3>Інтереси</h3>
+                    <div class="chips">
+                        {% for item in bff_interests %}
+                            <span class="chip">{{ item.tag.name }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="muted">Цей контур ще не заповнено.</p>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>

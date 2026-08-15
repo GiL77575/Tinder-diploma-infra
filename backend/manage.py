@@ -6,6 +6,7 @@ from pathlib import Path
 
 
 def main():
+    """Запуск Django-команд (runserver, migrate тощо)."""
     base_dir = Path(__file__).resolve().parent
     sys.path.insert(0, str(base_dir / 'src'))
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')

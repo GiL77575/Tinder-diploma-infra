@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заповнення профілю — crush</title>
+    <link rel="stylesheet" href="{% static 'css/profile-setup.css' %}">
+</head>
+<body>
+    <div class="setup-wrap">
+        <header class="setup-header">
+            <div class="setup-top">
+                <p class="brand">crush</p>
+                <a href="{% url 'logout' %}" class="setup-logout">Вийти</a>
+            </div>
+            <h1>Розкажи про себе</h1>
+            <p class="lead">Окремі анкети для знайомств і пошуку друзів — без змішування режимів.</p>
+        </header>
+
+        <ol class="steps" aria-label="Кроки">
+            <li class="steps__item is-active" data-step-dot="1">Фото</li>
+            <li class="steps__item" data-step-dot="2">Про себе</li>
+            <li class="steps__item" data-step-dot="3">Знайомства</li>
+            <li class="steps__item" data-step-dot="4">Друзі</li>
+        </ol>
+
+        {% include 'profiles/_form_messages.html' %}
+
+        <form id="setup-form" method="post" enctype="multipart/form-data" novalidate data-mode="setup" data-error-step="{{ error_step|default:0 }}">
+            {% include 'profiles/_form.html' %}
+            <div class="setup-actions">
+                <button type="button" class="btn-secondary" id="btn-back" hidden>Назад</button>
+                <button type="button" class="btn-primary" id="btn-next">Далі</button>
+                <button type="submit" class="btn-primary" id="btn-submit" hidden>Зберегти профіль</button>
+            </div>
+            <p class="step-error" id="step-error" hidden></p>
+        </form>
+    </div>
+    <script src="{% static 'js/profile-setup.js' %}"></script>
+</body>
+</html>

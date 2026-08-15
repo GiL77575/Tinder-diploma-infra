@@ -1,3 +1,5 @@
+"""Лайки, матчі, блокування та скарги (окремо для Dating і BFF)."""
+
 from django.conf import settings
 from django.db import models
 
@@ -5,6 +7,8 @@ from profiles.models import SearchMode
 
 
 class Like(models.Model):
+    """Свайп: лайк або пас від одного користувача до іншого в одному режимі."""
+
     from_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -42,6 +46,8 @@ class Like(models.Model):
 
 
 class Match(models.Model):
+    """Взаємний лайк у одному режимі; user_a.id завжди менший за user_b.id."""
+
     user_a = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -72,10 +78,13 @@ class Match(models.Model):
         return f'Match: {self.user_a} ↔ {self.user_b} ({self.mode})'
 
     def other_user(self, user):
+        """Друга сторона матчу відносно переданого користувача."""
         return self.user_b if user == self.user_a else self.user_a
 
 
 class Block(models.Model):
+    """Блок: blocker більше не бачить blocked і навпаки."""
+
     blocker = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -105,20 +114,22 @@ class Block(models.Model):
 
 
 class ReportReason(models.TextChoices):
-    SPAM = 'spam', 'Spam'
-    HARASSMENT = 'harassment', 'Harassment'
-    FAKE_PROFILE = 'fake_profile', 'Fake profile'
-    INAPPROPRIATE = 'inappropriate_content', 'Inappropriate content'
-    OTHER = 'other', 'Other'
+    SPAM = 'spam', 'Спам'
+    HARASSMENT = 'harassment', 'Переслідування'
+    FAKE_PROFILE = 'fake_profile', 'Фейковий профіль'
+    INAPPROPRIATE = 'inappropriate_content', 'Неприйнятний контент'
+    OTHER = 'other', 'Інше'
 
 
 class ReportStatus(models.TextChoices):
-    PENDING = 'pending', 'Pending'
-    RESOLVED = 'resolved', 'Resolved'
-    DISMISSED = 'dismissed', 'Dismissed'
+    PENDING = 'pending', 'Очікує'
+    RESOLVED = 'resolved', 'Розглянуто'
+    DISMISSED = 'dismissed', 'Відхилено'
 
 
 class Report(models.Model):
+    """Скарга на користувача для модерації."""
+
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

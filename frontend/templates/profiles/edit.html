@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редагування профілю — crush</title>
+    <link rel="stylesheet" href="{% static 'css/profile-setup.css' %}">
+</head>
+<body>
+    <div class="setup-wrap">
+        <header class="setup-header">
+            <p class="brand">crush</p>
+            <h1>Редагування профілю</h1>
+            <p class="lead">Онови спільні дані та окремі анкети для знайомств і пошуку друзів.</p>
+        </header>
+
+        {% include 'profiles/_form_messages.html' %}
+
+        <form id="setup-form" method="post" enctype="multipart/form-data" novalidate data-mode="edit">
+            {% include 'profiles/_form.html' %}
+            <div class="setup-actions">
+                <a href="{% url 'profile_me' %}" class="btn-secondary" id="btn-back">Скасувати</a>
+                <button type="button" class="btn-primary" id="btn-next" hidden>Далі</button>
+                <button type="submit" class="btn-primary" id="btn-submit">Зберегти зміни</button>
+            </div>
+            <p class="step-error" id="step-error" hidden></p>
+        </form>
+    </div>
+    <script src="{% static 'js/profile-setup.js' %}"></script>
+</body>
+</html>

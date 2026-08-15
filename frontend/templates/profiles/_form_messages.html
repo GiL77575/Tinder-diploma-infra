@@ -1,0 +1,19 @@
+{% if form.non_field_errors %}
+    <ul class="errors">
+        {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% if form.errors and not form.non_field_errors %}
+    <ul class="errors">
+        <li>Перевір поля з помилками та спробуй ще раз.</li>
+    </ul>
+{% endif %}
+{% if messages %}
+    <ul class="errors">
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}

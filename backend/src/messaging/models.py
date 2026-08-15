@@ -1,3 +1,5 @@
+"""Чат за матчем і підписки на push-сповіщення."""
+
 from django.conf import settings
 from django.db import models
 
@@ -5,6 +7,8 @@ from matching.models import Match
 
 
 class Conversation(models.Model):
+    """Один чат на один матч (Dating і BFF ізольовані)."""
+
     match = models.OneToOneField(
         Match,
         on_delete=models.CASCADE,
@@ -17,10 +21,13 @@ class Conversation(models.Model):
 
     @property
     def mode(self):
+        """Режим чату: знайомства або пошук друзів."""
         return self.match.mode
 
 
 class Message(models.Model):
+    """Текстове повідомлення в чаті матчу."""
+
     conversation = models.ForeignKey(
         Conversation,
         on_delete=models.CASCADE,
@@ -46,6 +53,8 @@ class Message(models.Model):
 
 
 class PushSubscription(models.Model):
+    """Web Push підписка браузера користувача."""
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
