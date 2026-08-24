@@ -14,15 +14,8 @@
 <body class="page-home">
     <div class="crush-viewport">
         {# Figma: Перша сторінка 1920×1080 #}
-        <div class="crush-frame crush-frame--landing">
-            <header class="landing-header">
-                <a href="{% url 'home' %}" class="landing-logo">crush</a>
-                <nav class="landing-nav" aria-label="Основна навігація">
-                    <a href="#about">Про нас</a>
-                    <a href="#safety">Безпека</a>
-                    <a href="#support">Підтримка</a>
-                </nav>
-            </header>
+        <div class="crush-frame">
+            {% include 'includes/landing_header.html' %}
 
             <div class="landing-info">
                 <h1 class="landing-title"><span class="landing-title__word"><span class="accent">C</span>reate</span> <span class="landing-title__word"><span class="accent">R</span>eal</span> <span class="landing-title__word"><span class="accent">U</span>nique</span> <span class="landing-title__word"><span class="accent">S</span>tories</span> <span class="landing-title__word"><span class="accent">H</span>ere</span></h1>

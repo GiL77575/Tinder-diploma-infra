@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Помилка входу — crush</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% static 'css/info.css' %}">
+</head>
+<body class="page-info">
+    <div class="crush-viewport">
+        <div class="crush-frame">
+            {% include 'includes/landing_header.html' %}
+
+            <article class="info-panel">
+                <h1 class="info-title">Невдалий вхід через Google</h1>
+                <p class="info-text">
+                    Під час спроби входу через обліковий запис Google сталася помилка.
+                    Спробуйте ще раз або увійдіть через email і пароль.
+                </p>
+                {% if auth_error.exception %}
+                <p class="info-text info-text--muted">
+                    Деталі: {{ auth_error.exception }}
+                </p>
+                {% endif %}
+                <div class="info-actions">
+                    <a href="{% url 'login' %}" class="landing-btn landing-btn--primary">Увійти</a>
+                    <a href="{% url 'register' %}" class="landing-btn landing-btn--secondary">Зареєструватися</a>
+                </div>
+            </article>
+        </div>
+    </div>
+    <script src="{% static 'js/crush-frame.js' %}" defer></script>
+</body>
+</html>

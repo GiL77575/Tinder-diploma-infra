@@ -6,6 +6,7 @@ from allauth.socialaccount.models import SocialApp
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.db import IntegrityError
+from django.http import Http404
 from django.shortcuts import redirect, render
 
 User = get_user_model()
@@ -37,6 +38,45 @@ def home_view(request):
     if request.user.is_authenticated and not request.user.is_profile_complete:
         return redirect('profile_setup')
     return render(request, 'home.html')
+
+
+INFO_PAGES = {
+    'about': {
+        'title': 'Про нас',
+        'paragraphs': [
+            'crush — платформа для справжніх знайомств і спільних історій. '
+            'Ми допомагаємо знаходити людей за інтересами, подіями та спільними цінностями.',
+            'Наша мета — створити безпечний простір, де можна познайомитися, '
+            'поспілкуватися та знайти однодумців без зайвого шуму.',
+        ],
+    },
+    'safety': {
+        'title': 'Безпека',
+        'paragraphs': [
+            'Безпека користувачів — наш пріоритет. Ми модеруємо скарги, '
+            'захищаємо особисті дані та даємо інструменти для блокування й репорту.',
+            'Ніколи не діліться паролями, фінансовими даними чи точним місцем проживання '
+            'на ранніх етапах спілкування. Зустрічі в реальному житті плануйте в публічних місцях.',
+        ],
+    },
+    'support': {
+        'title': 'Підтримка',
+        'paragraphs': [
+            'Потрібна допомога з акаунтом, профілем або безпекою? '
+            'Напишіть нам — ми відповімо якомога швидше.',
+            'Зв’язок: support@crush.app. Опишіть проблему коротко, '
+            'і за потреби додайте логін або email акаунта.',
+        ],
+    },
+}
+
+
+def info_page_view(request, slug):
+    """Юридичні / інфосторінки: Про нас, Безпека, Підтримка."""
+    page = INFO_PAGES.get(slug)
+    if page is None:
+        raise Http404('Сторінку не знайдено')
+    return render(request, 'info.html', page)
 
 
 def login_view(request):

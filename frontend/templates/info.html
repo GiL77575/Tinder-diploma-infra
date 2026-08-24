@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{ title }} — crush</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% static 'css/info.css' %}">
+</head>
+<body class="page-info">
+    <div class="crush-viewport">
+        <div class="crush-frame">
+            {% include 'includes/landing_header.html' %}
+
+            <article class="info-panel">
+                <h1 class="info-title">{{ title }}</h1>
+                {% for paragraph in paragraphs %}
+                    <p class="info-text">{{ paragraph }}</p>
+                {% endfor %}
+            </article>
+        </div>
+    </div>
+    <script src="{% static 'js/crush-frame.js' %}" defer></script>
+</body>
+</html>
