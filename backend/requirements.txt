@@ -1,5 +1,6 @@
 Django>=5.0,<6.0
 django-allauth>=65.0.0,<66
+PyJWT>=2.0,<3
 psycopg2-binary>=2.9.9
 gunicorn>=21.2.0
 cloudinary>=1.36.0

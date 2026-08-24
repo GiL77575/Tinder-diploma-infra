@@ -3,6 +3,7 @@
 import re
 
 from allauth.socialaccount.models import SocialApp
+from allauth.account.models import EmailAddress
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.db import IntegrityError
@@ -156,6 +157,11 @@ def register_view(request):
                 username=username,
                 email=email,
                 password=password,
+            )
+            EmailAddress.objects.update_or_create(
+                user=user,
+                email=email.lower(),
+                defaults={'verified': True, 'primary': True},
             )
         except IntegrityError:
             messages.error(request, 'Користувач з таким логіном або email вже існує.')

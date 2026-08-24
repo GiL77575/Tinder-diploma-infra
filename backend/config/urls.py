@@ -12,6 +12,10 @@ urlpatterns = [
         'accounts/signup/',
         RedirectView.as_view(pattern_name='register', permanent=False),
     ),
+    path(
+        'accounts/login/',
+        RedirectView.as_view(pattern_name='login', permanent=False),
+    ),
     path('accounts/', include('allauth.urls')),
     path('profile/', include('profiles.urls')),
     path('', include('accounts.urls')),
