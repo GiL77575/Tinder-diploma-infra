@@ -1,0 +1,152 @@
+/* crush — shared tokens & components (підключати на всіх сторінках) */
+
+:root {
+    --crush-purple: #9747ff;
+    --crush-ink: #161616;
+    --crush-muted: #8a8a8a;
+    --crush-line: #8c8c8c;
+    --crush-input-line: #e5e5e5;
+    --crush-white: #fffdfe;
+    --crush-secondary: #f8f2ff;
+    --crush-secondary-hover: #f0e8ff;
+    --crush-bg: #f6f6f6;
+    --crush-shadow-btn: 0 0 12px rgba(0, 0, 0, 0.35);
+    --crush-radius-btn: 12px;
+    --font-brand: "Rubik One", sans-serif;
+    --font-body: "Plus Jakarta Sans", sans-serif;
+    --landing-gradient: radial-gradient(
+        112.49% 213.77% at 48.02% 50%,
+        rgba(246, 246, 246, 0.5) 0%,
+        #e4d0ff 61.06%,
+        #f6f6f6 100%
+    );
+    --auth-gradient: radial-gradient(
+        46.14% 87.69% at 48.02% 50%,
+        rgba(246, 246, 246, 0.5) 0%,
+        rgba(255, 238, 0, 0.2) 25.96%,
+        rgba(255, 97, 200, 0.1) 52.88%,
+        rgba(231, 213, 255, 0.8) 81.73%,
+        #f6f6f6 100%
+    );
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+    background: var(--crush-bg);
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--crush-ink);
+    min-height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--crush-bg);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Brand mark (хедер / профіль) */
+.brand {
+    font-family: var(--font-brand);
+    font-weight: 400;
+    font-size: 1.4rem;
+    line-height: 1.2;
+    color: var(--crush-purple);
+    letter-spacing: 0;
+}
+
+/* Shared buttons — розміри підганяє сторінка (auth / nav / actions) */
+.btn-primary,
+.btn-secondary,
+.btn-submit,
+.btn-google,
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--crush-radius-btn);
+    font-family: var(--font-body);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-primary,
+.btn-submit {
+    background: var(--crush-purple);
+    color: var(--crush-white);
+    border: none;
+    box-shadow: var(--crush-shadow-btn);
+}
+
+.btn-primary:hover,
+.btn-submit:hover {
+    filter: brightness(1.05);
+}
+
+.btn-secondary {
+    background: var(--crush-secondary);
+    color: var(--crush-ink);
+    border: 1px solid var(--crush-line);
+}
+
+.btn-secondary:hover {
+    background: var(--crush-secondary-hover);
+}
+
+.btn-ghost {
+    background: var(--crush-white);
+    color: var(--crush-ink);
+    border: 1px solid var(--crush-line);
+    font-weight: 600;
+}
+
+.btn-google {
+    gap: 12px;
+    background: var(--crush-white);
+    border: 1px solid var(--crush-line);
+    color: #000;
+    font-weight: 400;
+}
+
+.btn-google svg {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 1.25rem 0;
+    color: var(--crush-muted);
+    font-size: 0.8rem;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--crush-input-line);
+}
+
+.divider:not(:empty)::before {
+    margin-right: 0.75rem;
+}
+
+.divider:not(:empty)::after {
+    margin-left: 0.75rem;
+}
