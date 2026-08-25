@@ -5,3 +5,6 @@ psycopg2-binary>=2.9.9
 gunicorn>=21.2.0
 cloudinary>=1.36.0
 redis>=5.0.0
+channels>=4.0,<5
+daphne>=4.0,<5
+channels_redis>=4.2,<5

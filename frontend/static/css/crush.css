@@ -58,13 +58,15 @@ a {
     text-decoration: none;
 }
 
-/* Спільний full-bleed shell (home / auth / info) — scale через crush-frame.js */
+/* Спільний full-bleed shell (home / auth / info / chat) — scale через crush-frame.js */
 html:has(body.page-home),
 html:has(body.page-auth),
 html:has(body.page-info),
+html:has(body.page-chat),
 body.page-home,
 body.page-auth,
-body.page-info {
+body.page-info,
+body.page-chat {
     overflow: hidden;
     width: 100%;
     height: 100%;

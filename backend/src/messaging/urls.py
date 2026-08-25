@@ -1,0 +1,31 @@
+"""Маршрути чату: список діалогів, історія повідомлень, статуси."""
+
+from django.urls import path
+
+from messaging.views import (
+    conversation_mark_read_view,
+    conversation_messages_view,
+    conversation_send_message_view,
+    conversations_list_view,
+    open_conversation_view,
+)
+
+urlpatterns = [
+    path('conversations/', conversations_list_view, name='conversations_list'),
+    path('conversations/open/', open_conversation_view, name='conversation_open'),
+    path(
+        'conversations/<int:conversation_id>/messages/',
+        conversation_messages_view,
+        name='conversation_messages',
+    ),
+    path(
+        'conversations/<int:conversation_id>/send/',
+        conversation_send_message_view,
+        name='conversation_send',
+    ),
+    path(
+        'conversations/<int:conversation_id>/read/',
+        conversation_mark_read_view,
+        name='conversation_read',
+    ),
+]

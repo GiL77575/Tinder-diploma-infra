@@ -18,6 +18,8 @@ urlpatterns = [
     ),
     path('accounts/', include('allauth.urls')),
     path('profile/', include('profiles.urls')),
+    path('app/', include('matching.urls')),
+    path('app/', include('messaging.urls')),
     path('', include('accounts.urls')),
 ]
 

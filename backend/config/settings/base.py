@@ -19,6 +19,9 @@ ALLOWED_HOSTS = [
 ]
 
 INSTALLED_APPS = [
+    # daphne має йти першим, щоб manage.py runserver піднімав ASGI/WebSocket
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,6 +35,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'channels',
 
     # Local apps
     'accounts',
@@ -71,6 +75,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 if os.environ.get('DB_HOST'):
     DATABASES = {
@@ -123,6 +128,21 @@ MAX_PHOTOS_PER_PROFILE = 6
 
 REDIS_URL = os.environ.get('REDIS_URL', '')
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '')
+
+# Channel layer для WebSocket-чату: Redis у проді, in-memory — для dev без Redis.
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [REDIS_URL]},
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
