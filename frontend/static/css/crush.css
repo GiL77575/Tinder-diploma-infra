@@ -93,6 +93,23 @@ body.page-chat {
     transform-origin: 0 0;
 }
 
+/* Розсипані контурні сердечка на фоні — спільний декор-компонент
+   (форма підключається як #heart-outline з img/brand/heart-outline.svg,
+   позиції для конкретної сторінки задаються в її власному css). */
+.deco-hearts {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    color: var(--crush-purple);
+    pointer-events: none;
+}
+
+.deco-heart {
+    position: absolute;
+    fill: none;
+    overflow: visible;
+}
+
 /* Спільний хедер (Figma 1920×1080) */
 .landing-header {
     position: absolute;

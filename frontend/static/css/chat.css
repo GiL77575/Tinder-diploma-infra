@@ -34,6 +34,18 @@ body.page-chat .crush-frame {
     background: transparent;
 }
 
+/* Позиції розсипаних сердечок (.deco-hearts/.deco-heart — спільні класи з crush.css).
+   Розміщені у вільних полях кадру: зовнішні краї та проміжки між сайдбаром і карткою,
+   щоб не перекривати панелі, картку анкети чи кнопки. */
+.chat-heart--1 { top: 80px;  left: 60px;   width: 30px; height: 30px; opacity: 0.2;  transform: rotate(-10deg); }
+.chat-heart--2 { top: 920px; left: 90px;   width: 24px; height: 24px; opacity: 0.16; transform: rotate(12deg); }
+.chat-heart--3 { top: 130px; left: 1800px; width: 30px; height: 30px; opacity: 0.18; transform: rotate(8deg); }
+.chat-heart--4 { top: 860px; left: 1840px; width: 22px; height: 22px; opacity: 0.16; transform: rotate(-14deg); }
+.chat-heart--5 { top: 250px; left: 700px;  width: 32px; height: 32px; opacity: 0.18; transform: rotate(-8deg); }
+.chat-heart--6 { top: 700px; left: 760px;  width: 24px; height: 24px; opacity: 0.15; transform: rotate(14deg); }
+.chat-heart--7 { top: 300px; left: 1580px; width: 28px; height: 28px; opacity: 0.18; transform: rotate(10deg); }
+.chat-heart--8 { top: 780px; left: 1640px; width: 24px; height: 24px; opacity: 0.15; transform: rotate(-6deg); }
+
 /* ---------- Shell: Figma 1920×1080 content area ---------- */
 
 .chat-shell {
@@ -533,6 +545,44 @@ body.page-chat .crush-frame {
     display: flex;
     align-items: flex-end;
     z-index: 0;
+    cursor: grab;
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    will-change: transform;
+}
+
+/* ---- Анімація свайпу: драг картки пальцем/мишкою + виліт при лайку/дизлайку ---- */
+
+.swipe-card.is-dragging {
+    cursor: grabbing;
+    transition: none;
+}
+
+.swipe-card.is-returning {
+    transition: transform 220ms ease-out;
+}
+
+.swipe-card.is-leaving-like {
+    transition: transform 320ms ease-in, opacity 320ms ease-in;
+    transform: translate3d(640px, -60px, 0) rotate(24deg);
+    opacity: 0;
+}
+
+.swipe-card.is-leaving-dislike {
+    transition: transform 320ms ease-in, opacity 320ms ease-in;
+    transform: translate3d(-640px, -60px, 0) rotate(-24deg);
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swipe-card.is-returning,
+    .swipe-card.is-leaving-like,
+    .swipe-card.is-leaving-dislike {
+        transition: opacity 160ms ease-out;
+        transform: none;
+    }
 }
 
 .swipe-card__placeholder {
@@ -550,6 +600,8 @@ body.page-chat .crush-frame {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    -webkit-user-drag: none;
+    pointer-events: auto;
 }
 
 .swipe-card__gradient {
@@ -613,6 +665,69 @@ body.page-chat .crush-frame {
     color: var(--crush-ink);
     max-width: 410px;
     padding-left: 15px;
+}
+
+.swipe-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 460px;
+    padding-left: 15px;
+    margin-top: 14px;
+}
+
+.swipe-card__tag {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    line-height: 18px;
+    color: var(--crush-ink);
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(22, 22, 22, 0.15);
+    backdrop-filter: blur(2px);
+}
+
+/* Спільні хобі/інтереси/мови з профілем переглядача — підсвічуються акцентом. */
+.swipe-card__tag--shared {
+    color: #ffffff;
+    background: var(--chat-accent, #e866ff);
+    border-color: transparent;
+    font-weight: 600;
+}
+
+/* Стрілка з правого боку картки — розгортає повний профіль (усі фото + опис) */
+.swipe-card__expand {
+    position: absolute;
+    right: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--chat-border);
+    background: var(--chat-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    padding: 0;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.swipe-card__expand:hover {
+    transform: translateY(-50%) translateX(4px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
+}
+
+.swipe-card__expand:active {
+    transform: translateY(-50%) scale(0.94);
+}
+
+.swipe-card__expand svg {
+    width: 22px;
+    height: 22px;
 }
 
 .swipe-actions {
@@ -811,4 +926,156 @@ body.page-chat .crush-frame {
     text-align: center;
     color: var(--chat-muted);
     padding: 40px;
+}
+
+/* ---------- Full profile overlay (розгорнутий перегляд анкети) ---------- */
+
+.full-profile-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.full-profile-overlay__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(22, 22, 22, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+.full-profile {
+    position: relative;
+    z-index: 1;
+    width: 860px;
+    max-height: 900px;
+    background: var(--chat-surface);
+    border-radius: var(--chat-radius-lg);
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.full-profile__close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    padding: 0;
+    transition: transform 0.15s ease;
+}
+
+.full-profile__close:hover {
+    transform: scale(1.06);
+}
+
+.full-profile__close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.full-profile__gallery {
+    width: 420px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--chat-panel);
+}
+
+.full-profile__main-photo {
+    width: 100%;
+    height: 620px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #e9e2f6;
+}
+
+.full-profile__thumbs {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    flex: 1;
+    min-height: 0;
+    align-content: flex-start;
+}
+
+.full-profile__thumbs:empty {
+    display: none;
+}
+
+.full-profile__thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid transparent;
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+    padding: 0;
+    background: none;
+}
+
+.full-profile__thumb.is-active {
+    opacity: 1;
+    border-color: var(--chat-accent);
+}
+
+.full-profile__content {
+    flex: 1;
+    min-width: 0;
+    padding: 60px 36px 36px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.full-profile__name {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 38px;
+    color: var(--crush-ink);
+    border-left: 3px solid #161616;
+    padding-left: 12px;
+}
+
+.full-profile__city {
+    color: var(--chat-muted);
+    font-size: 16px;
+    padding-left: 15px;
+}
+
+.full-profile__city:empty {
+    display: none;
+}
+
+.full-profile__bio {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--crush-ink);
+    padding-left: 15px;
+    white-space: pre-wrap;
+}
+
+.full-profile__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 15px;
 }

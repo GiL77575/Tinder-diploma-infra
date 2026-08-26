@@ -7,9 +7,19 @@ from django.test import TestCase
 from django.urls import reverse
 
 from matching.models import Like, Match
-from matching.services import discover_candidates_queryset, matches_for_user, record_swipe
+from matching.services import discover_candidates_queryset, matches_for_user, next_candidate, record_swipe
 from messaging.models import Conversation
-from profiles.models import Profile, ProfileMode, SearchMode
+from profiles.models import (
+    BffLookingFor,
+    HobbyLevel,
+    LanguageLevel,
+    Profile,
+    ProfileMode,
+    ProfileTag,
+    SearchMode,
+    Tag,
+    TagCategory,
+)
 
 User = get_user_model()
 
@@ -133,3 +143,132 @@ class LikeViewTests(TestCase):
         matches = response.json()['matches']
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0]['other_user_id'], self.bob.id)
+
+
+class DatingFilterTests(TestCase):
+    """Dating: те саме місто, вік у діапазоні, 2+ спільні інтереси."""
+
+    def setUp(self):
+        self.book = Tag.objects.create(name='Тест-книги', category=TagCategory.INTEREST)
+        self.hiking = Tag.objects.create(name='Тест-походи', category=TagCategory.INTEREST)
+        self.chess = Tag.objects.create(name='Тест-шахи', category=TagCategory.INTEREST)
+
+        self.viewer = make_user_with_profile('viewer.dating@example.com', 'Оля')
+        self.viewer.profile.city = 'Київ'
+        self.viewer.profile.save()
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            min_age=20, max_age=40,
+        )
+        for tag in (self.book, self.hiking):
+            ProfileTag.objects.create(profile=self.viewer.profile, tag=tag, mode=SearchMode.DATING)
+
+    def _make_candidate(self, email, name, city='Київ', tags=()):
+        user = make_user_with_profile(email, name)
+        user.profile.city = city
+        user.profile.save()
+        for tag in tags:
+            ProfileTag.objects.create(profile=user.profile, tag=tag, mode=SearchMode.DATING)
+        return user
+
+    def test_matches_same_city_age_and_two_shared_interests(self):
+        candidate = self._make_candidate(
+            'match.dating@example.com', 'Ігор', tags=(self.book, self.hiking),
+        )
+        profile, shared = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertEqual(profile.user_id, candidate.id)
+        self.assertCountEqual(shared['interests'], [self.book.id, self.hiking.id])
+
+    def test_excludes_different_city(self):
+        self._make_candidate(
+            'other.city@example.com', 'Марко', city='Львів', tags=(self.book, self.hiking),
+        )
+        profile, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertIsNone(profile)
+
+    def test_excludes_age_outside_range(self):
+        candidate = self._make_candidate(
+            'too.old@example.com', 'Петро', tags=(self.book, self.hiking),
+        )
+        candidate.profile.birth_date = date(1960, 1, 1)
+        candidate.profile.save()
+        profile, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertIsNone(profile)
+
+    def test_excludes_less_than_two_shared_interests(self):
+        self._make_candidate(
+            'one.tag@example.com', 'Тарас', tags=(self.book, self.chess),
+        )
+        profile, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertIsNone(profile)
+
+
+class BffFilterTests(TestCase):
+    """BFF: та сама тема пошуку, спільне хобі й мова з тим самим рівнем."""
+
+    def setUp(self):
+        self.english = Tag.objects.create(name='Тест-англійська', category=TagCategory.LANGUAGE)
+        self.chess_hobby = Tag.objects.create(name='Тест-шахи-хобі', category=TagCategory.HOBBY)
+
+        self.viewer = make_user_with_profile('viewer.bff@example.com', 'Настя')
+        self.viewer.profile.city = 'Київ'
+        self.viewer.profile.save()
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.BFF).update(
+            looking_for=BffLookingFor.LANGUAGE,
+        )
+        ProfileTag.objects.create(
+            profile=self.viewer.profile, tag=self.english, mode=SearchMode.BFF, level=LanguageLevel.B1,
+        )
+        ProfileTag.objects.create(
+            profile=self.viewer.profile, tag=self.chess_hobby, mode=SearchMode.BFF, level=HobbyLevel.NOVICE,
+        )
+
+    def _make_candidate(self, email, name, city, looking_for, language_level, hobby_level):
+        user = make_user_with_profile(email, name)
+        user.profile.city = city
+        user.profile.save()
+        ProfileMode.objects.filter(profile=user.profile, mode=SearchMode.BFF).update(looking_for=looking_for)
+        ProfileTag.objects.create(
+            profile=user.profile, tag=self.english, mode=SearchMode.BFF, level=language_level,
+        )
+        ProfileTag.objects.create(
+            profile=user.profile, tag=self.chess_hobby, mode=SearchMode.BFF, level=hobby_level,
+        )
+        return user
+
+    def test_matches_regardless_of_city_when_topic_language_and_level_match(self):
+        candidate = self._make_candidate(
+            'match.bff@example.com', 'Олег', city='Одеса',
+            looking_for=BffLookingFor.LANGUAGE,
+            language_level=LanguageLevel.B1, hobby_level=HobbyLevel.NOVICE,
+        )
+        profile, shared = next_candidate(self.viewer, SearchMode.BFF)
+        self.assertEqual(profile.user_id, candidate.id)
+        self.assertIn(self.english.id, shared['languages'])
+        self.assertIn(self.chess_hobby.id, shared['hobbies'])
+
+    def test_excludes_different_topic(self):
+        self._make_candidate(
+            'diff.topic@example.com', 'Іван', city='Київ',
+            looking_for=BffLookingFor.TRAVEL,
+            language_level=LanguageLevel.B1, hobby_level=HobbyLevel.NOVICE,
+        )
+        profile, _ = next_candidate(self.viewer, SearchMode.BFF)
+        self.assertIsNone(profile)
+
+    def test_excludes_different_language_level(self):
+        self._make_candidate(
+            'diff.level@example.com', 'Ліна', city='Київ',
+            looking_for=BffLookingFor.LANGUAGE,
+            language_level=LanguageLevel.C1, hobby_level=HobbyLevel.NOVICE,
+        )
+        profile, _ = next_candidate(self.viewer, SearchMode.BFF)
+        self.assertIsNone(profile)
+
+    def test_excludes_different_hobby_level(self):
+        self._make_candidate(
+            'diff.hobby.level@example.com', 'Марта', city='Київ',
+            looking_for=BffLookingFor.LANGUAGE,
+            language_level=LanguageLevel.B1, hobby_level=HobbyLevel.PRO,
+        )
+        profile, _ = next_candidate(self.viewer, SearchMode.BFF)
+        self.assertIsNone(profile)

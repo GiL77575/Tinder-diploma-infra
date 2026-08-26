@@ -18,6 +18,13 @@
 
 <div class="crush-viewport">
     <div class="crush-frame">
+        {# Розсипані сердечка на фоні — та ж форма, що на головній (img/brand/heart-outline.svg) #}
+        <div class="deco-hearts" aria-hidden="true">
+            {% for i in "12345678" %}
+                <svg class="deco-heart chat-heart--{{ forloop.counter }}"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
+            {% endfor %}
+        </div>
+
         <div class="chat-shell">
             <header class="chat-header">
                 <a href="{% url 'home' %}" class="chat-logo">crush</a>
@@ -90,6 +97,11 @@
                                         <p>Шукаємо анкети…</p>
                                     </div>
                                 </div>
+                                <button type="button" class="swipe-card__expand" id="expand-profile-btn" aria-label="Розгорнути повний профіль" hidden>
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M9 5l7 7-7 7" stroke="#161616" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
@@ -133,6 +145,27 @@
                         </form>
                     </section>
                 </main>
+            </div>
+
+            <div class="full-profile-overlay" id="full-profile-overlay" hidden>
+                <div class="full-profile-overlay__backdrop" id="full-profile-backdrop"></div>
+                <div class="full-profile" role="dialog" aria-modal="true" aria-labelledby="full-profile-name">
+                    <button type="button" class="full-profile__close" id="full-profile-close" aria-label="Закрити">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div class="full-profile__gallery">
+                        <img class="full-profile__main-photo" id="full-profile-main-photo" src="" alt="">
+                        <div class="full-profile__thumbs" id="full-profile-thumbs"></div>
+                    </div>
+                    <div class="full-profile__content">
+                        <h2 class="full-profile__name" id="full-profile-name"></h2>
+                        <p class="full-profile__city" id="full-profile-city"></p>
+                        <p class="full-profile__bio" id="full-profile-bio"></p>
+                        <div class="full-profile__tags" id="full-profile-tags"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

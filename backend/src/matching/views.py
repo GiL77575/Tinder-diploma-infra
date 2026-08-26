@@ -42,15 +42,15 @@ def dashboard_view(request):
 @login_required
 @require_GET
 def discover_next_view(request):
-    """Наступний кандидат для свайпу в обраному режимі."""
+    """Наступний кандидат для свайпу, що проходить фільтри обраного режиму."""
     mode = request.GET.get('mode', SearchMode.DATING)
     if not _valid_mode(mode):
         return JsonResponse({'error': 'Невірний режим.'}, status=400)
 
-    profile = next_candidate(request.user, mode)
+    profile, shared_tags = next_candidate(request.user, mode)
     if profile is None:
         return JsonResponse({'candidate': None})
-    return JsonResponse({'candidate': serialize_candidate(profile, mode)})
+    return JsonResponse({'candidate': serialize_candidate(profile, mode, shared_tags)})
 
 
 @login_required

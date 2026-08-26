@@ -12,6 +12,11 @@
         conversationRead: (id) => `/app/conversations/${id}/read/`,
     };
 
+    /* Анімація свайпу картки: скільки пікселів треба перетягнути, щоб зарахувати
+       лайк/дизлайк, і на скільки мінімально зрушити, щоб не сплутати з тапом. */
+    const SWIPE_DRAG_THRESHOLD = 110;
+    const SWIPE_MOVE_DEADZONE = 6;
+
     const body = document.body;
     const state = {
         mode: body.dataset.initialMode || 'dating',
@@ -21,7 +26,10 @@
         wsReconnectAttempts: 0,
         activeMatchId: null,
         activeCandidateUserId: null,
+        activeCandidate: null,
         swipeLocked: false,
+        animating: false,
+        cardWasDragged: false,
     };
 
     const els = {
@@ -34,6 +42,16 @@
         swipeActions: document.getElementById('swipe-actions'),
         likeBtn: document.getElementById('like-btn'),
         dislikeBtn: document.getElementById('dislike-btn'),
+        expandProfileBtn: document.getElementById('expand-profile-btn'),
+        fullProfileOverlay: document.getElementById('full-profile-overlay'),
+        fullProfileBackdrop: document.getElementById('full-profile-backdrop'),
+        fullProfileClose: document.getElementById('full-profile-close'),
+        fullProfileMainPhoto: document.getElementById('full-profile-main-photo'),
+        fullProfileThumbs: document.getElementById('full-profile-thumbs'),
+        fullProfileName: document.getElementById('full-profile-name'),
+        fullProfileCity: document.getElementById('full-profile-city'),
+        fullProfileBio: document.getElementById('full-profile-bio'),
+        fullProfileTags: document.getElementById('full-profile-tags'),
         chatView: document.getElementById('chat-view'),
         chatBackBtn: document.getElementById('chat-back-btn'),
         chatMessages: document.getElementById('chat-messages'),
@@ -254,10 +272,102 @@
 
     /* ---------------- Свайпи / картка ---------------- */
 
+    /* Прибирає драг/виліт-анімацію з картки, щоб новий кандидат з'явився в нейтральному стані. */
+    function resetCardTransform() {
+        els.swipeCard.classList.remove('is-dragging', 'is-returning', 'is-leaving-like', 'is-leaving-dislike');
+        els.swipeCard.style.transform = '';
+        els.swipeCard.style.opacity = '';
+    }
+
+    /* Плавний виліт картки вбік (лайк — праворуч, дизлайк — ліворуч). Повертає
+       проміс, що виконується після завершення transition (з резервним таймаутом). */
+    function flyCardOut(isPositive) {
+        return new Promise((resolve) => {
+            els.swipeCard.classList.remove('is-dragging', 'is-returning');
+            void els.swipeCard.offsetWidth; // reflow — щоб transition спрацював, навіть якщо драгу не було
+            els.swipeCard.classList.add(isPositive ? 'is-leaving-like' : 'is-leaving-dislike');
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                els.swipeCard.removeEventListener('transitionend', finish);
+                resolve();
+            };
+            els.swipeCard.addEventListener('transitionend', finish);
+            setTimeout(finish, 360);
+        });
+    }
+
+    /* Єдина точка запуску лайку/дизлайку — і з кнопок, і з драгу картки:
+       спершу візуальний виліт, потім запис свайпу та підвантаження наступної анкети. */
+    async function triggerSwipe(isPositive) {
+        if (state.animating || state.swipeLocked || !state.activeCandidateUserId) return;
+        state.animating = true;
+        await flyCardOut(isPositive);
+        state.animating = false;
+        swipe(isPositive);
+    }
+
+    /* ---- Драг картки пальцем/мишкою: картка нахиляється й слідує за курсором ---- */
+
+    const cardDrag = { dragging: false, pointerId: null, startX: 0, currentX: 0, moved: false };
+
+    function onCardPointerDown(event) {
+        if (!event.isPrimary || !state.activeCandidateUserId || state.animating || state.swipeLocked) return;
+        cardDrag.dragging = true;
+        cardDrag.moved = false;
+        cardDrag.pointerId = event.pointerId;
+        cardDrag.startX = event.clientX;
+        cardDrag.currentX = 0;
+        if (els.swipeCard.setPointerCapture) {
+            try { els.swipeCard.setPointerCapture(event.pointerId); } catch (e) { /* курсор уже відпущено */ }
+        }
+    }
+
+    function onCardPointerMove(event) {
+        if (!cardDrag.dragging || event.pointerId !== cardDrag.pointerId) return;
+        cardDrag.currentX = event.clientX - cardDrag.startX;
+        if (Math.abs(cardDrag.currentX) < SWIPE_MOVE_DEADZONE) return;
+        if (!cardDrag.moved) {
+            cardDrag.moved = true;
+            els.swipeCard.classList.add('is-dragging');
+        }
+        event.preventDefault();
+        els.swipeCard.style.transform = `translate3d(${cardDrag.currentX}px, 0, 0) rotate(${cardDrag.currentX * 0.045}deg)`;
+    }
+
+    function onCardPointerUp(event) {
+        if (!cardDrag.dragging || event.pointerId !== cardDrag.pointerId) return;
+        cardDrag.dragging = false;
+        cardDrag.pointerId = null;
+        els.swipeCard.classList.remove('is-dragging');
+
+        if (!cardDrag.moved) return; // це був тап (напр. перемикання фото), не свайп
+
+        state.cardWasDragged = true;
+        const draggedX = cardDrag.currentX;
+        cardDrag.currentX = 0;
+
+        if (Math.abs(draggedX) > SWIPE_DRAG_THRESHOLD) {
+            triggerSwipe(draggedX > 0);
+        } else {
+            els.swipeCard.classList.add('is-returning');
+            els.swipeCard.style.transform = '';
+        }
+    }
+
+    els.swipeCard.addEventListener('pointerdown', onCardPointerDown);
+    els.swipeCard.addEventListener('pointermove', onCardPointerMove);
+    els.swipeCard.addEventListener('pointerup', onCardPointerUp);
+    els.swipeCard.addEventListener('pointercancel', onCardPointerUp);
+
     async function loadNextCandidate() {
         state.swipeLocked = false;
+        resetCardTransform();
+        closeFullProfile();
         els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Завантаження…</p></div>';
         els.swipeActions.hidden = true;
+        if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
         try {
             const data = await apiFetch(API.discover(state.mode));
             renderCandidate(data.candidate);
@@ -266,14 +376,30 @@
         }
     }
 
+    /* Рядок з тегами кандидата; ті, що збігаються з профілем переглядача
+       (candidate.tags[].is_shared), підсвічуються кольором акценту. */
+    function renderCandidateTags(tags) {
+        if (!tags || !tags.length) return '';
+        const chips = tags.map((tag) => {
+            const label = tag.level ? `${tag.name} · ${tag.level}` : tag.name;
+            const sharedClass = tag.is_shared ? ' swipe-card__tag--shared' : '';
+            return `<span class="swipe-card__tag${sharedClass}">${escapeHtml(label)}</span>`;
+        }).join('');
+        return `<div class="swipe-card__tags">${chips}</div>`;
+    }
+
     function renderCandidate(candidate) {
+        closeFullProfile();
         if (!candidate) {
             state.activeCandidateUserId = null;
+            state.activeCandidate = null;
             els.swipeActions.hidden = true;
+            if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
             els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Анкети закінчились. Спробуйте пізніше 💜</p></div>';
             return;
         }
         state.activeCandidateUserId = candidate.user_id;
+        state.activeCandidate = candidate;
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
         const dots = photos.map((_, idx) => `<span class="swipe-card__dot ${idx === 0 ? 'is-active' : ''}"></span>`).join('');
 
@@ -284,6 +410,7 @@
             <div class="swipe-card__info">
                 <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
                 <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
+                ${renderCandidateTags(candidate.tags)}
             </div>
         `;
 
@@ -292,6 +419,10 @@
             const img = els.swipeCard.querySelector('.swipe-card__photo');
             const dotEls = els.swipeCard.querySelectorAll('.swipe-card__dot');
             img.addEventListener('click', (evt) => {
+                if (state.cardWasDragged) {
+                    state.cardWasDragged = false;
+                    return;
+                }
                 const rect = img.getBoundingClientRect();
                 const isRight = (evt.clientX - rect.left) > rect.width / 2;
                 current = isRight
@@ -303,7 +434,67 @@
         }
 
         els.swipeActions.hidden = false;
+        if (els.expandProfileBtn) els.expandProfileBtn.hidden = false;
     }
+
+    /* ---------------- Повний перегляд профілю (усі фото + опис) ---------------- */
+
+    /* Заповнює і показує оверлей з повним профілем поточного кандидата. */
+    function openFullProfile() {
+        if (!state.activeCandidate || !els.fullProfileOverlay) return;
+        renderFullProfile(state.activeCandidate);
+        els.fullProfileOverlay.hidden = false;
+    }
+
+    function closeFullProfile() {
+        if (els.fullProfileOverlay) els.fullProfileOverlay.hidden = true;
+    }
+
+    /* Малює галерею всіх фото (з мініатюрами для перемикання), ім'я, місто,
+       повне біо та теги (зі збереженою підсвіткою спільних) у оверлеї профілю. */
+    function renderFullProfile(candidate) {
+        const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
+
+        els.fullProfileMainPhoto.src = photos[0];
+        els.fullProfileMainPhoto.alt = candidate.display_name || '';
+
+        els.fullProfileThumbs.innerHTML = '';
+        if (photos.length > 1) {
+            photos.forEach((src, idx) => {
+                const thumb = document.createElement('button');
+                thumb.type = 'button';
+                thumb.className = `full-profile__thumb${idx === 0 ? ' is-active' : ''}`;
+                thumb.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+                thumb.addEventListener('click', () => {
+                    els.fullProfileMainPhoto.src = src;
+                    els.fullProfileThumbs.querySelectorAll('.full-profile__thumb').forEach((el, i) => {
+                        el.classList.toggle('is-active', i === idx);
+                    });
+                });
+                els.fullProfileThumbs.appendChild(thumb);
+            });
+        }
+
+        els.fullProfileName.textContent = `${candidate.display_name || ''}${candidate.age ? ', ' + candidate.age : ''}`;
+        els.fullProfileCity.textContent = candidate.city || '';
+        els.fullProfileBio.textContent = candidate.bio || 'Користувач ще не додав опис профілю.';
+        els.fullProfileTags.innerHTML = renderCandidateTags(candidate.tags);
+    }
+
+    if (els.expandProfileBtn) {
+        els.expandProfileBtn.addEventListener('click', openFullProfile);
+    }
+    if (els.fullProfileClose) {
+        els.fullProfileClose.addEventListener('click', closeFullProfile);
+    }
+    if (els.fullProfileBackdrop) {
+        els.fullProfileBackdrop.addEventListener('click', closeFullProfile);
+    }
+    document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape' && els.fullProfileOverlay && !els.fullProfileOverlay.hidden) {
+            closeFullProfile();
+        }
+    });
 
     async function swipe(isPositive) {
         if (state.swipeLocked || !state.activeCandidateUserId) return;
@@ -326,8 +517,8 @@
         }
     }
 
-    els.likeBtn.addEventListener('click', () => swipe(true));
-    els.dislikeBtn.addEventListener('click', () => swipe(false));
+    els.likeBtn.addEventListener('click', () => triggerSwipe(true));
+    els.dislikeBtn.addEventListener('click', () => triggerSwipe(false));
 
     function showMatchToast() {
         const toast = document.createElement('div');

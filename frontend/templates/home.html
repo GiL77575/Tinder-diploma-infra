@@ -1,55 +1,62 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>crush — Create Real Unique Stories Here</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/crush.css' %}">
-    <link rel="stylesheet" href="{% static 'css/home.css' %}">
-</head>
-<body class="page-home">
-    <div class="crush-viewport">
-        {# Figma: Перша сторінка 1920×1080 #}
-        <div class="crush-frame">
-            {% include 'includes/landing_header.html' %}
-
-            <div class="landing-info">
-                <h1 class="landing-title"><span class="landing-title__word"><span class="accent">C</span>reate</span> <span class="landing-title__word"><span class="accent">R</span>eal</span> <span class="landing-title__word"><span class="accent">U</span>nique</span> <span class="landing-title__word"><span class="accent">S</span>tories</span> <span class="landing-title__word"><span class="accent">H</span>ere</span></h1>
-                <p class="landing-desc">
-                    Платформа для пошуку романтичних знайомств та однодумців за спільними інтересами, подіями та мовним обміном
-                </p>
-            </div>
-
-            <div class="landing-tags">
-                <span class="landing-tag">Знайомства</span>
-                <span class="landing-tag">Пошук друзів</span>
-                <span class="landing-tag">Активні запити</span>
-            </div>
-
-            <div class="landing-cta">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'app_dashboard' %}" class="landing-btn landing-btn--primary">Перейти до чату</a>
-                    <a href="{% url 'logout' %}" class="landing-btn landing-btn--secondary">Вийти</a>
-                {% else %}
-                    <a href="{% url 'register' %}" class="landing-btn landing-btn--primary">Реєстрація</a>
-                    <a href="{% url 'login' %}" class="landing-btn landing-btn--secondary">Увійти</a>
-                {% endif %}
-            </div>
-
-            <img
-                class="landing-hero"
-                src="{% static 'img/brand/hero-couple.png' %}"
-                alt=""
-                width="591"
-                height="886"
-                decoding="async"
-            >
-        </div>
-    </div>
-    <script src="{% static 'js/crush-frame.js' %}" defer></script>
-</body>
-</html>
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>crush — Create Real Unique Stories Here</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body class="page-home">
+    <div class="crush-viewport">
+        {# Figma: Перша сторінка 1920×1080 #}
+        <div class="crush-frame">
+            {# Figma: розсипані сердечка на фоні — одна фігура (heart-outline.svg), повторно використана через <use> #}
+            <div class="deco-hearts" aria-hidden="true">
+                {% for i in "1234567890" %}
+                    <svg class="deco-heart landing-heart--{{ forloop.counter }}"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
+                {% endfor %}
+            </div>
+
+            {% include 'includes/landing_header.html' %}
+
+            <div class="landing-info">
+                <h1 class="landing-title"><span class="landing-title__word"><span class="accent">C</span>reate</span> <span class="landing-title__word"><span class="accent">R</span>eal</span> <span class="landing-title__word"><span class="accent">U</span>nique</span> <span class="landing-title__word"><span class="accent">S</span>tories</span> <span class="landing-title__word"><span class="accent">H</span>ere</span></h1>
+                <p class="landing-desc">
+                    Платформа для пошуку романтичних знайомств та однодумців за спільними інтересами, подіями та мовним обміном
+                </p>
+            </div>
+
+            <div class="landing-tags">
+                <span class="landing-tag">Знайомства</span>
+                <span class="landing-tag">Пошук друзів</span>
+                <span class="landing-tag">Активні запити</span>
+            </div>
+
+            <div class="landing-cta">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'app_dashboard' %}" class="landing-btn landing-btn--primary">Перейти до чату</a>
+                    <a href="{% url 'logout' %}" class="landing-btn landing-btn--secondary">Вийти</a>
+                {% else %}
+                    <a href="{% url 'register' %}" class="landing-btn landing-btn--primary">Реєстрація</a>
+                    <a href="{% url 'login' %}" class="landing-btn landing-btn--secondary">Увійти</a>
+                {% endif %}
+            </div>
+
+            <img
+                class="landing-hero"
+                src="{% static 'img/brand/hero-couple.png' %}"
+                alt=""
+                width="591"
+                height="886"
+                decoding="async"
+            >
+        </div>
+    </div>
+    <script src="{% static 'js/crush-frame.js' %}" defer></script>
+</body>
+</html>
