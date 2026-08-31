@@ -1,4 +1,4 @@
-{% load static %}
+{% load static asset_tags %}
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/crush.css' %}">
-    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/home.css' %}">
 </head>
 <body class="page-home">
     <div class="crush-viewport">
@@ -47,9 +47,15 @@
                 {% endif %}
             </div>
 
+            {% comment %}
+                Випадкове фото при кожному завантаженні сторінки: список кандидатів —
+                у data-hero-photos (js/home.js обирає один випадковий варіант).
+            {% endcomment %}
             <img
                 class="landing-hero"
+                id="landing-hero-photo"
                 src="{% static 'img/brand/hero-couple.png' %}"
+                data-hero-photos="{% static 'img/brand/hero-couple.png' %}|{% static 'img/brand/hero-group.png' %}|{% static 'img/brand/hero-couple-dark.png' %}"
                 alt=""
                 width="591"
                 height="886"
@@ -57,6 +63,7 @@
             >
         </div>
     </div>
-    <script src="{% static 'js/crush-frame.js' %}" defer></script>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
+    <script src="{% vstatic 'js/home.js' %}" defer></script>
 </body>
 </html>

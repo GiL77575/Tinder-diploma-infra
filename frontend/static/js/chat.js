@@ -408,8 +408,10 @@
             ${photos.length > 1 ? `<div class="swipe-card__dots">${dots}</div>` : ''}
             <div class="swipe-card__gradient"></div>
             <div class="swipe-card__info">
-                <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
-                <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
+                <div class="swipe-card__header">
+                    <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
+                    <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
+                </div>
                 ${renderCandidateTags(candidate.tags)}
             </div>
         `;

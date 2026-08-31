@@ -1,4 +1,4 @@
-{% load static %}
+{% load static asset_tags %}
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/crush.css' %}">
-    <link rel="stylesheet" href="{% static 'css/profile-setup.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/profile-setup.css' %}">
 </head>
 <body>
     <div class="setup-wrap">
@@ -31,6 +31,6 @@
             <p class="step-error" id="step-error" hidden></p>
         </form>
     </div>
-    <script src="{% static 'js/profile-setup.js' %}"></script>
+    <script src="{% vstatic 'js/profile-setup.js' %}"></script>
 </body>
 </html>

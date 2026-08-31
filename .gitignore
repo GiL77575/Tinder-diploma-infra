@@ -1,7 +1,12 @@
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.js
+
+# ad-hoc debug scripts / screenshots (not part of the app)
+/scripts/
+/screenshots/
 
 # testing
 /coverage
