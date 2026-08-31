@@ -159,3 +159,102 @@ class ChatConsumerTests(TransactionTestCase):
         asyncio.run(scenario())
 
         self.assertTrue(Message.objects.filter(conversation=self.conversation, text='Привіт, Боб!').exists())
+
+    def test_recipient_sees_message_as_not_mine(self):
+        """Обидва учасники підключені до одного діалогу: у відправника is_mine=True,
+        у отримувача (те саме повідомлення, той самий бродкаст) — is_mine=False."""
+        from channels.testing import WebsocketCommunicator
+
+        from messaging.consumers import ChatConsumer
+
+        async def scenario():
+            sender = WebsocketCommunicator(
+                ChatConsumer.as_asgi(), f'/ws/chat/{self.conversation.id}/',
+            )
+            sender.scope['url_route'] = {'kwargs': {'conversation_id': self.conversation.id}}
+            sender.scope['user'] = self.alice
+            connected, _ = await sender.connect()
+            self.assertTrue(connected)
+
+            recipient = WebsocketCommunicator(
+                ChatConsumer.as_asgi(), f'/ws/chat/{self.conversation.id}/',
+            )
+            recipient.scope['url_route'] = {'kwargs': {'conversation_id': self.conversation.id}}
+            recipient.scope['user'] = self.bob
+            connected, _ = await recipient.connect()
+            self.assertTrue(connected)
+
+            await sender.send_json_to({'type': 'message', 'text': 'Привіт, Боб!'})
+
+            sender_response = await sender.receive_json_from()
+            recipient_response = await recipient.receive_json_from()
+
+            self.assertTrue(sender_response['message']['is_mine'])
+            self.assertFalse(recipient_response['message']['is_mine'])
+            self.assertEqual(recipient_response['message']['text'], 'Привіт, Боб!')
+
+            await sender.disconnect()
+            await recipient.disconnect()
+
+        asyncio.run(scenario())
+
+
+class InboxConsumerTests(TransactionTestCase):
+    """Постійний inbox-канал: отримує оновлення діалогу навіть без відкритого чату."""
+
+    def setUp(self):
+        self.alice = make_user_with_profile('alice6@example.com', 'Аліса')
+        self.bob = make_user_with_profile('bob6@example.com', 'Боб')
+        self.match = make_match(self.alice, self.bob)
+        self.conversation = Conversation.objects.get(match=self.match)
+
+    def test_unauthenticated_is_rejected(self):
+        from channels.testing import WebsocketCommunicator
+
+        from django.contrib.auth.models import AnonymousUser
+
+        from messaging.consumers import InboxConsumer
+
+        async def scenario():
+            communicator = WebsocketCommunicator(InboxConsumer.as_asgi(), '/ws/inbox/')
+            communicator.scope['user'] = AnonymousUser()
+            connected, _ = await communicator.connect()
+            self.assertFalse(connected)
+            await communicator.disconnect()
+
+        asyncio.run(scenario())
+
+    def test_receives_dialog_update_without_open_chat(self):
+        """Боб слухає лише inbox (без /ws/chat/<id>/), Аліса надсилає повідомлення
+        через ChatConsumer — Боб має отримати dialog_update без будь-якого refresh-у."""
+        from channels.testing import WebsocketCommunicator
+
+        from messaging.consumers import ChatConsumer, InboxConsumer
+
+        async def scenario():
+            bob_inbox = WebsocketCommunicator(InboxConsumer.as_asgi(), '/ws/inbox/')
+            bob_inbox.scope['user'] = self.bob
+            connected, _ = await bob_inbox.connect()
+            self.assertTrue(connected)
+
+            alice_chat = WebsocketCommunicator(
+                ChatConsumer.as_asgi(), f'/ws/chat/{self.conversation.id}/',
+            )
+            alice_chat.scope['url_route'] = {'kwargs': {'conversation_id': self.conversation.id}}
+            alice_chat.scope['user'] = self.alice
+            connected, _ = await alice_chat.connect()
+            self.assertTrue(connected)
+
+            await alice_chat.send_json_to({'type': 'message', 'text': 'Привіт без відкритого чату!'})
+            await alice_chat.receive_json_from()  # echo відправнику в conversation-групі
+
+            update = await bob_inbox.receive_json_from()
+            self.assertEqual(update['type'], 'dialog_update')
+            self.assertEqual(update['conversation_id'], self.conversation.id)
+            self.assertEqual(update['preview'], 'Привіт без відкритого чату!')
+            self.assertEqual(update['sender_id'], self.alice.id)
+
+            await bob_inbox.disconnect()
+            await alice_chat.disconnect()
+
+        asyncio.run(scenario())

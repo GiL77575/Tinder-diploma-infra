@@ -20,14 +20,7 @@
         #e4d0ff 61.06%,
         #f6f6f6 100%
     );
-    --auth-gradient: radial-gradient(
-        46.14% 87.69% at 48.02% 50%,
-        rgba(246, 246, 246, 0.5) 0%,
-        rgba(255, 238, 0, 0.2) 25.96%,
-        rgba(255, 97, 200, 0.1) 52.88%,
-        rgba(231, 213, 255, 0.8) 81.73%,
-        #f6f6f6 100%
-    );
+    --auth-bg-image: url("../img/brand/auth-bg.png");
 }
 
 *,
@@ -59,14 +52,8 @@ a {
 }
 
 /* Спільний full-bleed shell (home / auth / info / chat) — scale через crush-frame.js */
-html:has(body.page-home),
-html:has(body.page-auth),
-html:has(body.page-info),
-html:has(body.page-chat),
 body.page-home,
-body.page-auth,
-body.page-info,
-body.page-chat {
+body.page-info {
     overflow: hidden;
     width: 100%;
     height: 100%;
@@ -74,6 +61,47 @@ body.page-chat {
     margin: 0;
     background: var(--landing-gradient);
     background-color: var(--crush-bg);
+}
+
+body.page-chat {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+}
+
+html:has(body.page-auth),
+body.page-auth {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    background-color: #ffffff;
+    background-image: var(--auth-bg-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+}
+
+html:has(body.page-home),
+html:has(body.page-info) {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    background: var(--landing-gradient);
+    background-color: var(--crush-bg);
+}
+
+html:has(body.page-chat) {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
 }
 
 .crush-viewport {
@@ -84,6 +112,26 @@ body.page-chat {
     background: transparent;
 }
 
+/* Фон на весь viewport — не масштабується разом із crush-frame,
+   щоб не було смуг іншого кольору по боках при letterbox. */
+.crush-viewport::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--landing-gradient);
+    background-color: var(--crush-bg);
+}
+
+body.page-auth .crush-viewport::before {
+    background-color: #ffffff;
+    background-image: var(--auth-bg-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+}
+
 .crush-frame {
     position: absolute;
     left: 0;
@@ -91,6 +139,7 @@ body.page-chat {
     width: 1920px;
     height: 1080px;
     transform-origin: 0 0;
+    z-index: 1;
 }
 
 /* Розсипані контурні сердечка на фоні — спільний декор-компонент

@@ -17,11 +17,16 @@
       data-my-user-id="{{ request.user.id }}">
 
 <div class="crush-viewport">
+    <div class="chat-page-backdrop" aria-hidden="true"></div>
     <div class="crush-frame">
-        {# Розсипані сердечка на фоні — та ж форма, що на головній (img/brand/heart-outline.svg) #}
         <div class="deco-hearts" aria-hidden="true">
-            {% for i in "12345678" %}
-                <svg class="deco-heart chat-heart--{{ forloop.counter }}"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+                <symbol id="chat-heart-outline" viewBox="0 0 48 48">
+                    <path d="M23.5395 15.6038C19.3697 6.75697 5.99871 8.2203 6.43215 19.7122C6.86559 31.2041 24.4645 40.1307 24.4645 40.1307C24.4645 40.1307 41.3411 29.9038 40.9076 18.4119C40.4742 6.92 27.0309 6.46802 23.5395 15.6038Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </symbol>
+            </svg>
+            {% for i in "12345678901" %}
+                <svg class="deco-heart chat-heart--{{ forloop.counter }}" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
             {% endfor %}
         </div>
 
@@ -32,11 +37,11 @@
                 <div class="mode-switch" role="tablist" aria-label="Режим пошуку" id="mode-switch" data-active="{{ initial_mode }}">
                     <span class="mode-switch__pill" id="mode-switch-pill" aria-hidden="true"></span>
                     <button type="button" class="mode-switch__btn" data-mode="dating" role="tab" aria-selected="{% if initial_mode != 'bff' %}true{% else %}false{% endif %}">
-                        <span class="mode-switch__icon mode-switch__icon--heart" aria-hidden="true"></span>
+                        <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/heart-signal.png' %}" width="18" height="18" alt="" aria-hidden="true">
                         Романтика
                     </button>
                     <button type="button" class="mode-switch__btn" data-mode="bff" role="tab" aria-selected="{% if initial_mode == 'bff' %}true{% else %}false{% endif %}">
-                        <span class="mode-switch__icon mode-switch__icon--friends" aria-hidden="true"></span>
+                        <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="18" height="18" alt="" aria-hidden="true">
                         Дружба
                     </button>
                 </div>
@@ -47,10 +52,7 @@
                         {% if my_avatar_url %}
                             <img src="{{ my_avatar_url }}" alt="{{ my_display_name }}">
                         {% else %}
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                <circle cx="12" cy="8" r="3.5" stroke="#161616" stroke-width="1.6"/>
-                                <path d="M4.5 19c1.4-3.2 4.3-5 7.5-5s6.1 1.8 7.5 5" stroke="#161616" stroke-width="1.6" stroke-linecap="round"/>
-                            </svg>
+                            <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="" aria-hidden="true">
                         {% endif %}
                     </a>
                 </div>
@@ -61,7 +63,7 @@
                     <section class="panel matches-panel">
                         <h2 class="panel__title">
                             Метчі
-                            <span class="panel__title-icon panel__title-icon--heart" aria-hidden="true"></span>
+                            <img class="panel__title-icon panel__title-icon--heart" src="{% static 'img/brand/hearts-glow.png' %}" width="18" height="18" alt="" aria-hidden="true">
                         </h2>
                         <div class="matches-wrap">
                             <div class="matches-grid" id="matches-grid">
@@ -78,7 +80,7 @@
                     <section class="panel dialogs-panel">
                         <h2 class="panel__title">
                             Діалоги
-                            <span class="panel__title-icon panel__title-icon--chat" aria-hidden="true"></span>
+                            <img class="panel__title-icon panel__title-icon--chat" src="{% static 'img/brand/thought-bubble.png' %}" width="18" height="18" alt="" aria-hidden="true">
                         </h2>
                         <div class="dialogs-list" id="dialogs-list">
                             <p class="panel__empty" data-empty-for="dialogs">Тут з'являться ваші діалоги</p>
@@ -90,8 +92,6 @@
                     <section class="discover-view" id="discover-view">
                         <div class="discover-stage">
                             <div class="swipe-card-frame">
-                                <span class="swipe-card-frame__dots swipe-card-frame__dots--tr" aria-hidden="true"></span>
-                                <span class="swipe-card-frame__dots swipe-card-frame__dots--bl" aria-hidden="true"></span>
                                 <div class="swipe-card" id="swipe-card">
                                     <div class="swipe-card__placeholder" id="swipe-card-placeholder">
                                         <p>Шукаємо анкети…</p>

@@ -3,44 +3,55 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Заповнення профілю — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Rubik+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
     <link rel="stylesheet" href="{% vstatic 'css/profile-setup.css' %}">
 </head>
-<body>
-    <div class="setup-wrap">
-        <header class="setup-header">
-            <div class="setup-top">
-                <p class="brand">crush</p>
-                <a href="{% url 'logout' %}" class="setup-logout">Вийти</a>
+<body class="page-setup" data-setup-step="1">
+    <div class="crush-viewport">
+        <div class="crush-frame">
+            <p class="setup-logo">crush</p>
+            <a href="{% url 'logout' %}" class="setup-logout">Вийти</a>
+
+            <div class="setup-card">
+                <header class="setup-card__head">
+                    <h1>Розкажи про себе</h1>
+                    <p class="setup-lead">Заповни окремі анкети для знайомств і пошуку друзів щоб почати</p>
+                </header>
+
+                <ol class="setup-steps" aria-label="Кроки">
+                    <li class="setup-steps__item is-active" data-step-dot="1">Фото</li>
+                    <li class="setup-steps__item" data-step-dot="2">Про себе</li>
+                    <li class="setup-steps__item" data-step-dot="3">Знайомства</li>
+                    <li class="setup-steps__item" data-step-dot="4">Друзі</li>
+                </ol>
+
+                <p class="setup-photo-hint">Максимум 6 фото. Головне — перше. Автообрізка до квадрата.</p>
+
+                {% include 'profiles/_form_messages.html' %}
+
+                <form id="setup-form" class="setup-form" method="post" enctype="multipart/form-data" novalidate data-mode="setup" data-error-step="{{ error_step|default:0 }}">
+                    <div class="setup-card__body">
+                        {% include 'profiles/_form.html' %}
+                    </div>
+                    <div class="setup-card__footer">
+                        <div class="setup-actions">
+                            <button type="button" class="btn-secondary" id="btn-back" hidden>Назад</button>
+                            <button type="button" class="btn-secondary" id="btn-skip" hidden>Пропустити</button>
+                            <button type="button" class="btn-primary" id="btn-next">Далі</button>
+                            <button type="submit" class="btn-primary" id="btn-submit" hidden>Зберегти профіль</button>
+                        </div>
+                        <p class="step-error" id="step-error" hidden></p>
+                    </div>
+                </form>
             </div>
-            <h1>Розкажи про себе</h1>
-            <p class="lead">Окремі анкети для знайомств і пошуку друзів — без змішування режимів.</p>
-        </header>
-
-        <ol class="steps" aria-label="Кроки">
-            <li class="steps__item is-active" data-step-dot="1">Фото</li>
-            <li class="steps__item" data-step-dot="2">Про себе</li>
-            <li class="steps__item" data-step-dot="3">Знайомства</li>
-            <li class="steps__item" data-step-dot="4">Друзі</li>
-        </ol>
-
-        {% include 'profiles/_form_messages.html' %}
-
-        <form id="setup-form" method="post" enctype="multipart/form-data" novalidate data-mode="setup" data-error-step="{{ error_step|default:0 }}">
-            {% include 'profiles/_form.html' %}
-            <div class="setup-actions">
-                <button type="button" class="btn-secondary" id="btn-back" hidden>Назад</button>
-                <button type="button" class="btn-primary" id="btn-next">Далі</button>
-                <button type="submit" class="btn-primary" id="btn-submit" hidden>Зберегти профіль</button>
-            </div>
-            <p class="step-error" id="step-error" hidden></p>
-        </form>
+        </div>
     </div>
-    <script src="{% vstatic 'js/profile-setup.js' %}"></script>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
+    <script src="{% vstatic 'js/profile-setup.js' %}" defer></script>
 </body>
 </html>

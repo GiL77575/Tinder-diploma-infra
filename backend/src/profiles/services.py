@@ -163,7 +163,11 @@ def save_profile(user, data, draft_photos=None):
             'height_cm': data.get('height_cm'),
             'smoking': data.get('smoking') or '',
             'children': data.get('children') or '',
-            'active_mode': data['active_mode'],
+            'active_mode': (
+                SearchMode.DATING
+                if data.get('skip_bff') and data.get('active_mode') == SearchMode.BFF
+                else data['active_mode']
+            ),
             'is_discoverable': data.get('is_discoverable', True),
         },
     )
@@ -179,32 +183,38 @@ def save_profile(user, data, draft_photos=None):
             'max_age': data['max_age'],
         },
     )
-    ProfileMode.objects.update_or_create(
-        profile=profile,
-        mode=SearchMode.BFF,
-        defaults={
-            'bio': data['bff_bio'],
-            'looking_for': data['bff_looking_for'],
-            'min_age': 18,
-            'max_age': 99,
-        },
-    )
+
+    profile.profile_tags.filter(mode=SearchMode.BFF).delete()
+    if data.get('skip_bff'):
+        ProfileMode.objects.filter(profile=profile, mode=SearchMode.BFF).delete()
+    else:
+        ProfileMode.objects.update_or_create(
+            profile=profile,
+            mode=SearchMode.BFF,
+            defaults={
+                'bio': data['bff_bio'],
+                'looking_for': data['bff_looking_for'],
+                'min_age': 18,
+                'max_age': 99,
+            },
+        )
 
     profile.profile_tags.all().delete()
     _add_tags(profile, data.get('dating_interests'), SearchMode.DATING)
-    _add_tags(profile, data.get('bff_interests'), SearchMode.BFF)
-    _add_tags(
-        profile,
-        data.get('bff_hobbies'),
-        SearchMode.BFF,
-        levels=data.get('hobby_levels') or {},
-    )
-    _add_tags(
-        profile,
-        data.get('bff_languages'),
-        SearchMode.BFF,
-        levels=data.get('language_levels') or {},
-    )
+    if not data.get('skip_bff'):
+        _add_tags(profile, data.get('bff_interests'), SearchMode.BFF)
+        _add_tags(
+            profile,
+            data.get('bff_hobbies'),
+            SearchMode.BFF,
+            levels=data.get('hobby_levels') or {},
+        )
+        _add_tags(
+            profile,
+            data.get('bff_languages'),
+            SearchMode.BFF,
+            levels=data.get('language_levels') or {},
+        )
 
     user.is_profile_complete = True
     user.save(update_fields=['is_profile_complete'])

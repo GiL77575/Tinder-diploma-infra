@@ -67,10 +67,12 @@ class ProfileSetupForm(forms.Form):
     )
     bff_looking_for = forms.ChoiceField(
         choices=BffLookingFor.choices,
+        required=False,
         label='Що шукаєш у пошуку друзів',
     )
     bff_bio = forms.CharField(
         max_length=500,
+        required=False,
         widget=forms.Textarea,
         label='Про себе в пошуку друзів',
     )
@@ -117,6 +119,37 @@ class ProfileSetupForm(forms.Form):
     def clean_city(self):
         """Прибирає зайві пробіли в місті."""
         return self.cleaned_data['city'].strip()
+
+    def _bff_section_empty(self, cleaned):
+        """Чи користувач нічого не заповнив у блоці «Друзі»."""
+        return not any([
+            cleaned.get('bff_looking_for'),
+            (cleaned.get('bff_bio') or '').strip(),
+            cleaned.get('bff_interests'),
+            cleaned.get('bff_hobbies'),
+            cleaned.get('bff_languages'),
+        ])
+
+    def _validate_bff_section(self, cleaned):
+        """Повна перевірка BFF-анкети, якщо користувач почав її заповнювати."""
+        if not cleaned.get('bff_looking_for'):
+            self.add_error('bff_looking_for', 'Обери ціль у пошуку друзів.')
+        if not (cleaned.get('bff_bio') or '').strip():
+            self.add_error('bff_bio', 'Напиши опис для пошуку друзів.')
+        if not cleaned.get('bff_hobbies'):
+            self.add_error('bff_hobbies', 'Обери хоча б одне хобі для пошуку друзів.')
+        cleaned['hobby_levels'] = self._collect_levels(
+            cleaned.get('bff_hobbies'),
+            'bff_hobbies',
+            'hobby_level_',
+            HobbyLevel.values,
+        )
+        cleaned['language_levels'] = self._collect_levels(
+            cleaned.get('bff_languages'),
+            'bff_languages',
+            'language_level_',
+            LanguageLevel.values,
+        )
 
     def _collect_levels(self, tags, field_name, prefix, allowed):
         """Збирає рівні для обраних хобі або мов; додає помилку, якщо рівень не вказано."""
@@ -175,19 +208,18 @@ class ProfileSetupForm(forms.Form):
 
         if not cleaned.get('dating_interests'):
             self.add_error('dating_interests', 'Оберіть хоча б один інтерес для знайомств.')
-        if not cleaned.get('bff_hobbies'):
-            self.add_error('bff_hobbies', 'Оберіть хоча б одне хобі для пошуку друзів.')
 
-        cleaned['hobby_levels'] = self._collect_levels(
-            cleaned.get('bff_hobbies'),
-            'bff_hobbies',
-            'hobby_level_',
-            HobbyLevel.values,
-        )
-        cleaned['language_levels'] = self._collect_levels(
-            cleaned.get('bff_languages'),
-            'bff_languages',
-            'language_level_',
-            LanguageLevel.values,
-        )
+        skip_bff = self.data.get('skip_bff') == '1' or self._bff_section_empty(cleaned)
+        cleaned['skip_bff'] = skip_bff
+        if skip_bff:
+            cleaned['bff_looking_for'] = ''
+            cleaned['bff_bio'] = ''
+            cleaned['bff_interests'] = []
+            cleaned['bff_hobbies'] = []
+            cleaned['bff_languages'] = []
+            cleaned['hobby_levels'] = {}
+            cleaned['language_levels'] = {}
+        else:
+            self._validate_bff_section(cleaned)
+
         return cleaned

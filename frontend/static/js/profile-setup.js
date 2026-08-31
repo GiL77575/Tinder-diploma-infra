@@ -11,21 +11,117 @@
     const btnBack = document.getElementById('btn-back');
     const btnNext = document.getElementById('btn-next');
     const btnSubmit = document.getElementById('btn-submit');
+    const btnSkip = document.getElementById('btn-skip');
+    const skipBffInput = document.getElementById('skip-bff');
     const stepError = document.getElementById('step-error');
     const photosInput = document.getElementById('photos-input');
     const slots = Array.from(document.querySelectorAll('.photo-slot'));
     const photoBlobs = new Array(6).fill(null);
+    const setupPage = document.body.classList.contains('page-setup');
+    const cardBody = document.querySelector('.setup-card__body');
+    const setupCard = document.querySelector('.setup-card');
     let currentStep = 1;
+    let syncBirthDateHidden = () => {};
+
+    /** Картка ніколи не має скролитись сама (лише .setup-card__body).
+     * Браузер іноді сам скролює найближчий overflow-контейнер під час
+     * фокусу на вкладеному елементі — це «зʼїдає» верх картки. */
+    if (setupCard) {
+        setupCard.addEventListener('scroll', () => {
+            setupCard.scrollTop = 0;
+        });
+    }
+
+    /** Закриває всі компактні dropdown (дата, рівні хобі/мов). */
+    const compactDropdowns = {
+        items: [],
+        register(api) {
+            this.items.push(api);
+        },
+        closeAll(except) {
+            this.items.forEach((api) => {
+                if (except && api === except) {
+                    return;
+                }
+                api.close();
+            });
+        },
+    };
+
+    function getCrushFrameMetrics() {
+        const frame = document.querySelector('.crush-frame');
+        if (!frame) {
+            return null;
+        }
+        const frameRect = frame.getBoundingClientRect();
+        const frameWidth = 1920;
+        const scale = frameRect.width / frameWidth || 1;
+        return { frameRect, scale };
+    }
+
+    function positionCompactMenu(trigger, menu) {
+        const rect = trigger.getBoundingClientRect();
+        const frameMetrics = getCrushFrameMetrics();
+
+        menu.style.position = 'fixed';
+        menu.style.right = 'auto';
+        menu.style.zIndex = '200';
+
+        if (frameMetrics) {
+            const { frameRect, scale } = frameMetrics;
+            menu.style.left = `${(rect.left - frameRect.left) / scale}px`;
+            menu.style.top = `${(rect.bottom - frameRect.top + 4) / scale}px`;
+            menu.style.width = `${rect.width / scale}px`;
+            return;
+        }
+
+        menu.style.left = `${rect.left}px`;
+        menu.style.top = `${rect.bottom + 4}px`;
+        menu.style.width = `${rect.width}px`;
+    }
+
+    function resetCompactMenuPosition(menu) {
+        menu.style.position = '';
+        menu.style.top = '';
+        menu.style.left = '';
+        menu.style.width = '';
+        menu.style.right = '';
+        menu.style.zIndex = '';
+    }
+
+    /** Чи блок «Друзі» лишився порожнім (можна пропустити). */
+    function isBffEmpty() {
+        return !checked('bff_looking_for')
+            && !form.bff_bio.value.trim()
+            && !form.querySelector('input[name="bff_hobbies"]:checked')
+            && !form.querySelector('input[name="bff_languages"]:checked')
+            && !form.querySelector('input[name="bff_interests"]:checked');
+    }
+
+    function setSkipBff(value) {
+        if (skipBffInput) {
+            skipBffInput.value = value ? '1' : '';
+        }
+    }
 
     /** Показує крок wizard і оновлює кнопки «Назад / Далі / Зберегти». */
     function showStep(step) {
+        step = Math.max(1, Math.min(4, Number(step) || 1));
         currentStep = step;
+        if (step === 4) {
+            setSkipBff(false);
+        }
+        compactDropdowns.closeAll();
+        syncBirthDateHidden();
         panels.forEach((panel) => {
             panel.classList.toggle('is-active', Number(panel.dataset.step) === step);
         });
         dots.forEach((dot) => {
-            dot.classList.toggle('is-active', Number(dot.dataset.stepDot) <= step);
+            dot.classList.toggle('is-active', Number(dot.dataset.stepDot) === step);
         });
+        if (setupPage) {
+            document.body.dataset.setupStep = String(step);
+        }
         if (btnBack) {
             btnBack.hidden = step === 1;
         }
@@ -35,8 +131,16 @@
         if (btnSubmit) {
             btnSubmit.hidden = step !== 4;
         }
-        stepError.hidden = true;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (btnSkip) {
+            btnSkip.hidden = step !== 4;
+        }
+        if (stepError) {
+            stepError.hidden = true;
+        }
+        if (cardBody) {
+            cardBody.scrollTop = 0;
+        }
+        window.scrollTo(0, 0);
     }
 
     /** Показує текст помилки під кнопками кроку. */
@@ -55,8 +159,339 @@
         return photoBlobs.some(Boolean) || Boolean(form.querySelector('input[name="keep_photos"]'));
     }
 
+    /** Повертає вік у повних роках за ISO-датою YYYY-MM-DD або null. */
+    function getAgeFromIso(isoDate) {
+        const parts = isoDate.split('-').map(Number);
+        if (parts.length !== 3 || parts.some((part) => !part)) {
+            return null;
+        }
+        const [year, month, day] = parts;
+        const today = new Date();
+        let age = today.getFullYear() - year;
+        const monthDiff = today.getMonth() + 1 - month;
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < day)) {
+            age -= 1;
+        }
+        return age;
+    }
+
+    /** Компактні dropdown (день / місяць / рік) замість нативного select. */
+    function initBirthDatePicker() {
+        const hidden = form.querySelector('input[name="birth_date"]');
+        const birthDateRoot = form.querySelector('.birth-date');
+        if (!hidden || !birthDateRoot) {
+            return;
+        }
+
+        const monthNames = [
+            'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
+            'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень',
+        ];
+        const currentYear = new Date().getFullYear();
+        const maxYear = currentYear - 18;
+        const minYear = currentYear - 99;
+
+        const parts = {};
+        birthDateRoot.querySelectorAll('.birth-date__field').forEach((field) => {
+            const key = field.dataset.part;
+            parts[key] = {
+                field,
+                trigger: field.querySelector('.birth-date__trigger'),
+                valueEl: field.querySelector('.birth-date__value'),
+                menu: field.querySelector('.birth-date__menu'),
+                placeholder: field.querySelector('.birth-date__value').textContent.trim(),
+                value: '',
+            };
+        });
+
+        if (!parts.day || !parts.month || !parts.year) {
+            return;
+        }
+
+        function daysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function closeMenus(exceptPart) {
+            Object.values(parts).forEach((part) => {
+                if (exceptPart && part === exceptPart) {
+                    return;
+                }
+                part.menu.hidden = true;
+                part.trigger.setAttribute('aria-expanded', 'false');
+                part.trigger.classList.remove('is-open');
+                resetCompactMenuPosition(part.menu);
+            });
+            birthDateRoot.classList.remove('is-open');
+        }
+
+        function openMenu(part) {
+            const isOpen = !part.menu.hidden;
+            compactDropdowns.closeAll();
+            if (isOpen) {
+                return;
+            }
+            part.menu.hidden = false;
+            part.trigger.setAttribute('aria-expanded', 'true');
+            part.trigger.classList.add('is-open');
+            birthDateRoot.classList.add('is-open');
+            positionCompactMenu(part.trigger, part.menu);
+        }
+
+        Object.values(parts).forEach((part) => {
+            part.api = {
+                close: () => closeMenus(),
+            };
+            compactDropdowns.register(part.api);
+        });
+
+        function renderMenu(part, items) {
+            part.menu.innerHTML = '';
+            items.forEach(({ value, label }) => {
+                const option = document.createElement('li');
+                option.className = 'birth-date__option';
+                option.setAttribute('role', 'option');
+                option.dataset.value = String(value);
+                option.textContent = label;
+                if (String(part.value) === String(value)) {
+                    option.classList.add('is-selected');
+                    option.setAttribute('aria-selected', 'true');
+                }
+                option.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    setPartValue(part, value, label);
+                    closeMenus();
+                    if (part === parts.month || part === parts.year) {
+                        rebuildDays();
+                    }
+                    syncHidden();
+                });
+                part.menu.append(option);
+            });
+        }
+
+        function setPartValue(part, value, label) {
+            part.value = value ? String(value) : '';
+            part.valueEl.textContent = label || part.placeholder;
+            part.trigger.classList.toggle('is-filled', Boolean(part.value));
+        }
+
+        function populateMonthMenu() {
+            renderMenu(parts.month, monthNames.map((label, index) => ({
+                value: index + 1,
+                label,
+            })));
+        }
+
+        function populateYearMenu() {
+            const items = [];
+            for (let year = maxYear; year >= minYear; year -= 1) {
+                items.push({ value: year, label: String(year) });
+            }
+            renderMenu(parts.year, items);
+        }
+
+        function rebuildDays() {
+            const year = Number(parts.year.value);
+            const month = Number(parts.month.value);
+            const totalDays = year && month ? daysInMonth(year, month) : 31;
+            const previousDay = parts.day.value;
+            const items = [];
+            for (let day = 1; day <= totalDays; day += 1) {
+                items.push({ value: day, label: String(day) });
+            }
+            renderMenu(parts.day, items);
+            if (previousDay && Number(previousDay) <= totalDays) {
+                setPartValue(parts.day, previousDay, String(previousDay));
+            } else if (previousDay) {
+                setPartValue(parts.day, '', parts.day.placeholder);
+            }
+        }
+
+        function syncHidden() {
+            const year = parts.year.value;
+            const month = parts.month.value;
+            const day = parts.day.value;
+            if (year && month && day) {
+                hidden.value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            } else {
+                hidden.value = '';
+            }
+        }
+
+        function applyIsoValue(isoDate) {
+            if (!isoDate) {
+                return;
+            }
+            const [year, month, day] = isoDate.split('-');
+            if (!year || !month || !day) {
+                return;
+            }
+            setPartValue(parts.year, year, year);
+            setPartValue(parts.month, Number(month), monthNames[Number(month) - 1]);
+            rebuildDays();
+            setPartValue(parts.day, Number(day), String(Number(day)));
+            syncHidden();
+        }
+
+        Object.values(parts).forEach((part) => {
+            part.trigger.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openMenu(part);
+            });
+        });
+
+        populateMonthMenu();
+        populateYearMenu();
+        rebuildDays();
+        applyIsoValue(hidden.value);
+        syncBirthDateHidden = syncHidden;
+    }
+
+    /** Компактний dropdown для select рівня хобі / мов. */
+    function initLevelCompactSelects() {
+        form.querySelectorAll('.level-row select').forEach((nativeSelect) => {
+            if (nativeSelect.dataset.compactSelect === '1') {
+                return;
+            }
+            nativeSelect.dataset.compactSelect = '1';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'compact-select';
+            nativeSelect.parentNode.insertBefore(wrapper, nativeSelect);
+            wrapper.append(nativeSelect);
+
+            nativeSelect.classList.add('compact-select__native');
+            nativeSelect.tabIndex = -1;
+            nativeSelect.setAttribute('aria-hidden', 'true');
+
+            const trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'compact-select__trigger birth-date__trigger';
+            trigger.setAttribute('aria-haspopup', 'listbox');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.innerHTML = '<span class="compact-select__value birth-date__value"></span>';
+            wrapper.append(trigger);
+
+            const menu = document.createElement('ul');
+            menu.className = 'compact-select__menu birth-date__menu';
+            menu.setAttribute('role', 'listbox');
+            menu.hidden = true;
+            wrapper.append(menu);
+
+            const valueEl = trigger.querySelector('.compact-select__value');
+            const placeholder = nativeSelect.querySelector('option[value=""]')?.textContent.trim() || 'Рівень';
+
+            function syncDisplay() {
+                const selectedOption = nativeSelect.selectedOptions[0];
+                valueEl.textContent = selectedOption && selectedOption.value
+                    ? selectedOption.textContent
+                    : placeholder;
+                trigger.classList.toggle('is-filled', Boolean(nativeSelect.value));
+            }
+
+            function renderMenu() {
+                menu.innerHTML = '';
+                Array.from(nativeSelect.options).forEach((option) => {
+                    if (!option.value) {
+                        return;
+                    }
+                    const item = document.createElement('li');
+                    item.className = 'compact-select__option birth-date__option';
+                    item.setAttribute('role', 'option');
+                    item.textContent = option.textContent;
+                    if (nativeSelect.value === option.value) {
+                        item.classList.add('is-selected');
+                        item.setAttribute('aria-selected', 'true');
+                    }
+                    item.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        nativeSelect.value = option.value;
+                        syncDisplay();
+                        api.close();
+                        nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    menu.append(item);
+                });
+            }
+
+            function closeMenu() {
+                menu.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.classList.remove('is-open');
+                wrapper.classList.remove('is-open');
+                resetCompactMenuPosition(menu);
+            }
+
+            function ensureEnabled() {
+                if (nativeSelect.disabled) {
+                    const row = nativeSelect.closest('.level-row');
+                    const checkbox = row && row.querySelector('.js-level-toggle');
+                    if (checkbox && !checkbox.checked) {
+                        checkbox.checked = true;
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            }
+
+            function openMenu() {
+                ensureEnabled();
+                const isOpen = !menu.hidden;
+                compactDropdowns.closeAll();
+                if (isOpen || nativeSelect.disabled) {
+                    return;
+                }
+                renderMenu();
+                menu.hidden = false;
+                trigger.setAttribute('aria-expanded', 'true');
+                trigger.classList.add('is-open');
+                wrapper.classList.add('is-open');
+            }
+
+            const api = {
+                close: closeMenu,
+                setDisabled(disabled) {
+                    trigger.disabled = disabled;
+                    if (disabled) {
+                        closeMenu();
+                    }
+                },
+            };
+            compactDropdowns.register(api);
+            trigger.compactSelectApi = api;
+
+            trigger.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openMenu();
+            });
+
+            nativeSelect.addEventListener('change', syncDisplay);
+            api.setDisabled(nativeSelect.disabled);
+            syncDisplay();
+        });
+    }
+
+    initBirthDatePicker();
+    initLevelCompactSelects();
+
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('.compact-select') || event.target.closest('.birth-date__field')) {
+            return;
+        }
+        compactDropdowns.closeAll();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            compactDropdowns.closeAll();
+        }
+    });
+
     /** Повертає текст помилки для кроку або порожній рядок. */
     function validateStep(step) {
+        syncBirthDateHidden();
         if (step === 1) {
             if (!hasAnyPhoto()) {
                 return 'Додай хоча б одне фото.';
@@ -68,6 +503,16 @@
             }
             if (!form.birth_date.value) {
                 return 'Вкажи дату народження.';
+            }
+            const age = getAgeFromIso(form.birth_date.value);
+            if (age === null) {
+                return 'Перевір дату народження.';
+            }
+            if (age < 18) {
+                return 'Реєстрація доступна з 18 років.';
+            }
+            if (age > 99) {
+                return 'Перевірте дату народження.';
             }
             if (!checked('gender')) {
                 return 'Обери стать.';
@@ -91,6 +536,9 @@
             }
         }
         if (step === 4) {
+            if (isBffEmpty() || skipBffInput?.value === '1') {
+                return '';
+            }
             if (!checked('bff_looking_for')) {
                 return 'Обери ціль у пошуку друзів.';
             }
@@ -182,10 +630,10 @@
         if (slot.querySelector('.js-remove-photo')) {
             return;
         }
-        const remove = document.createElement('span');
+        const remove = document.createElement('button');
+        remove.type = 'button';
         remove.className = 'photo-slot__remove js-remove-photo';
         remove.setAttribute('aria-label', 'Видалити фото');
-        remove.textContent = '×';
         slot.append(remove);
     }
 
@@ -259,6 +707,12 @@
             select.disabled = !checkbox.checked;
             if (!checkbox.checked) {
                 select.value = '';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            const wrapper = select.closest('.compact-select');
+            const trigger = wrapper && wrapper.querySelector('.compact-select__trigger');
+            if (trigger && trigger.compactSelectApi) {
+                trigger.compactSelectApi.setDisabled(select.disabled);
             }
         };
         checkbox.addEventListener('change', sync);
@@ -283,6 +737,8 @@
 
     if (!isEdit && btnNext) {
         btnNext.addEventListener('click', () => {
+            syncBirthDateHidden();
+            compactDropdowns.closeAll();
             const message = validateStep(currentStep);
             if (message) {
                 setError(message);
@@ -298,13 +754,49 @@
         });
     }
 
+    if (!isEdit && btnSkip) {
+        btnSkip.addEventListener('click', () => {
+            setSkipBff(true);
+            syncBirthDateHidden();
+            compactDropdowns.closeAll();
+            const message = [1, 2, 3].map(validateStep).find(Boolean);
+            if (message) {
+                setSkipBff(false);
+                setError(message);
+                return;
+            }
+            syncPhotoInput();
+            if (!hasAnyPhoto()) {
+                setSkipBff(false);
+                setError('Додай хоча б одне фото.');
+                return;
+            }
+            form.requestSubmit();
+        });
+    }
+
     form.addEventListener('submit', (event) => {
-        const steps = isEdit ? [1, 2, 3, 4] : [4];
-        const message = steps.map(validateStep).find(Boolean);
+        syncBirthDateHidden();
+        compactDropdowns.closeAll();
+        let message = '';
+        if (isEdit) {
+            message = [1, 2, 3, 4].map(validateStep).find(Boolean) || '';
+        } else {
+            const skipping = skipBffInput?.value === '1' || isBffEmpty();
+            if (skipping) {
+                message = [1, 2, 3].map(validateStep).find(Boolean) || '';
+            } else {
+                message = validateStep(4);
+            }
+        }
         if (message) {
             event.preventDefault();
+            setSkipBff(false);
             setError(message);
             return;
+        }
+        if (!isBffEmpty()) {
+            setSkipBff(false);
         }
         syncPhotoInput();
         if (!hasAnyPhoto()) {

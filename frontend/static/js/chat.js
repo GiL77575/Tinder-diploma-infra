@@ -24,6 +24,8 @@
         conversationId: null,
         ws: null,
         wsReconnectAttempts: 0,
+        inboxWs: null,
+        inboxReconnectAttempts: 0,
         activeMatchId: null,
         activeCandidateUserId: null,
         activeCandidate: null,
@@ -690,6 +692,43 @@
         }
     }
 
+    /* ---------------- Постійний inbox-канал (живий на всій сторінці /app/) ---------------- */
+
+    /* На відміну від чат-сокета (тільки поки відкритий конкретний діалог), inbox-сокет
+       підключається один раз при завантаженні сторінки і не закривається при переходах
+       між свайпами/діалогами — саме тому нові повідомлення й прев'ю оновлюються без
+       перезавантаження сторінки, навіть якщо співрозмовник зараз не в цьому чаті. */
+    function connectInboxSocket() {
+        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const ws = new WebSocket(`${proto}://${window.location.host}/ws/inbox/`);
+        state.inboxWs = ws;
+
+        ws.onopen = () => {
+            state.inboxReconnectAttempts = 0;
+        };
+
+        ws.onmessage = (event) => {
+            let payload;
+            try {
+                payload = JSON.parse(event.data);
+            } catch (e) {
+                return;
+            }
+            handleWsEvent(payload);
+        };
+
+        ws.onclose = (event) => {
+            if (state.inboxWs !== ws) return;
+            state.inboxWs = null;
+            if (event.code === 4001) return; // неавторизований — реконект не допоможе
+            state.inboxReconnectAttempts += 1;
+            const delay = Math.min(1000 * state.inboxReconnectAttempts, 10000);
+            setTimeout(connectInboxSocket, delay);
+        };
+
+        ws.onerror = () => { /* onclose обробить реконект */ };
+    }
+
     function handleWsEvent(payload) {
         switch (payload.type) {
             case 'message':
@@ -777,4 +816,5 @@
     /* ---------------- Ініціалізація ---------------- */
 
     setMode(state.mode, { silent: true });
+    connectInboxSocket();
 })();

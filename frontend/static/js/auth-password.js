@@ -1,4 +1,15 @@
 (function () {
+    function syncFilledState(input) {
+        input.classList.toggle("is-filled", input.value.length > 0);
+    }
+
+    document.querySelectorAll(".password-wrapper input").forEach(function (input) {
+        syncFilledState(input);
+        input.addEventListener("input", function () {
+            syncFilledState(input);
+        });
+    });
+
     document.querySelectorAll(".toggle-password").forEach(function (btn) {
         btn.addEventListener("click", function () {
             var input = document.getElementById(btn.getAttribute("data-target"));

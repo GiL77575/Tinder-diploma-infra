@@ -1,16 +1,15 @@
 {% csrf_token %}
+<input type="hidden" name="skip_bff" id="skip-bff" value="">
 <input type="file" id="photos-input" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
 
 <section class="panel is-active" data-step="1">
-    <h2>Фото профілю</h2>
-    <p class="hint">До 6 фото. Перше стане головним. Зображення обріжеться до квадрата.</p>
     <div class="photo-grid">
         {% for slot in photo_slots %}
             <div class="photo-slot {% if slot.photo %}is-filled{% endif %}" data-slot="{{ slot.index }}" role="button" tabindex="0" aria-label="Додати фото">
                 {% if slot.photo %}
                     <img src="{{ slot.photo.url }}" alt="Фото профілю">
                     <input type="hidden" name="keep_photos" value="{{ slot.photo.id }}">
-                    <span class="photo-slot__remove js-remove-photo" aria-label="Видалити фото">×</span>
+                    <span class="photo-slot__remove js-remove-photo" aria-label="Видалити фото"></span>
                 {% else %}
                     <span class="photo-slot__plus">+</span>
                 {% endif %}
@@ -30,11 +29,36 @@
         {{ form.display_name.errors }}
     </label>
 
-    <label class="field">
+    <div class="field birth-date">
         <span>Дата народження</span>
-        <input type="date" name="birth_date" value="{% if form.birth_date.value %}{% firstof form.birth_date.value|date:'Y-m-d' form.birth_date.value %}{% endif %}">
+        <div class="birth-date__row">
+            <div class="birth-date__field" data-part="day">
+                <button type="button" class="birth-date__trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="birth-date__value">День</span>
+                </button>
+                <ul class="birth-date__menu" role="listbox" hidden></ul>
+            </div>
+            <div class="birth-date__field" data-part="month">
+                <button type="button" class="birth-date__trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="birth-date__value">Місяць</span>
+                </button>
+                <ul class="birth-date__menu" role="listbox" hidden></ul>
+            </div>
+            <div class="birth-date__field" data-part="year">
+                <button type="button" class="birth-date__trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="birth-date__value">Рік</span>
+                </button>
+                <ul class="birth-date__menu" role="listbox" hidden></ul>
+            </div>
+        </div>
+        <input
+            type="hidden"
+            name="birth_date"
+            id="birth-date-input"
+            value="{% if form.birth_date.value %}{% firstof form.birth_date.value|date:'Y-m-d' form.birth_date.value %}{% endif %}"
+        >
         {{ form.birth_date.errors }}
-    </label>
+    </div>
 
     <fieldset class="field">
         <legend>Стать</legend>
@@ -165,7 +189,7 @@
 
 <section class="panel panel--bff" data-step="4">
     <h2>Пошук друзів</h2>
-    <p class="hint">Окремий опис, хобі з рівнем і мови з рівнем (наприклад, шведська B1).</p>
+    <p class="hint">Окремий опис, хобі з рівнем і мови з рівнем (наприклад, шведська B1). Можеш <strong>пропустити</strong> цей крок і заповнити анкету пізніше в профілі — без неї ти не з’являтимешся в пошуку друзів.</p>
 
     <fieldset class="field">
         <legend>Що шукаєш</legend>
@@ -190,16 +214,18 @@
         <legend>Хобі та рівень</legend>
         <div class="level-list">
             {% for item in hobby_options %}
-                <label class="level-row">
-                    <input type="checkbox" name="bff_hobbies" value="{{ item.tag.id }}" class="js-level-toggle" data-level-target="hobby-level-{{ item.tag.id }}" {% if item.selected %}checked{% endif %}>
-                    <span class="level-row__name">{{ item.tag.name }}</span>
+                <div class="level-row">
+                    <label class="level-row__pick">
+                        <input type="checkbox" name="bff_hobbies" value="{{ item.tag.id }}" class="js-level-toggle" data-level-target="hobby-level-{{ item.tag.id }}" {% if item.selected %}checked{% endif %}>
+                        <span class="level-row__name">{{ item.tag.name }}</span>
+                    </label>
                     <select name="hobby_level_{{ item.tag.id }}" id="hobby-level-{{ item.tag.id }}" {% if not item.selected %}disabled{% endif %}>
                         <option value="">Рівень</option>
                         {% for value, label in hobby_levels %}
                             <option value="{{ value }}" {% if item.level == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
-                </label>
+                </div>
             {% endfor %}
         </div>
         {{ form.bff_hobbies.errors }}
@@ -209,16 +235,18 @@
         <legend>Мови</legend>
         <div class="level-list">
             {% for item in language_options %}
-                <label class="level-row">
-                    <input type="checkbox" name="bff_languages" value="{{ item.tag.id }}" class="js-level-toggle" data-level-target="language-level-{{ item.tag.id }}" {% if item.selected %}checked{% endif %}>
-                    <span class="level-row__name">{{ item.tag.name }}</span>
+                <div class="level-row">
+                    <label class="level-row__pick">
+                        <input type="checkbox" name="bff_languages" value="{{ item.tag.id }}" class="js-level-toggle" data-level-target="language-level-{{ item.tag.id }}" {% if item.selected %}checked{% endif %}>
+                        <span class="level-row__name">{{ item.tag.name }}</span>
+                    </label>
                     <select name="language_level_{{ item.tag.id }}" id="language-level-{{ item.tag.id }}" {% if not item.selected %}disabled{% endif %}>
                         <option value="">Рівень</option>
                         {% for value, label in language_levels %}
                             <option value="{{ value }}" {% if item.level == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
-                </label>
+                </div>
             {% endfor %}
         </div>
         {{ form.bff_languages.errors }}

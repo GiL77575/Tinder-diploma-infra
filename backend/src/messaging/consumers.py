@@ -1,4 +1,10 @@
-"""WebSocket-споживач чату: одне з'єднання = один діалог + особистий inbox-канал."""
+"""WebSocket-споживачі чату.
+
+ChatConsumer — одне з'єднання = один відкритий діалог (повідомлення, typing, read).
+InboxConsumer — окремий постійний канал користувача (не прив'язаний до діалогу),
+тримається відкритим весь час на сторінці /app/, щоб оновлення списку діалогів
+(нові повідомлення, прев'ю) приходили миттєво, навіть коли конкретний чат не відкритий.
+"""
 
 import json
 
@@ -32,19 +38,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.user = user
         self.conversation_group = f'conversation_{self.conversation_id}'
-        self.personal_group = f'user_{user.id}'
 
         await self.channel_layer.group_add(self.conversation_group, self.channel_name)
-        await self.channel_layer.group_add(self.personal_group, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
         conversation_group = getattr(self, 'conversation_group', None)
-        personal_group = getattr(self, 'personal_group', None)
         if conversation_group:
             await self.channel_layer.group_discard(conversation_group, self.channel_name)
-        if personal_group:
-            await self.channel_layer.group_discard(personal_group, self.channel_name)
 
     async def receive(self, text_data=None, bytes_data=None):
         try:
@@ -115,9 +116,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # --- групові обробники (розсилаються всім у групі, включно з відправником) ---
 
     async def chat_message(self, event):
+        # message_data однаковий для всієх учасників групи, тож is_mine
+        # рахуємо саме тут — окремо для кожного отримувача цього конкретного
+        # з'єднання, а не один раз відносно відправника.
+        message = dict(event['message'])
+        message['is_mine'] = message['sender_id'] == self.user.id
         await self.send(text_data=json.dumps({
             'type': 'message',
-            'message': event['message'],
+            'message': message,
         }))
 
     async def chat_read(self, event):
@@ -134,16 +140,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'typing',
             'user_id': event['user_id'],
             'is_typing': event['is_typing'],
-        }))
-
-    async def dialog_update(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'dialog_update',
-            'conversation_id': event['conversation_id'],
-            'preview': event['preview'],
-            'time_label': event['time_label'],
-            'sender_id': event['sender_id'],
-            'mode': event['mode'],
         }))
 
     # --- доступ до БД (синхронний ORM у async-обгортках) ---
@@ -180,3 +176,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _mark_read(self):
         conversation = Conversation.objects.get(pk=self.conversation_id)
         return mark_conversation_read(conversation, self.user)
+
+
+class InboxConsumer(AsyncWebsocketConsumer):
+    """Постійний особистий канал користувача: живий, поки відкрита сторінка /app/,
+    незалежно від того, який саме діалог (якщо взагалі) зараз відкритий.
+    Використовується лише для пасивних push-оновлень списку діалогів."""
+
+    async def connect(self):
+        user = self.scope.get('user')
+        if user is None or not user.is_authenticated:
+            await self.close(code=4001)
+            return
+
+        self.user = user
+        self.personal_group = f'user_{user.id}'
+
+        await self.channel_layer.group_add(self.personal_group, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        personal_group = getattr(self, 'personal_group', None)
+        if personal_group:
+            await self.channel_layer.group_discard(personal_group, self.channel_name)
+
+    async def receive(self, text_data=None, bytes_data=None):
+        # Клієнт нічого не надсилає в inbox-канал — це лише вхідні push-події.
+        pass
+
+    async def dialog_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'dialog_update',
+            'conversation_id': event['conversation_id'],
+            'preview': event['preview'],
+            'time_label': event['time_label'],
+            'sender_id': event['sender_id'],
+            'mode': event['mode'],
+        }))

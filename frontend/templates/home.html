@@ -15,11 +15,15 @@
     <div class="crush-viewport">
         {# Figma: Перша сторінка 1920×1080 #}
         <div class="crush-frame">
-            {# Figma: розсипані сердечка на фоні — одна фігура (heart-outline.svg), повторно використана через <use> #}
-            <div class="deco-hearts" aria-hidden="true">
-                {% for i in "1234567890" %}
-                    <svg class="deco-heart landing-heart--{{ forloop.counter }}"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
-                {% endfor %}
+            <div class="landing-deco-hearts" aria-hidden="true">
+                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--1" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="40" height="40">
+                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--2"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
+                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--3" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="34" height="34">
+                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--4"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
+                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--5" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="38" height="38">
+                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--6"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
+                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--7" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="32" height="32">
+                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--8"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
             </div>
 
             {% include 'includes/landing_header.html' %}

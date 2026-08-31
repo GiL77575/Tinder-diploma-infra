@@ -1,35 +1,66 @@
 /* crush — landing content (Figma 1920×1080), лише home */
 
-/* Figma "Rectangle 115" — фон головної (перекриває спільний --landing-gradient
-   лише для .page-home, інші сторінки (auth/info/chat) не торкаються). */
-body.page-home {
-    background: linear-gradient(
-        285.56deg,
-        rgba(249, 130, 207, 0.01) -14.06%,
-        #f6f6f6 25.77%,
-        rgba(231, 213, 255, 0.5) 62.02%,
-        #f6f6f6 92.15%
-    );
-    background-color: var(--crush-bg);
+/* Хедер — розміри з макета Figma (лише home) */
+body.page-home .landing-logo {
+    left: 192px;
+    top: 15px;
+    width: auto;
+    height: auto;
+    font-size: 40px;
+    line-height: 50px;
 }
 
-/* Позиції розсипаних сердечок (.deco-hearts/.deco-heart — спільні класи з crush.css) */
-.landing-heart--1 { top: 108px;  left: 68px;    width: 34px; height: 34px; opacity: 0.22; transform: rotate(-10deg); }
-.landing-heart--2 { top: 56px;   left: 556px;   width: 24px; height: 24px; opacity: 0.16; transform: rotate(16deg); }
-.landing-heart--3 { top: 148px;  left: 1006px;  width: 40px; height: 40px; opacity: 0.16; transform: rotate(-12deg); }
-.landing-heart--4 { top: 478px;  left: 38px;    width: 28px; height: 28px; opacity: 0.18; transform: rotate(8deg); }
-.landing-heart--5 { top: 258px;  left: 1748px;  width: 36px; height: 36px; opacity: 0.2;  transform: rotate(12deg); }
-.landing-heart--6 { top: 556px;  left: 1828px;  width: 26px; height: 26px; opacity: 0.16; transform: rotate(-8deg); }
-.landing-heart--7 { top: 828px;  left: 108px;   width: 44px; height: 44px; opacity: 0.2;  transform: rotate(10deg); }
-.landing-heart--8 { top: 928px;  left: 658px;   width: 26px; height: 26px; opacity: 0.15; transform: rotate(-14deg); }
-.landing-heart--9 { top: 758px;  left: 986px;   width: 30px; height: 30px; opacity: 0.16; transform: rotate(6deg); }
-.landing-heart--10 { top: 898px; left: 1788px;  width: 38px; height: 38px; opacity: 0.18; transform: rotate(-10deg); }
+body.page-home .landing-nav {
+    top: 25px;
+    left: 1391px;
+    gap: 30px;
+}
+
+body.page-home .landing-nav a {
+    font-size: 20px;
+    line-height: 25px;
+}
+
+/* Декор: heart-outline.png + heart-outline.svg, без виходу на бокові краї */
+.landing-deco-hearts {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.landing-deco-heart {
+    position: absolute;
+    pointer-events: none;
+}
+
+.landing-deco-heart--png {
+    mix-blend-mode: screen;
+    opacity: 0.2;
+}
+
+.landing-deco-heart--svg {
+    fill: none;
+    overflow: visible;
+    color: var(--crush-purple);
+    opacity: 0.18;
+}
+
+.landing-deco-heart--1 { top: 108px; left: 180px;  width: 40px; height: 40px; transform: rotate(-10deg); }
+.landing-deco-heart--2 { top: 56px;  left: 620px;  width: 32px; height: 32px; transform: rotate(16deg); }
+.landing-deco-heart--3 { top: 148px; left: 980px; width: 34px; height: 34px; transform: rotate(-12deg); }
+.landing-deco-heart--4 { top: 478px; left: 280px; width: 28px; height: 28px; transform: rotate(8deg); }
+.landing-deco-heart--5 { top: 258px; left: 1580px; width: 38px; height: 38px; transform: rotate(12deg); }
+.landing-deco-heart--6 { top: 556px; left: 420px; width: 30px; height: 30px; transform: rotate(-8deg); }
+.landing-deco-heart--7 { top: 828px; left: 720px; width: 32px; height: 32px; transform: rotate(10deg); }
+.landing-deco-heart--8 { top: 758px; left: 1420px; width: 36px; height: 36px; transform: rotate(-10deg); }
 
 .landing-info {
     position: absolute;
     left: 190px;
     top: 412px;
     width: 910px;
+    z-index: 1;
 }
 
 .landing-title {
@@ -81,6 +112,7 @@ body.page-home {
     top: 631px;
     display: flex;
     gap: 20px;
+    z-index: 1;
 }
 
 .landing-tag {
@@ -107,6 +139,7 @@ body.page-home {
     top: 712px;
     display: flex;
     gap: 20px;
+    z-index: 1;
 }
 
 .landing-btn {
@@ -129,11 +162,12 @@ body.page-home {
     background: var(--crush-purple);
     color: var(--crush-white);
     border: none;
-    box-shadow: var(--crush-shadow-btn);
+    filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.35));
+    box-shadow: 0 0 7px 2px rgba(0, 0, 0, 0.25);
 }
 
 .landing-btn--primary:hover {
-    filter: brightness(1.05);
+    filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.35)) brightness(1.05);
 }
 
 .landing-btn--secondary {
@@ -156,4 +190,5 @@ body.page-home {
     object-position: center bottom;
     pointer-events: none;
     user-select: none;
+    z-index: 1;
 }
