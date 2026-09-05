@@ -4,16 +4,24 @@ from django import forms
 from django.conf import settings
 
 from profiles.models import (
+    AgePreference,
+    AlcoholHabit,
     BffLookingFor,
     ChildrenStatus,
     Gender,
     HobbyLevel,
     LanguageLevel,
     LookingFor,
+    MeetingFormat,
     Orientation,
+    PartnerHabitAttitude,
+    PetsStatus,
+    RelationshipGoal,
     SearchMode,
     SmokingHabit,
+    SportFrequency,
     Tag,
+    ZodiacSign,
     calculate_age,
 )
 
@@ -45,6 +53,26 @@ class ProfileSetupForm(forms.Form):
         required=False,
         label='Діти',
     )
+    alcohol = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(AlcoholHabit.choices),
+        required=False,
+        label='Алкоголь',
+    )
+    sport = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(SportFrequency.choices),
+        required=False,
+        label='Спорт',
+    )
+    pets = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(PetsStatus.choices),
+        required=False,
+        label='Домашні тварини',
+    )
+    zodiac_sign = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(ZodiacSign.choices),
+        required=False,
+        label='Знак зодіаку',
+    )
     active_mode = forms.ChoiceField(
         choices=SearchMode.choices,
         initial=SearchMode.DATING,
@@ -52,12 +80,39 @@ class ProfileSetupForm(forms.Form):
     )
     dating_looking_for = forms.ChoiceField(
         choices=LookingFor.choices,
+        required=False,
         label='Кого шукаєш',
     )
     min_age = forms.IntegerField(min_value=18, max_value=99, initial=18)
     max_age = forms.IntegerField(min_value=18, max_value=99, initial=35)
+    dating_age_preference = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(AgePreference.choices),
+        required=False,
+        label='Вибагливість щодо віку',
+    )
+    dating_relationship_goal = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(RelationshipGoal.choices),
+        required=False,
+        label='Мета знайомства',
+    )
+    dating_smoking_attitude = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(PartnerHabitAttitude.choices),
+        required=False,
+        label='Ставлення до паління партнера',
+    )
+    dating_alcohol_attitude = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(PartnerHabitAttitude.choices),
+        required=False,
+        label='Ставлення до алкоголю партнера',
+    )
+    dating_meeting_format = forms.ChoiceField(
+        choices=[('', 'Не вказувати')] + list(MeetingFormat.choices),
+        required=False,
+        label='Формат майбутніх зустрічей',
+    )
     dating_bio = forms.CharField(
         max_length=500,
+        required=False,
         widget=forms.Textarea,
         label='Про себе в режимі знайомств',
     )
@@ -65,9 +120,10 @@ class ProfileSetupForm(forms.Form):
         queryset=Tag.objects.none(),
         required=False,
     )
-    bff_looking_for = forms.ChoiceField(
+    bff_looking_for = forms.MultipleChoiceField(
         choices=BffLookingFor.choices,
         required=False,
+        widget=forms.CheckboxSelectMultiple,
         label='Що шукаєш у пошуку друзів',
     )
     bff_bio = forms.CharField(
@@ -119,6 +175,23 @@ class ProfileSetupForm(forms.Form):
     def clean_city(self):
         """Прибирає зайві пробіли в місті."""
         return self.cleaned_data['city'].strip()
+
+    def _dating_section_empty(self, cleaned):
+        """Чи користувач нічого не заповнив у блоці «Знайомства» (крім вибору режиму)."""
+        return not any([
+            cleaned.get('dating_looking_for'),
+            (cleaned.get('dating_bio') or '').strip(),
+            cleaned.get('dating_interests'),
+        ])
+
+    def _validate_dating_section(self, cleaned):
+        """Повна перевірка Dating-анкети, якщо користувач її не пропустив."""
+        if not cleaned.get('dating_looking_for'):
+            self.add_error('dating_looking_for', 'Обери, кого шукаєш у режимі знайомств.')
+        if not (cleaned.get('dating_bio') or '').strip():
+            self.add_error('dating_bio', 'Напиши опис для знайомств.')
+        if not cleaned.get('dating_interests'):
+            self.add_error('dating_interests', 'Оберіть хоча б один інтерес для знайомств.')
 
     def _bff_section_empty(self, cleaned):
         """Чи користувач нічого не заповнив у блоці «Друзі»."""
@@ -172,10 +245,13 @@ class ProfileSetupForm(forms.Form):
             (2, {
                 'display_name', 'birth_date', 'gender', 'orientation',
                 'city', 'job', 'height_cm', 'smoking', 'children',
+                'alcohol', 'sport', 'pets', 'zodiac_sign',
             }),
             (3, {
                 'active_mode', 'dating_looking_for', 'min_age', 'max_age',
-                'dating_bio', 'dating_interests',
+                'dating_age_preference', 'dating_relationship_goal',
+                'dating_smoking_attitude', 'dating_alcohol_attitude',
+                'dating_meeting_format', 'dating_bio', 'dating_interests',
             }),
             (4, {
                 'bff_looking_for', 'bff_bio', 'bff_interests',
@@ -206,13 +282,24 @@ class ProfileSetupForm(forms.Form):
         if min_age and max_age and min_age > max_age:
             self.add_error('max_age', 'Максимальний вік має бути не меншим за мінімальний.')
 
-        if not cleaned.get('dating_interests'):
-            self.add_error('dating_interests', 'Оберіть хоча б один інтерес для знайомств.')
+        skip_dating = self.data.get('skip_dating') == '1' or self._dating_section_empty(cleaned)
+        cleaned['skip_dating'] = skip_dating
+        if skip_dating:
+            cleaned['dating_looking_for'] = ''
+            cleaned['dating_bio'] = ''
+            cleaned['dating_interests'] = Tag.objects.none()
+            cleaned['dating_age_preference'] = ''
+            cleaned['dating_relationship_goal'] = ''
+            cleaned['dating_smoking_attitude'] = ''
+            cleaned['dating_alcohol_attitude'] = ''
+            cleaned['dating_meeting_format'] = ''
+        else:
+            self._validate_dating_section(cleaned)
 
         skip_bff = self.data.get('skip_bff') == '1' or self._bff_section_empty(cleaned)
         cleaned['skip_bff'] = skip_bff
         if skip_bff:
-            cleaned['bff_looking_for'] = ''
+            cleaned['bff_looking_for'] = []
             cleaned['bff_bio'] = ''
             cleaned['bff_interests'] = []
             cleaned['bff_hobbies'] = []

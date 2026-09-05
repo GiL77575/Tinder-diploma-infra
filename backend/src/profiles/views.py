@@ -4,21 +4,30 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Case, IntegerField, Value, When
 from django.shortcuts import redirect, render
 
 from profiles.forms import ProfileSetupForm
 from profiles.models import (
+    AgePreference,
+    AlcoholHabit,
     BffLookingFor,
     ChildrenStatus,
     Gender,
     HobbyLevel,
     LanguageLevel,
     LookingFor,
+    MeetingFormat,
     Orientation,
+    PartnerHabitAttitude,
+    PetsStatus,
+    RelationshipGoal,
     SearchMode,
     SmokingHabit,
+    SportFrequency,
     Tag,
     TagCategory,
+    ZodiacSign,
 )
 from profiles.services import (
     clear_draft_photos,
@@ -30,13 +39,90 @@ from profiles.services import (
 )
 
 
+# Порядок показу тегів у формі — так само, як у макеті Figma (не за алфавітом).
+# Теги, яких немає в списку (додані пізніше), показуються після нього за
+# алфавітом, щоб жоден новий тег не загубився.
+INTEREST_TAG_ORDER = [
+    'Ігри', 'Подорожі', 'Кіно', 'Музика',
+    'Прогулянки', 'Спорт', 'Кава', 'Тварини',
+    'Їжа', 'Кулінарія', 'Мистецтво', 'Фотографія',
+    'Фітнес', 'Танці', 'Читання', 'Психологія',
+    'Настільні ігри', 'Технології', 'Шопінг', 'Мода',
+    'Наука', 'Волонтерство', 'Татуювання', "Кар'єра та бізнес",
+    'Йога', 'Велосипед', 'Авто / Мото', 'Стендап',
+    'Аніме', 'Веганство', 'Кемпінг',
+]
+
+# «Хобі та рівень» на кроці «Друзі» — макет показує анкету у 2 колонки, тож
+# порядок тут «рядковий» (перший і другий елемент — один рядок, і т.д.).
+HOBBY_TAG_ORDER = [
+    'Велосипед', 'Біг',
+    'Гітара', 'Йога',
+    'Кулінарія', 'Малювання',
+    'Настільні ігри', 'Плавання',
+    'Походи', 'Шахи',
+    'Фотографія', 'Відео',
+    'Танці', 'IT',
+]
+
+# «Мови» на кроці «Друзі» — так само 2 колонки, порядок рядковий.
+LANGUAGE_TAG_ORDER = [
+    'Англійська', 'Іспанська',
+    'Німецька', 'Польська',
+    'Українська', 'Французька',
+    'Шведська', 'Італійська',
+    'Китайська', 'Японська',
+    'Корейська', 'Чеська',
+]
+
+
+def _ordered_tags(category, order):
+    """Теги однієї категорії у фіксованому порядку за макетом (не за алфавітом).
+
+    Лишається справжнім QuerySet (а не списком), бо ModelMultipleChoiceField
+    у формі викликає .all() на переданому queryset.
+    """
+    order_cases = [
+        When(name=name, then=Value(index))
+        for index, name in enumerate(order)
+    ]
+    return Tag.objects.filter(category=category).annotate(
+        _display_order=Case(
+            *order_cases,
+            default=Value(len(order)),
+            output_field=IntegerField(),
+        ),
+    ).order_by('_display_order', 'name')
+
+
 def _tag_querysets():
     """Довідники тегів для чекбоксів форми."""
     return {
-        'interest_qs': Tag.objects.filter(category=TagCategory.INTEREST),
-        'hobby_qs': Tag.objects.filter(category=TagCategory.HOBBY),
-        'language_qs': Tag.objects.filter(category=TagCategory.LANGUAGE),
+        'interest_qs': _ordered_tags(TagCategory.INTEREST, INTEREST_TAG_ORDER),
+        'hobby_qs': _ordered_tags(TagCategory.HOBBY, HOBBY_TAG_ORDER),
+        'language_qs': _ordered_tags(TagCategory.LANGUAGE, LANGUAGE_TAG_ORDER),
     }
+
+
+def _selected_bff_goals(request, profile):
+    """Обрані цілі «Що шукаєш» у пошуку друзів — з POST або зі збереженого профілю."""
+    if request.method == 'POST':
+        return set(request.POST.getlist('bff_looking_for'))
+    if profile is None:
+        return set()
+    bff = profile.get_mode(SearchMode.BFF)
+    if not bff or not bff.looking_for:
+        return set()
+    return set(bff.looking_for.split(','))
+
+
+def _bff_looking_for_options(request, profile):
+    """Список цілей «Що шукаєш» для чекбоксів-чіпів (значення, підпис, обрано)."""
+    selected = _selected_bff_goals(request, profile)
+    return [
+        {'value': value, 'label': label, 'selected': value in selected}
+        for value, label in BffLookingFor.choices
+    ]
 
 
 def _completed_profile(user):
@@ -152,9 +238,17 @@ def _form_page_context(request, form, tag_qs, profile=None):
         'genders': Gender.choices,
         'orientations': Orientation.choices,
         'looking_for_choices': LookingFor.choices,
-        'bff_looking_for_choices': BffLookingFor.choices,
+        'bff_looking_for_options': _bff_looking_for_options(request, profile),
         'smoking_choices': SmokingHabit.choices,
         'children_choices': ChildrenStatus.choices,
+        'alcohol_choices': AlcoholHabit.choices,
+        'sport_choices': SportFrequency.choices,
+        'pets_choices': PetsStatus.choices,
+        'zodiac_choices': ZodiacSign.choices,
+        'age_preference_choices': AgePreference.choices,
+        'relationship_goal_choices': RelationshipGoal.choices,
+        'partner_attitude_choices': PartnerHabitAttitude.choices,
+        'meeting_format_choices': MeetingFormat.choices,
         'hobby_levels': HobbyLevel.choices,
         'language_levels': LanguageLevel.choices,
     }

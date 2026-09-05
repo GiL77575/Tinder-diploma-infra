@@ -32,17 +32,49 @@ class Orientation(models.TextChoices):
 
 
 class LookingFor(models.TextChoices):
-    MALE = 'male', 'Хлопців'
-    FEMALE = 'female', 'Дівчат'
-    EVERYONE = 'everyone', 'Усіх'
+    MALE = 'male', 'Хлопця'
+    FEMALE = 'female', 'Дівчину'
+    EVERYONE = 'everyone', 'Обох'
+
+
+class RelationshipGoal(models.TextChoices):
+    """Мета знайомства — що людина шукає в романтичному режимі."""
+    SERIOUS = 'serious', 'Серйозні стосунки'
+    DATING = 'dating', 'Побачення та флірт'
+    CASUAL = 'casual', 'Вільні стосунки'
+
+
+class PartnerHabitAttitude(models.TextChoices):
+    """Ставлення до звички партнера (курить / вживає алкоголь)."""
+    NEGATIVE = 'negative', 'Негативне'
+    NEUTRAL = 'neutral', 'Нейтральне'
+    POSITIVE = 'positive', 'Позитивне'
+
+
+class MeetingFormat(models.TextChoices):
+    """Формат майбутніх зустрічей із партнером."""
+    IN_PERSON = 'in_person', 'Особисті зустрічі'
+    ONLINE = 'online', 'Спілкування онлайн'
+    BOTH = 'both', 'Обидва варіанти'
+
+
+class AgePreference(models.TextChoices):
+    """Вибагливість щодо віку партнера — обмежує чи розширює діапазон min/max."""
+    NO_LIMIT = 'no_limit', 'Без обмежень'
+    PEERS = 'peers', 'Однолітки'
 
 
 class BffLookingFor(models.TextChoices):
+    """Цілі спілкування в пошуку друзів («Що шукаєш») — можна обрати декілька."""
     HOBBY = 'hobby', 'Компанія для хобі'
     LANGUAGE = 'language', 'Мовний обмін'
     TRAVEL = 'travel', 'Подорожі'
-    COWORKING = 'coworking', 'Коворкінг / навчання'
+    COWORKING = 'coworking', 'Коворкінг'
+    WALKS = 'walks', 'Прогулянки'
+    SOCIALIZING = 'socializing', 'Спілкування'
+    BOARD_GAMES = 'board_games', 'Настілки/ігри'
     HANGOUT = 'hangout', 'Просто друзі'
+    CULTURE = 'culture', 'Культурний відпочинок'
 
 
 class SearchMode(models.TextChoices):
@@ -61,6 +93,38 @@ class ChildrenStatus(models.TextChoices):
     HAVE = 'have', 'Є діти'
     WANT = 'want', 'Хочу дітей'
     UNSURE = 'unsure', 'Поки не знаю'
+
+
+class AlcoholHabit(models.TextChoices):
+    NO = 'no', "Не п'ю"
+    SOMETIMES = 'sometimes', 'Інколи'
+    YES = 'yes', 'Часто'
+
+
+class SportFrequency(models.TextChoices):
+    NO = 'no', 'Не займаюсь'
+    SOMETIMES = 'sometimes', 'Інколи'
+    YES = 'yes', 'Часто'
+
+
+class PetsStatus(models.TextChoices):
+    NO = 'no', 'Немає'
+    HAVE = 'have', 'Є домашні тварини'
+
+
+class ZodiacSign(models.TextChoices):
+    ARIES = 'aries', 'Овен'
+    TAURUS = 'taurus', 'Телець'
+    GEMINI = 'gemini', 'Близнюки'
+    CANCER = 'cancer', 'Рак'
+    LEO = 'leo', 'Лев'
+    VIRGO = 'virgo', 'Діва'
+    LIBRA = 'libra', 'Терези'
+    SCORPIO = 'scorpio', 'Скорпіон'
+    SAGITTARIUS = 'sagittarius', 'Стрілець'
+    CAPRICORN = 'capricorn', 'Козерог'
+    AQUARIUS = 'aquarius', 'Водолій'
+    PISCES = 'pisces', 'Риби'
 
 
 class HobbyLevel(models.TextChoices):
@@ -126,6 +190,26 @@ class Profile(models.Model):
         choices=ChildrenStatus.choices,
         blank=True,
     )
+    alcohol = models.CharField(
+        max_length=20,
+        choices=AlcoholHabit.choices,
+        blank=True,
+    )
+    sport = models.CharField(
+        max_length=20,
+        choices=SportFrequency.choices,
+        blank=True,
+    )
+    pets = models.CharField(
+        max_length=20,
+        choices=PetsStatus.choices,
+        blank=True,
+    )
+    zodiac_sign = models.CharField(
+        max_length=20,
+        choices=ZodiacSign.choices,
+        blank=True,
+    )
     active_mode = models.CharField(
         max_length=10,
         choices=SearchMode.choices,
@@ -180,9 +264,38 @@ class ProfileMode(models.Model):
     )
     mode = models.CharField(max_length=10, choices=SearchMode.choices)
     bio = models.TextField(max_length=500, blank=True)
-    looking_for = models.CharField(max_length=20, blank=True)
+    # Для Dating — одне значення (LookingFor). Для BFF — декілька цілей
+    # спілкування (BffLookingFor), збережені через кому, напр. "hobby,walks".
+    looking_for = models.CharField(max_length=150, blank=True)
     min_age = models.PositiveSmallIntegerField(default=18)
     max_age = models.PositiveSmallIntegerField(default=99)
+    # Додаткові критерії романтичного контуру (заповнюються лише для Dating,
+    # для BFF лишаються порожніми — за тим самим принципом, що і looking_for).
+    age_preference = models.CharField(
+        max_length=20,
+        choices=AgePreference.choices,
+        blank=True,
+    )
+    relationship_goal = models.CharField(
+        max_length=20,
+        choices=RelationshipGoal.choices,
+        blank=True,
+    )
+    smoking_attitude = models.CharField(
+        max_length=20,
+        choices=PartnerHabitAttitude.choices,
+        blank=True,
+    )
+    alcohol_attitude = models.CharField(
+        max_length=20,
+        choices=PartnerHabitAttitude.choices,
+        blank=True,
+    )
+    meeting_format = models.CharField(
+        max_length=20,
+        choices=MeetingFormat.choices,
+        blank=True,
+    )
 
     class Meta:
         constraints = [
@@ -196,13 +309,16 @@ class ProfileMode(models.Model):
         return f'{self.profile} — {self.mode}'
 
     def looking_for_label(self):
-        """Людською мовою: кого / що шукає в цьому режимі."""
-        choices = (
-            LookingFor.choices
-            if self.mode == SearchMode.DATING
-            else BffLookingFor.choices
-        )
-        return dict(choices).get(self.looking_for, '')
+        """Людською мовою: кого / що шукає в цьому режимі.
+
+        Dating зберігає одне значення. BFF може мати декілька обраних цілей
+        спілкування через кому — повертаємо їх підписи через кому.
+        """
+        if self.mode == SearchMode.DATING:
+            return dict(LookingFor.choices).get(self.looking_for, '')
+        labels = dict(BffLookingFor.choices)
+        selected = [value for value in self.looking_for.split(',') if value]
+        return ', '.join(labels.get(value, value) for value in selected)
 
 
 class Photo(models.Model):

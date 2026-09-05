@@ -13,6 +13,7 @@
     const btnSubmit = document.getElementById('btn-submit');
     const btnSkip = document.getElementById('btn-skip');
     const skipBffInput = document.getElementById('skip-bff');
+    const skipDatingInput = document.getElementById('skip-dating');
     const stepError = document.getElementById('step-error');
     const photosInput = document.getElementById('photos-input');
     const slots = Array.from(document.querySelectorAll('.photo-slot'));
@@ -98,9 +99,23 @@
             && !form.querySelector('input[name="bff_interests"]:checked');
     }
 
+    /** Чи блок «Знайомства» лишився порожнім (можна пропустити). */
+    function isDatingEmpty() {
+        return !checked('dating_looking_for')
+            && !form.dating_bio.value.trim()
+            && !form.querySelector('input[name="dating_interests"]:checked');
+    }
+
     function setSkipBff(value) {
         if (skipBffInput) {
             skipBffInput.value = value ? '1' : '';
+        }
+    }
+
+    /** Прапорець «блок Знайомства свідомо пропущено кнопкою Пропустити». */
+    function setSkipDating(value) {
+        if (skipDatingInput) {
+            skipDatingInput.value = value ? '1' : '';
         }
     }
 
@@ -132,7 +147,9 @@
             btnSubmit.hidden = step !== 4;
         }
         if (btnSkip) {
-            btnSkip.hidden = step !== 4;
+            // На кроці 3 «Пропустити» пропускає лише анкету знайомств і йде далі
+            // (до «Друзі»); на кроці 4 — пропускає «Друзі» й одразу зберігає профіль.
+            btnSkip.hidden = step !== 3 && step !== 4;
         }
         if (stepError) {
             stepError.hidden = true;
@@ -525,6 +542,9 @@
             }
         }
         if (step === 3) {
+            if (skipDatingInput?.value === '1' && isDatingEmpty()) {
+                return '';
+            }
             if (!checked('dating_looking_for')) {
                 return 'Обери, кого шукаєш у режимі знайомств.';
             }
@@ -756,9 +776,26 @@
 
     if (!isEdit && btnSkip) {
         btnSkip.addEventListener('click', () => {
-            setSkipBff(true);
             syncBirthDateHidden();
             compactDropdowns.closeAll();
+
+            // Крок 3: пропускаємо лише анкету знайомств і переходимо до «Друзі».
+            // Єдина вимога — заповнені кроки 1–2 (фото й «Про себе»); режим
+            // за замовчуванням уже обраний радіо-кнопкою «Основний режим зараз».
+            if (currentStep === 3) {
+                setSkipDating(true);
+                const message = [1, 2].map(validateStep).find(Boolean);
+                if (message) {
+                    setSkipDating(false);
+                    setError(message);
+                    return;
+                }
+                showStep(4);
+                return;
+            }
+
+            // Крок 4: пропускаємо «Друзі» й одразу зберігаємо профіль.
+            setSkipBff(true);
             const message = [1, 2, 3].map(validateStep).find(Boolean);
             if (message) {
                 setSkipBff(false);
@@ -797,6 +834,9 @@
         }
         if (!isBffEmpty()) {
             setSkipBff(false);
+        }
+        if (!isDatingEmpty()) {
+            setSkipDating(false);
         }
         syncPhotoInput();
         if (!hasAnyPhoto()) {

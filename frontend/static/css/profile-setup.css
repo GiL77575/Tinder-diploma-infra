@@ -372,9 +372,10 @@ body.page-setup .crush-viewport::before {
 
 .page-setup .field > span,
 .page-setup .field legend {
-    font-size: 18px;
-    line-height: 23px;
-    font-weight: 600;
+    /* Figma: підпис поля — Plus Jakarta Sans 400, 20/25, #161616 */
+    font-size: 20px;
+    line-height: 25px;
+    font-weight: 400;
     color: var(--crush-ink);
 }
 
@@ -384,12 +385,25 @@ body.page-setup .crush-viewport::before {
     padding: 0;
 }
 
-.page-setup .field input[type="text"],
-.page-setup .field input[type="number"],
-.page-setup .field textarea,
-.page-setup .list-row input,
-.page-setup .list-row select,
-.page-setup .level-row select {
+/* "Ім'я в профілі" — велике поле за Figma (Rectangle 125): фон #F8F8F8,
+   рамка rgba(0,0,0,.51), радіус 12, текст/плейсхолдер 20/25 */
+.page-setup .field input[type="text"] {
+    width: 100%;
+    padding: 16px 14px;
+    border: 1px solid rgba(0, 0, 0, 0.51);
+    border-radius: 12px;
+    background: #f8f8f8;
+    font: inherit;
+    font-size: 20px;
+    line-height: 25px;
+    color: var(--crush-ink);
+}
+
+.page-setup .field input[type="text"]::placeholder {
+    color: #8c8c8c;
+}
+
+.page-setup .field input[type="number"] {
     width: 100%;
     padding: 12px 14px;
     border: 1px solid var(--crush-line);
@@ -401,8 +415,41 @@ body.page-setup .crush-viewport::before {
     color: var(--crush-ink);
 }
 
+/* Опис (Rectangle 520): світліша рамка й більший радіус, ніж у звичайних полів. */
 .page-setup .field textarea {
+    width: 100%;
+    padding: 12px 20px;
+    border: 1px solid #dbdbdb;
+    border-radius: 23px;
+    background: var(--crush-white);
+    font: inherit;
+    font-size: 16px;
+    line-height: 20px;
+    color: var(--crush-ink);
     resize: vertical;
+}
+
+.page-setup .field textarea::placeholder {
+    color: #8c8c8c;
+}
+
+/* Компактні поля в списку (Місто, Робота, Зріст, усі select) — за Figma
+   (Rectangle 519): фон #F8F8F8, рамка #8C8C8C, радіус 9, текст 16/20 */
+.page-setup .list-row input,
+.page-setup .list-row select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #8c8c8c;
+    border-radius: 9px;
+    background: #f8f8f8;
+    font: inherit;
+    font-size: 16px;
+    line-height: 20px;
+    color: var(--crush-ink);
+}
+
+.page-setup .list-row input::placeholder {
+    color: #8c8c8c;
 }
 
 .page-setup .birth-date {
@@ -534,11 +581,18 @@ body.page-setup .crush-viewport::before {
     cursor: not-allowed;
 }
 
+/* Стать / Орієнтація / Кого шукаєш — рівномірно на всю ширину блоку (за макетом).
+   Групи з .chips--wrap (набори тегів-інтересів/хобі) лишаються як були. */
 .page-setup .chips {
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-between;
     gap: 10px;
     margin-top: 2px;
+}
+
+.page-setup .chips--wrap {
+    justify-content: flex-start;
 }
 
 .page-setup .chip {
@@ -551,22 +605,77 @@ body.page-setup .crush-viewport::before {
     pointer-events: none;
 }
 
+/* Чіпи (Стать / Орієнтація тощо) — за Figma (Rectangle 516/517): висота ~30px,
+   радіус 14, неактивний — сірий текст/рамка, активний — світло-фіолетовий фон */
 .page-setup .chip span {
-    display: inline-block;
-    padding: 10px 16px;
-    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 16px;
+    border-radius: 14px;
     border: 1px solid var(--crush-line);
     background: var(--crush-white);
     font-size: 16px;
     line-height: 20px;
-    color: var(--crush-ink);
+    font-weight: 400;
+    color: var(--crush-line);
+    text-align: center;
+}
+
+/* Стать / Орієнтація / Кого шукаєш — фіксована ширина кнопки за макетом
+   (Rectangle 516/517, 153–154×30). Групи з .chips--wrap (теги-інтереси,
+   де підписи різної довжини) лишаються з авто-шириною. */
+.page-setup .chips:not(.chips--wrap) .chip span {
+    width: 154px;
+    height: 30px;
+    padding: 5px 8px;
+}
+
+/* Групи з 3 варіантами (Кого шукаєш / Мета знайомства / Ставлення до
+   паління-алкоголю / Формат зустрічей) — ширші кнопки за макетом (Rectangle 517, 240×30). */
+.page-setup .chips.chips--wide .chip span {
+    width: 240px;
+}
+
+/* Вертикальний стовпчик чіпів (вибагливість щодо віку, поруч з полями віку).
+   Rectangle 518 з макету: 153×30, радіус 14, рамка/текст #8C8C8C. */
+.page-setup .chips.chips--col {
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.page-setup .chips.chips--col .chip span {
+    width: 153px;
+}
+
+/* Загальні інтереси / «Що шукаєш» (кроки «Знайомства» і «Друзі») — за макетом
+   це РІВНО 4 колонки (кроки 623/797/970/1143px = крок ~173px). flex-wrap тут
+   не годиться, бо кількість елементів у рядку «пливе» залежно від ширини
+   вікна — тому фіксуємо сітку явно, щоб порядок завжди читався так само, як
+   у Figma. Стосується обох панелей: dating (інтереси) і bff (цілі, інтереси). */
+.page-setup .panel--dating .chips.chips--wrap,
+.page-setup .panel--bff .chips.chips--wrap {
+    display: grid;
+    grid-template-columns: repeat(4, 154px);
+    justify-content: space-between;
+    gap: 15px 0;
+}
+
+.page-setup .panel--dating .chips.chips--wrap .chip span,
+.page-setup .panel--bff .chips.chips--wrap .chip span {
+    width: 154px;
+    min-height: 30px;
+    height: auto;
+    padding: 5px 8px;
+    text-align: center;
 }
 
 .page-setup .chip input:checked + span {
     border-color: var(--crush-purple);
-    background: var(--crush-secondary);
+    background: rgba(231, 213, 255, 0.18);
     color: var(--crush-purple);
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .page-setup .list-card {
@@ -607,15 +716,45 @@ body.page-setup .crush-viewport::before {
 }
 
 .page-setup .mode-card {
+    position: relative;
     border: 1px solid var(--crush-line);
-    border-radius: 16px;
-    padding: 18px;
+    border-radius: 26px;
+    padding: 18px 52px 18px 20px;
     background: var(--crush-white);
     cursor: pointer;
 }
 
+/* Нативний radio ховаємо — замість нього кастомне коло .mode-card__radio
+   праворуч по центру картки (за макетом Radio Button/Ellipse, 20×20, #E866FF). */
 .page-setup .mode-card input {
-    margin-bottom: 8px;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.page-setup .mode-card__radio {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border: 2px solid var(--crush-line);
+    border-radius: 50%;
+    background: var(--crush-white);
+}
+
+.page-setup .mode-card input:checked ~ .mode-card__radio {
+    border-color: #e866ff;
+}
+
+.page-setup .mode-card input:checked ~ .mode-card__radio::after {
+    content: "";
+    position: absolute;
+    inset: 2.5px;
+    border-radius: 50%;
+    background: #e866ff;
 }
 
 .page-setup .mode-card__title {
@@ -634,8 +773,8 @@ body.page-setup .crush-viewport::before {
 }
 
 .page-setup .mode-card:has(input:checked) {
-    border-color: #e11d48;
-    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+    border-color: #e866ff;
+    box-shadow: 0 0 8px #e866ff;
 }
 
 .page-setup .mode-card--bff:has(input:checked) {
@@ -645,43 +784,124 @@ body.page-setup .crush-viewport::before {
 
 .page-setup .age-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
     gap: 14px;
 }
 
+.page-setup .age-row__extra {
+    gap: 8px;
+}
+
+/* «Хобі та рівень» / «Мови» (крок «Друзі») — за макетом 2 колонки рядків
+   (Rectangle 534), кожен рядок — чекбокс, назва курсивом і кнопка «Рівень». */
 .page-setup .level-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
     margin-top: 2px;
 }
 
+/* Rectangle 534: біла картка з ЧОРНОЮ рамкою (на відміну від сірих рамок
+   інших полів форми) — так навмисно виділено в макеті. */
 .page-setup .level-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 148px;
+    grid-template-columns: minmax(0, 1fr) 146px;
     gap: 12px;
     align-items: center;
+    height: 50px;
+    box-sizing: border-box;
     background: var(--crush-white);
-    border: 1px solid var(--crush-line);
-    border-radius: var(--crush-radius-btn);
-    padding: 10px 14px;
+    border: 1px solid #161616;
+    border-radius: 12px;
+    padding: 0 14px;
 }
 
 .page-setup .level-row__pick {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
     cursor: pointer;
 }
 
+/* Rectangle 536: квадратний чекбокс 18×18, сіра рамка, без нативного вигляду. */
 .page-setup .level-row__pick input {
     flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border: 1px solid #8c8c8c;
+    border-radius: 2px;
+    background: var(--crush-white);
+    cursor: pointer;
 }
 
+.page-setup .level-row__pick input:checked {
+    border-color: var(--crush-purple);
+    background: var(--crush-purple);
+}
+
+.page-setup .level-row__pick input:checked::after {
+    content: "";
+    display: block;
+    width: 5px;
+    height: 9px;
+    margin: 1px auto 0;
+    border: solid var(--crush-white);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Назва хобі/мови — курсивом і чорним текстом, за макетом. */
 .page-setup .level-row__name {
-    font-size: 18px;
-    line-height: 23px;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 20px;
+    color: #000000;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Нативний select ховає JS у .compact-select і малює кнопку-тригер.
+   Ховаємо його явно (включно з :disabled), щоб рамка «Рівень» не двоїлась. */
+.page-setup .level-row select.compact-select__native,
+.page-setup .level-row select.compact-select__native:disabled {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+    background: none;
+}
+
+/* Rectangle 535: видима кнопка рівня (146×40, радіус 11, сіра рамка).
+   Шеврон уже є в .birth-date__trigger::after — другий не додаємо. */
+.page-setup .level-row .compact-select__trigger {
+    width: 146px;
+    height: 40px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 0 12px 0 14px;
+    border: 1px solid #8c8c8c;
+    border-radius: 11px;
+    background: var(--crush-white);
+    font: inherit;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 20px;
+    color: #8c8c8c;
+    box-shadow: none;
+}
+
+.page-setup .level-row .compact-select__trigger.is-filled {
+    color: #000000;
 }
 
 .page-setup .toggle {
@@ -736,7 +956,11 @@ body.page-setup .crush-viewport::before {
     box-shadow: 0 2px 10px 3px rgba(0, 0, 0, 0.25);
 }
 
+/* «Назад» / «Пропустити» (Rectangle 514): біла кнопка з сірою рамкою й текстом. */
 .page-setup .setup-actions .btn-secondary {
+    background: var(--crush-white);
+    color: var(--crush-line);
+    border: 1px solid var(--crush-line);
     box-shadow: none;
 }
 

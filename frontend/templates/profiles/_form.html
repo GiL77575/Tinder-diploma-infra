@@ -1,5 +1,6 @@
 {% csrf_token %}
 <input type="hidden" name="skip_bff" id="skip-bff" value="">
+<input type="hidden" name="skip_dating" id="skip-dating" value="">
 <input type="file" id="photos-input" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
 
 <section class="panel is-active" data-step="1">
@@ -111,6 +112,15 @@
             </select>
         </label>
         <label class="list-row">
+            <span>Алкоголь</span>
+            <select name="alcohol">
+                <option value="">Не вказувати</option>
+                {% for value, label in alcohol_choices %}
+                    <option value="{{ value }}" {% if form.alcohol.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="list-row">
             <span>Діти</span>
             <select name="children">
                 <option value="">Не вказувати</option>
@@ -119,23 +129,52 @@
                 {% endfor %}
             </select>
         </label>
+        <label class="list-row">
+            <span>Спорт</span>
+            <select name="sport">
+                <option value="">Не вказувати</option>
+                {% for value, label in sport_choices %}
+                    <option value="{{ value }}" {% if form.sport.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="list-row">
+            <span>Домашні тварини</span>
+            <select name="pets">
+                <option value="">Не вказувати</option>
+                {% for value, label in pets_choices %}
+                    <option value="{{ value }}" {% if form.pets.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="list-row">
+            <span>Знак зодіаку</span>
+            <select name="zodiac_sign">
+                <option value="">Не вказувати</option>
+                {% for value, label in zodiac_choices %}
+                    <option value="{{ value }}" {% if form.zodiac_sign.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
     </div>
 </section>
 
 <section class="panel panel--dating" data-step="3">
     <h2>Профіль для знайомств</h2>
-    <p class="hint">Романтичний режим: кого шукаєш, опис та інтереси. Це не змішається з пошуком друзів.</p>
+    <p class="hint">Романтичний режим — це простір для пошуку другої половинки, де ви вказуєте свої інтереси та критерії партнера. Цей режим працює автономно та повністю ізольований від пошуку друзів, щоб ваші наміри завжди залишались чіткими.</p>
 
     <fieldset class="field">
-        <legend>Основний режим зараз</legend>
+        <legend>Основний режим зараз:</legend>
         <div class="mode-cards">
             <label class="mode-card">
                 <input type="radio" name="active_mode" value="dating" {% if form.active_mode.value != 'bff' %}checked{% endif %}>
+                <span class="mode-card__radio" aria-hidden="true"></span>
                 <span class="mode-card__title">Знайомства</span>
                 <span class="mode-card__text">Пошук пари за інтересами</span>
             </label>
             <label class="mode-card mode-card--bff">
                 <input type="radio" name="active_mode" value="bff" {% if form.active_mode.value == 'bff' %}checked{% endif %}>
+                <span class="mode-card__radio" aria-hidden="true"></span>
                 <span class="mode-card__title">Пошук друзів</span>
                 <span class="mode-card__text">Друзі, хобі, мовний обмін</span>
             </label>
@@ -144,7 +183,7 @@
 
     <fieldset class="field">
         <legend>Кого шукаєш</legend>
-        <div class="chips">
+        <div class="chips chips--wide">
             {% for value, label in looking_for_choices %}
                 <label class="chip">
                     <input type="radio" name="dating_looking_for" value="{{ value }}" {% if form.dating_looking_for.value == value %}checked{% endif %}>
@@ -157,24 +196,80 @@
 
     <div class="age-row">
         <label class="field">
-            <span>Мін. вік</span>
+            <span>Мін. вік партнера</span>
             <input type="number" name="min_age" min="18" max="99" value="{{ form.min_age.value|default:18 }}">
         </label>
         <label class="field">
-            <span>Макс. вік</span>
+            <span>Макс. вік партнера</span>
             <input type="number" name="max_age" min="18" max="99" value="{{ form.max_age.value|default:35 }}">
         </label>
+        <div class="chips chips--col age-row__extra">
+            {% for value, label in age_preference_choices %}
+                <label class="chip">
+                    <input type="radio" name="dating_age_preference" value="{{ value }}" {% if form.dating_age_preference.value == value %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+            {% endfor %}
+        </div>
     </div>
     {{ form.max_age.errors }}
 
+    <fieldset class="field">
+        <legend>Мета знайомства</legend>
+        <div class="chips chips--wide">
+            {% for value, label in relationship_goal_choices %}
+                <label class="chip">
+                    <input type="radio" name="dating_relationship_goal" value="{{ value }}" {% if form.dating_relationship_goal.value == value %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <fieldset class="field">
+        <legend>Ставлення до паління</legend>
+        <div class="chips chips--wide">
+            {% for value, label in partner_attitude_choices %}
+                <label class="chip">
+                    <input type="radio" name="dating_smoking_attitude" value="{{ value }}" {% if form.dating_smoking_attitude.value == value %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <fieldset class="field">
+        <legend>Ставлення до алкоголю</legend>
+        <div class="chips chips--wide">
+            {% for value, label in partner_attitude_choices %}
+                <label class="chip">
+                    <input type="radio" name="dating_alcohol_attitude" value="{{ value }}" {% if form.dating_alcohol_attitude.value == value %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <fieldset class="field">
+        <legend>Формат майбутніх зустрічей</legend>
+        <div class="chips chips--wide">
+            {% for value, label in meeting_format_choices %}
+                <label class="chip">
+                    <input type="radio" name="dating_meeting_format" value="{{ value }}" {% if form.dating_meeting_format.value == value %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
     <label class="field">
         <span>Опис для знайомств <small id="dating-bio-count">0/500</small></span>
-        <textarea name="dating_bio" maxlength="500" rows="4" placeholder="Коротко про себе в романтичному режимі">{{ form.dating_bio.value|default_if_none:'' }}</textarea>
+        <textarea name="dating_bio" maxlength="500" rows="4" placeholder="Коротко про себе в романтичному режимі. (це буде видно на екрані свайпа і при перегляді профілю).">{{ form.dating_bio.value|default_if_none:'' }}</textarea>
         {{ form.dating_bio.errors }}
     </label>
 
     <fieldset class="field">
-        <legend>Інтереси</legend>
+        <legend>Загальні інтереси</legend>
         <div class="chips chips--wrap">
             {% for item in dating_interest_options %}
                 <label class="chip">
@@ -189,15 +284,15 @@
 
 <section class="panel panel--bff" data-step="4">
     <h2>Пошук друзів</h2>
-    <p class="hint">Окремий опис, хобі з рівнем і мови з рівнем (наприклад, шведська B1). Можеш <strong>пропустити</strong> цей крок і заповнити анкету пізніше в профілі — без неї ти не з’являтимешся в пошуку друзів.</p>
+    <p class="hint">Окремий опис профілю, твої захоплення та мови, які ти зараз вивчаєш або практикуєш (наприклад, шведська B1). Можеш <strong>пропустити</strong> цей крок і заповнити анкету пізніше в профілі — без неї ти не з’являтимешся в пошуку друзів.</p>
 
     <fieldset class="field">
         <legend>Що шукаєш</legend>
         <div class="chips chips--wrap">
-            {% for value, label in bff_looking_for_choices %}
+            {% for item in bff_looking_for_options %}
                 <label class="chip">
-                    <input type="radio" name="bff_looking_for" value="{{ value }}" {% if form.bff_looking_for.value == value %}checked{% endif %}>
-                    <span>{{ label }}</span>
+                    <input type="checkbox" name="bff_looking_for" value="{{ item.value }}" {% if item.selected %}checked{% endif %}>
+                    <span>{{ item.label }}</span>
                 </label>
             {% endfor %}
         </div>
@@ -206,7 +301,7 @@
 
     <label class="field">
         <span>Опис для друзів <small id="bff-bio-count">0/500</small></span>
-        <textarea name="bff_bio" maxlength="500" rows="4" placeholder="З ким хочеш проводити час, які активності шукаєш">{{ form.bff_bio.value|default_if_none:'' }}</textarea>
+        <textarea name="bff_bio" maxlength="500" rows="4" placeholder="З ким хочеш проводити час, які активності шукаєш.">{{ form.bff_bio.value|default_if_none:'' }}</textarea>
         {{ form.bff_bio.errors }}
     </label>
 
@@ -268,7 +363,7 @@
         <input type="checkbox" name="is_discoverable" {% if form.is_discoverable.value != False %}checked{% endif %}>
         <span>
             Показувати мене в пошуку
-            <small>Можна вимкнути, якщо поки не хочеш з’являтись у пошуку.</small>
+            <small>Можна вимкнути, якщо поки не хочеш з’являтися у пошуку.<br>(Можна буде змінити в профілі)</small>
         </span>
     </label>
 </section>

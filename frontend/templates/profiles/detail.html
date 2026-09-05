@@ -41,7 +41,11 @@
                 <li>{{ profile.get_orientation_display }}</li>
                 {% if profile.height_cm %}<li>{{ profile.height_cm }} см</li>{% endif %}
                 {% if profile.smoking %}<li>{{ profile.get_smoking_display }}</li>{% endif %}
+                {% if profile.alcohol %}<li>Алкоголь: {{ profile.get_alcohol_display }}</li>{% endif %}
                 {% if profile.children %}<li>Діти: {{ profile.get_children_display }}</li>{% endif %}
+                {% if profile.sport %}<li>Спорт: {{ profile.get_sport_display }}</li>{% endif %}
+                {% if profile.pets %}<li>Тварини: {{ profile.get_pets_display }}</li>{% endif %}
+                {% if profile.zodiac_sign %}<li>{{ profile.get_zodiac_sign_display }}</li>{% endif %}
             </ul>
             <p class="visibility">
                 {% if profile.is_discoverable %}Профіль видно в пошуку{% else %}Профіль прихований з пошуку{% endif %}
@@ -54,7 +58,14 @@
                 <p class="meta">
                     Шукає: {{ dating.looking_for_label }}
                     · {{ dating.min_age }}–{{ dating.max_age }} років
+                    {% if dating.age_preference %}· {{ dating.get_age_preference_display }}{% endif %}
                 </p>
+                <ul class="facts">
+                    {% if dating.relationship_goal %}<li>Мета: {{ dating.get_relationship_goal_display }}</li>{% endif %}
+                    {% if dating.smoking_attitude %}<li>До паління: {{ dating.get_smoking_attitude_display }}</li>{% endif %}
+                    {% if dating.alcohol_attitude %}<li>До алкоголю: {{ dating.get_alcohol_attitude_display }}</li>{% endif %}
+                    {% if dating.meeting_format %}<li>Формат зустрічей: {{ dating.get_meeting_format_display }}</li>{% endif %}
+                </ul>
                 {% if dating.bio %}<p class="bio">{{ dating.bio }}</p>{% endif %}
                 <div class="chips">
                     {% for item in dating_interests %}

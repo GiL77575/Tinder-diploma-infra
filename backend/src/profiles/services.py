@@ -149,6 +149,16 @@ def _add_tags(profile, tags, mode, levels=None):
         )
 
 
+def _resolve_active_mode(data):
+    """Основний режим не може вказувати на пропущений (порожній) контур."""
+    active_mode = data['active_mode']
+    if data.get('skip_bff') and active_mode == SearchMode.BFF:
+        return SearchMode.DATING
+    if data.get('skip_dating') and active_mode == SearchMode.DATING:
+        return SearchMode.BFF
+    return active_mode
+
+
 def save_profile(user, data, draft_photos=None):
     """Створює або оновлює профіль, обидва контури (Dating/BFF) і теги."""
     profile, _ = Profile.objects.update_or_create(
@@ -163,26 +173,34 @@ def save_profile(user, data, draft_photos=None):
             'height_cm': data.get('height_cm'),
             'smoking': data.get('smoking') or '',
             'children': data.get('children') or '',
-            'active_mode': (
-                SearchMode.DATING
-                if data.get('skip_bff') and data.get('active_mode') == SearchMode.BFF
-                else data['active_mode']
-            ),
+            'alcohol': data.get('alcohol') or '',
+            'sport': data.get('sport') or '',
+            'pets': data.get('pets') or '',
+            'zodiac_sign': data.get('zodiac_sign') or '',
+            'active_mode': _resolve_active_mode(data),
             'is_discoverable': data.get('is_discoverable', True),
         },
     )
     _sync_photos(profile, user, data, draft_photos=draft_photos)
 
-    ProfileMode.objects.update_or_create(
-        profile=profile,
-        mode=SearchMode.DATING,
-        defaults={
-            'bio': data['dating_bio'],
-            'looking_for': data['dating_looking_for'],
-            'min_age': data['min_age'],
-            'max_age': data['max_age'],
-        },
-    )
+    if data.get('skip_dating'):
+        ProfileMode.objects.filter(profile=profile, mode=SearchMode.DATING).delete()
+    else:
+        ProfileMode.objects.update_or_create(
+            profile=profile,
+            mode=SearchMode.DATING,
+            defaults={
+                'bio': data['dating_bio'],
+                'looking_for': data['dating_looking_for'],
+                'min_age': data['min_age'],
+                'max_age': data['max_age'],
+                'age_preference': data.get('dating_age_preference') or '',
+                'relationship_goal': data.get('dating_relationship_goal') or '',
+                'smoking_attitude': data.get('dating_smoking_attitude') or '',
+                'alcohol_attitude': data.get('dating_alcohol_attitude') or '',
+                'meeting_format': data.get('dating_meeting_format') or '',
+            },
+        )
 
     profile.profile_tags.filter(mode=SearchMode.BFF).delete()
     if data.get('skip_bff'):
@@ -193,14 +211,16 @@ def save_profile(user, data, draft_photos=None):
             mode=SearchMode.BFF,
             defaults={
                 'bio': data['bff_bio'],
-                'looking_for': data['bff_looking_for'],
+                # «Що шукаєш» — множинний вибір, зберігаємо через кому.
+                'looking_for': ','.join(data.get('bff_looking_for') or []),
                 'min_age': 18,
                 'max_age': 99,
             },
         )
 
     profile.profile_tags.all().delete()
-    _add_tags(profile, data.get('dating_interests'), SearchMode.DATING)
+    if not data.get('skip_dating'):
+        _add_tags(profile, data.get('dating_interests'), SearchMode.DATING)
     if not data.get('skip_bff'):
         _add_tags(profile, data.get('bff_interests'), SearchMode.BFF)
         _add_tags(
@@ -235,17 +255,26 @@ def form_initial_from_profile(profile):
         'height_cm': profile.height_cm,
         'smoking': profile.smoking,
         'children': profile.children,
+        'alcohol': profile.alcohol,
+        'sport': profile.sport,
+        'pets': profile.pets,
+        'zodiac_sign': profile.zodiac_sign,
         'active_mode': profile.active_mode,
         'is_discoverable': profile.is_discoverable,
         'dating_looking_for': dating.looking_for if dating else '',
         'min_age': dating.min_age if dating else 18,
         'max_age': dating.max_age if dating else 35,
+        'dating_age_preference': dating.age_preference if dating else '',
+        'dating_relationship_goal': dating.relationship_goal if dating else '',
+        'dating_smoking_attitude': dating.smoking_attitude if dating else '',
+        'dating_alcohol_attitude': dating.alcohol_attitude if dating else '',
+        'dating_meeting_format': dating.meeting_format if dating else '',
         'dating_bio': dating.bio if dating else '',
         'dating_interests': [
             item.tag_id
             for item in profile.tags_for(SearchMode.DATING, TagCategory.INTEREST)
         ],
-        'bff_looking_for': bff.looking_for if bff else '',
+        'bff_looking_for': bff.looking_for.split(',') if bff and bff.looking_for else [],
         'bff_bio': bff.bio if bff else '',
         'bff_interests': [
             item.tag_id

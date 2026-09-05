@@ -87,7 +87,8 @@ def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags
 def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     """
     Критерії показу анкети в режимі пошуку друзів:
-    - однакова тема пошуку (наприклад, «Мовний обмін»);
+    - хоча б одна спільна ціль спілкування («Що шукаєш», напр. «Прогулянки»);
+      кожен профіль може обрати декілька цілей — досить перетину множин;
     - хоча б одне спільне хобі з тим самим рівнем;
     - хоча б одна спільна мова з тим самим рівнем.
     Місто не враховується — BFF-анкети можуть бути з різних міст.
@@ -97,7 +98,10 @@ def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     candidate_mode = candidate_profile.get_mode(SearchMode.BFF)
     if viewer_mode is None or candidate_mode is None:
         return None
-    if not viewer_mode.looking_for or viewer_mode.looking_for != candidate_mode.looking_for:
+
+    viewer_goals = set(filter(None, viewer_mode.looking_for.split(',')))
+    candidate_goals = set(filter(None, candidate_mode.looking_for.split(',')))
+    if not viewer_goals or not (viewer_goals & candidate_goals):
         return None
 
     viewer_hobbies = viewer_tags.get((SearchMode.BFF, TagCategory.HOBBY), {})

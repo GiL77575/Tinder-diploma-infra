@@ -76,7 +76,7 @@ AVATAR_URL = 'https://api.dicebear.com/9.x/shapes/svg?seed={seed}'
 DATING_MATCH_INTERESTS = ['Ігри', 'Волонтерство', 'Наука', 'Спорт', 'Тварини', 'Читання']
 EXTRA_INTERESTS = ['Музика', 'Кіно', 'Подорожі', 'Фітнес', 'Мистецтво', 'Фотографія', 'Танці']
 FEW_SHARED_INTERESTS = ['Музика', 'Кіно', 'Мистецтво', 'Фотографія', 'Танці']
-BFF_HOBBY_OPTIONS = ['Йога', 'Біг', 'Гітара', 'Шахи', 'Плавання', 'Велоспорт']
+BFF_HOBBY_OPTIONS = ['Йога', 'Біг', 'Гітара', 'Шахи', 'Плавання', 'Велосипед']
 BFF_LANGUAGE_OPTIONS = ['Польська', 'Французька', 'Іспанська', 'Шведська']
 BFF_LEVELS = ['novice', 'intermediate', 'pro']
 LANGUAGE_LEVELS = ['a1', 'a2', 'b1']

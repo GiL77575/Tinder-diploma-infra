@@ -1,0 +1,45 @@
+{% load static asset_tags %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Про нас — crush</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/info.css' %}">
+</head>
+<body class="page-info page-about">
+    <div class="crush-viewport">
+        <div class="crush-frame">
+            {% include 'includes/landing_header.html' %}
+
+            <article class="about-panel">
+                <h1 class="about-title">Про нас</h1>
+                <p class="about-lead">
+                    <span class="about-brand">crush</span> — це не просто черговий додаток для свайпів. Це інтелектуальна платформа для справжніх знайомств, живого спілкування та створення спільних історій. Ми віримо, що міцні стосунки та щира дружба починаються не з випадкового фото, а зі спільних інтересів, захоплюючих подій та схожих життєвих цінностей.
+                </p>
+
+                <h2 class="about-heading about-heading--mission">🎯 Наша місія</h2>
+                <p class="about-text about-text--mission">
+                    Створити безпечний, комфортний та свідомий простір, де кожен може знайти «свою» людину без токсичності, нескінченного спаму та зайвого цифрового шуму.
+                </p>
+
+                <h2 class="about-heading about-heading--why">💎 Чому саме crush?</h2>
+                <p class="about-point about-point--balance">
+                    <strong>Розумний баланс:</strong> Ми повністю розділили романтичний режим та пошук друзів. Ваші наміри завжди залишатимуться чіткими: шукаєте ви кохання чи компанію для настільних ігор — анкети не перемішуються.
+                </p>
+                <p class="about-point about-point--vibe">
+                    <strong>Спільний вайб:</strong> Наш алгоритм фокусується на ваших реальних хобі, поглядах на життя та улюблених занять — від ранкової кави до вечірніх кінопереглядів.
+                </p>
+                <p class="about-point about-point--safety">
+                    <strong>Абсолютна безпека:</strong> Ми дбаємо про приватність даних та комфорт кожного користувача, відсікаючи фейкові акаунти та створюючи простір, де поважають особисті кордони.
+                </p>
+            </article>
+        </div>
+    </div>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
+</body>
+</html>

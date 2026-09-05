@@ -1,5 +1,361 @@
 /* crush — info pages (Про нас / Безпека / Підтримка) */
 
+/* Сторінка «Про нас» — картка Rectangle 125 з макета (846×768, радіус 60).
+   Координати елементів — абсолютні в кадрі 1920×1080, як у Figma. */
+.about-panel {
+    box-sizing: border-box;
+    position: absolute;
+    width: 846px;
+    height: 768px;
+    left: calc(50% - 423px + 1px);
+    top: 156px;
+    background: #fffdfe;
+    border: 1px solid #8c8c8c;
+    border-radius: 60px;
+}
+
+.about-title {
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 45px;
+    color: #161616;
+}
+
+.about-lead {
+    position: absolute;
+    width: 787px;
+    height: 143px;
+    left: 30px;
+    top: 85px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.about-brand {
+    font-weight: 700;
+    color: var(--crush-purple);
+}
+
+.about-heading {
+    position: absolute;
+    left: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 45px;
+    display: flex;
+    align-items: center;
+    color: #161616;
+}
+
+.about-heading--mission {
+    width: 242px;
+    height: 53px;
+    top: 248px;
+}
+
+.about-heading--why {
+    width: 372px;
+    height: 53px;
+    top: 418px;
+}
+
+.about-text {
+    position: absolute;
+    width: 787px;
+    left: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.about-text--mission {
+    height: 95px;
+    top: 303px;
+}
+
+.about-point {
+    position: absolute;
+    width: 787px;
+    left: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.about-point strong {
+    font-weight: 700;
+}
+
+.about-point--balance {
+    height: 87px;
+    top: 476px;
+}
+
+.about-point--vibe {
+    height: 58px;
+    top: 578px;
+}
+
+.about-point--safety {
+    height: 87px;
+    top: 651px;
+}
+
+/* Сторінка «Безпека» — картка Rectangle 125 (846×780, top 150).
+   Відступи всередині: 568−538 = 30px, 566−538 = 28px. */
+.safety-panel {
+    box-sizing: border-box;
+    position: absolute;
+    width: 846px;
+    height: 780px;
+    left: calc(50% - 423px + 1px);
+    top: 150px;
+    background: #fffdfe;
+    border: 1px solid #8c8c8c;
+    border-radius: 60px;
+}
+
+.safety-title {
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 45px;
+    color: #161616;
+}
+
+.safety-lead {
+    position: absolute;
+    width: 787px;
+    height: 116px;
+    left: 30px;
+    top: 85px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.safety-brand {
+    font-weight: 700;
+    color: var(--crush-purple);
+}
+
+.safety-heading {
+    position: absolute;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 45px;
+    display: flex;
+    align-items: center;
+    color: #161616;
+}
+
+.safety-heading--protect {
+    width: 697px;
+    height: 53px;
+    left: 30px;
+    top: 221px;
+}
+
+.safety-heading--rules {
+    width: 779px;
+    height: 53px;
+    left: 28px;
+    top: 532px;
+}
+
+.safety-point {
+    position: absolute;
+    width: 787px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.safety-point strong {
+    font-weight: 700;
+}
+
+.safety-point--moderation {
+    height: 58px;
+    left: 30px;
+    top: 279px;
+}
+
+.safety-point--privacy {
+    height: 87px;
+    left: 30px;
+    top: 352px;
+}
+
+.safety-point--data {
+    height: 58px;
+    left: 30px;
+    top: 454px;
+}
+
+.safety-point--personal {
+    height: 58px;
+    left: 28px;
+    top: 590px;
+}
+
+.safety-point--meet {
+    height: 87px;
+    left: 28px;
+    top: 663px;
+}
+
+/* Сторінка «Підтримка» — картка Rectangle 125 (846×478, top 301). */
+.support-panel {
+    box-sizing: border-box;
+    position: absolute;
+    width: 846px;
+    height: 478px;
+    left: calc(50% - 423px + 1px);
+    top: 301px;
+    background: #fffdfe;
+    border: 1px solid #8c8c8c;
+    border-radius: 60px;
+}
+
+.support-title {
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 45px;
+    color: #161616;
+}
+
+.support-lead {
+    position: absolute;
+    width: 787px;
+    height: 122px;
+    left: 30px;
+    top: 85px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    letter-spacing: 0.01em;
+    color: #161616;
+}
+
+.support-brand {
+    font-weight: 700;
+    color: var(--crush-purple);
+}
+
+.support-heading {
+    position: absolute;
+    width: 448px;
+    height: 53px;
+    left: 30px;
+    top: 227px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 45px;
+    display: flex;
+    align-items: center;
+    color: #161616;
+}
+
+.support-hint {
+    position: absolute;
+    width: 787px;
+    height: 29px;
+    left: 30px;
+    top: 282px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.support-point {
+    position: absolute;
+    width: 787px;
+    left: 30px;
+    margin: 0;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 29px;
+    color: #161616;
+}
+
+.support-point strong {
+    font-weight: 700;
+}
+
+.support-point a {
+    font-style: italic;
+    font-weight: 400;
+    color: inherit;
+    text-decoration: none;
+}
+
+.support-point--email {
+    height: 58px;
+    top: 321px;
+}
+
+.support-point--telegram {
+    height: 59px;
+    top: 389px;
+}
+
 .info-panel {
     position: absolute;
     left: 190px;

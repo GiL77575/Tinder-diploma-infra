@@ -1,0 +1,48 @@
+{% load static asset_tags %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Безпека — crush</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/info.css' %}">
+</head>
+<body class="page-info page-safety">
+    <div class="crush-viewport">
+        <div class="crush-frame">
+            {% include 'includes/landing_header.html' %}
+
+            <article class="safety-panel">
+                <h1 class="safety-title">Безпека</h1>
+                <p class="safety-lead">
+                    Безпека користувачів — наш абсолютний пріоритет. Ми будуємо <span class="safety-brand">crush</span> як захищений простір, де кожен може почуватися впевнено, вільно та комфортно. Ми цілодобово модеруємо скарги, захищаємо ваші особисті дані та надаємо всі необхідні інструменти для блокування небажаного контенту.
+                </p>
+
+                <h2 class="safety-heading safety-heading--protect">🛡️ Як ми захищаємо вас у додатку</h2>
+                <p class="safety-point safety-point--moderation">
+                    <strong>Ручна модерація:</strong> Наша команда оперативно перевіряє кожну скаргу та блокує підозрілі акаунти, фейки та спам-ботів протягом 15 хвилин.
+                </p>
+                <p class="safety-point safety-point--privacy">
+                    <strong>Контроль приватності:</strong> Ви повністю контролюєте свою анкету. Ваша точна геолокація ніколи не показується іншим користувачам — лише приблизна відстань у радіусі.
+                </p>
+                <p class="safety-point safety-point--data">
+                    <strong>Конфіденційність даних:</strong> Усі чати та особиста інформація надійно зашифровані. Ми нікому не передаємо і не продаємо ваші дані.
+                </p>
+
+                <h2 class="safety-heading safety-heading--rules">💡 Важливі правила безпечного спілкування</h2>
+                <p class="safety-point safety-point--personal">
+                    <strong>Бережіть особисті дані:</strong> Ніколи не діліться паролями, фінансовими даними, номерами карток чи точним місцем проживання на ранніх етапах спілкування.
+                </p>
+                <p class="safety-point safety-point--meet">
+                    <strong>Перші зустрічі — у публічних місцях:</strong> Плануйте перші побачення в людних локаціях (кав'ярні, парки, торгові центри) і обов'язково попереджайте друзів про те, куди саме ви йдете.
+                </p>
+            </article>
+        </div>
+    </div>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
+</body>
+</html>

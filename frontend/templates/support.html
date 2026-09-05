@@ -1,0 +1,42 @@
+{% load static asset_tags %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Підтримка — crush</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/info.css' %}">
+</head>
+<body class="page-info page-support">
+    <div class="crush-viewport">
+        <div class="crush-frame">
+            {% include 'includes/landing_header.html' %}
+
+            <article class="support-panel">
+                <h1 class="support-title">Підтримка</h1>
+                <p class="support-lead">
+                    Команда <span class="support-brand">crush</span> завжди поруч, щоб ваш досвід користування додатком був максимально комфортним та безпечним. Якщо у вас виникли технічні труднощі, запитання щодо роботи алгоритмів чи функцій профілю — ми тут, щоб усе вирішити.
+                </p>
+
+                <h2 class="support-heading">✉️ Як з нами зв'язатися</h2>
+                <p class="support-hint">Оберіть будь-який зручний спосіб, і ми відповімо вам якнайшвидше:</p>
+                <p class="support-point support-point--email">
+                    <strong>Електронна пошта:</strong>
+                    <a href="mailto:support@crush.app">support@crush.app</a>
+                    — для детальних запитів, питань щодо верифікації акаунта або технічних збоїв.
+                </p>
+                <p class="support-point support-point--telegram">
+                    <strong>Telegram-бот підтримки:</strong>
+                    <a href="https://t.me/crush_support_bot" target="_blank" rel="noopener noreferrer">@crush_support_bot</a>
+                    — для миттєвих відповідей та допомоги від наших менеджерів у реальному часі.
+                </p>
+            </article>
+        </div>
+    </div>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
+</body>
+</html>
