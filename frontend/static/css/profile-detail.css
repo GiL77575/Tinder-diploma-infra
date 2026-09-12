@@ -134,6 +134,19 @@ body.page-profile .crush-viewport::before {
     font-size: 20px;
     line-height: 25px;
     text-align: center;
+    transition:
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.15s ease;
+}
+
+.profile-actions__btn:hover {
+    transform: translateY(-1px);
+}
+
+.profile-actions__btn:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .profile-actions__btn--edit {
@@ -141,6 +154,14 @@ body.page-profile .crush-viewport::before {
     background: var(--crush-purple);
     color: #fffdfe;
     font-weight: 700;
+}
+
+.profile-actions__btn--edit:hover {
+    background: #8535ef;
+}
+
+.profile-actions__btn--edit:active {
+    background: #7a2de0;
 }
 
 .profile-actions__btn--search {
@@ -152,12 +173,29 @@ body.page-profile .crush-viewport::before {
     font-weight: 400;
 }
 
+.profile-actions__btn--search:hover {
+    background: #e8dbf8;
+    border-color: #7a7a7a;
+}
+
+.profile-actions__btn--search:active {
+    background: #ddd0f0;
+}
+
 .profile-actions__btn--logout {
     width: 143px;
     background: var(--profile-surface);
     border: 1px solid #161616;
     color: var(--crush-ink);
     font-weight: 700;
+}
+
+.profile-actions__btn--logout:hover {
+    background: #f0ecef;
+}
+
+.profile-actions__btn--logout:active {
+    background: #e6e1e5;
 }
 
 .profile-gallery {

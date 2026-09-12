@@ -45,11 +45,13 @@ INFO_PAGES = {
     'about': 'about.html',
     'safety': 'safety.html',
     'support': 'support.html',
+    'demo-anna': 'demo/anna.html',
+    'demo-maryna': 'demo/maryna.html',
 }
 
 
 def info_page_view(request, slug):
-    """Інфосторінки: Про нас, Безпека, Підтримка."""
+    """Інфосторінки: Про нас, Безпека, Підтримка, демо-слайди команди."""
     template = INFO_PAGES.get(slug)
     if template is None:
         raise Http404('Сторінку не знайдено')

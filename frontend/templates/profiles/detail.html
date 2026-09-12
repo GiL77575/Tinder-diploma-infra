@@ -19,7 +19,7 @@
                 <header class="profile-header">
                     <a href="{% url 'home' %}" class="profile-logo">crush</a>
                     <div class="profile-header__user">
-                        <span class="profile-header__name">{{ profile.display_name }}{% if profile.age %} {{ profile.age }}{% endif %}</span>
+                        <span class="profile-header__name">{{ profile.display_name }}</span>
                         <span class="profile-header__avatar" aria-hidden="true">
                             {% if hero_photo %}
                                 <img src="{{ hero_photo.url }}" alt="">
