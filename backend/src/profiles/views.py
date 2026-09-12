@@ -199,6 +199,7 @@ def _form_page_context(request, form, tag_qs, profile=None):
     error_step = form.first_error_step() if form.is_bound and form.errors else 0
     return {
         'form': form,
+        'profile': profile,
         'error_step': error_step,
         'photo_slots': photo_slots_for_form(request, profile),
         'dating_interest_options': _mode_tag_options(
@@ -313,13 +314,26 @@ def me_view(request):
     if profile is None:
         return redirect('profile_setup')
 
+    photos = list(profile.photos.all())
+    bff = profile.get_mode(SearchMode.BFF)
+    bff_looking_labels = []
+    if bff:
+        bff_looking_labels = [
+            part.strip()
+            for part in bff.looking_for_label().split(',')
+            if part.strip()
+        ]
     return render(
         request,
         'profiles/detail.html',
         {
             'profile': profile,
+            'photos': photos,
+            'hero_photo': photos[0] if photos else None,
+            'gallery_slots': (photos + [None] * 6)[:6],
             'dating': profile.get_mode(SearchMode.DATING),
-            'bff': profile.get_mode(SearchMode.BFF),
+            'bff': bff,
+            'bff_looking_labels': bff_looking_labels,
             'dating_interests': profile.tags_for(
                 SearchMode.DATING,
                 TagCategory.INTEREST,

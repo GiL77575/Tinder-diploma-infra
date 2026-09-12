@@ -14,6 +14,8 @@
     --crush-radius-btn: 12px;
     --font-brand: "Rubik One", sans-serif;
     --font-body: "Plus Jakarta Sans", sans-serif;
+    /* 1px макета 1920 — як на профілі (scale по ширині вікна) */
+    --crush-u: calc(100vw / 1920);
     --landing-gradient: radial-gradient(
         112.49% 213.77% at 48.02% 50%,
         rgba(246, 246, 246, 0.5) 0%,
@@ -69,6 +71,7 @@ body.page-chat {
     height: 100%;
     height: 100dvh;
     margin: 0;
+    background-color: transparent;
 }
 
 html:has(body.page-auth),
@@ -159,45 +162,49 @@ body.page-auth .crush-viewport::before {
     overflow: visible;
 }
 
-/* Спільний хедер (Figma 1920×1080) */
+/* Спільний хедер поза crush-frame — масштаб як на /profile/ */
 .landing-header {
     position: absolute;
     left: 0;
     top: 0;
-    width: 1920px;
-    height: 80px;
-    z-index: 2;
+    width: 100%;
+    height: calc(80 * var(--crush-u));
+    z-index: 5;
+    pointer-events: none;
 }
 
 .landing-logo {
     position: absolute;
-    left: 192px;
-    top: 15px;
-    width: 127px;
-    height: 50px;
+    left: calc(190 * var(--crush-u));
+    top: calc(11 * var(--crush-u));
+    width: auto;
+    height: calc(50 * var(--crush-u));
     font-family: var(--font-brand);
     font-style: normal;
     font-weight: 400;
-    font-size: 40px;
-    line-height: 50px;
+    font-size: calc(40 * var(--crush-u));
+    line-height: calc(50 * var(--crush-u));
     color: var(--crush-purple);
+    pointer-events: auto;
 }
 
 .landing-nav {
     position: absolute;
-    top: 25px;
-    left: 1391px;
+    top: calc(25 * var(--crush-u));
+    right: calc(190 * var(--crush-u));
+    left: auto;
     display: flex;
     align-items: center;
-    gap: 30px;
+    gap: calc(40 * var(--crush-u));
+    pointer-events: auto;
 }
 
 .landing-nav a {
     font-family: var(--font-body);
     font-style: normal;
     font-weight: 700;
-    font-size: 20px;
-    line-height: 25px;
+    font-size: calc(20 * var(--crush-u));
+    line-height: calc(25 * var(--crush-u));
     color: var(--crush-ink);
     white-space: nowrap;
 }

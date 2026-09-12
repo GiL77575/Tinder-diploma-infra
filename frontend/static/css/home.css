@@ -1,65 +1,11 @@
-/* crush — landing content (Figma 1920×1080), лише home */
-
-/* Хедер — розміри з макета Figma (лише home) */
-body.page-home .landing-logo {
-    left: 192px;
-    top: 15px;
-    width: auto;
-    height: auto;
-    font-size: 40px;
-    line-height: 50px;
-}
-
-body.page-home .landing-nav {
-    top: 25px;
-    left: 1391px;
-    gap: 30px;
-}
-
-body.page-home .landing-nav a {
-    font-size: 20px;
-    line-height: 25px;
-}
-
-/* Декор: heart-outline.png + heart-outline.svg, без виходу на бокові краї */
-.landing-deco-hearts {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-}
-
-.landing-deco-heart {
-    position: absolute;
-    pointer-events: none;
-}
-
-.landing-deco-heart--png {
-    mix-blend-mode: screen;
-    opacity: 0.2;
-}
-
-.landing-deco-heart--svg {
-    fill: none;
-    overflow: visible;
-    color: var(--crush-purple);
-    opacity: 0.18;
-}
-
-.landing-deco-heart--1 { top: 108px; left: 180px;  width: 40px; height: 40px; transform: rotate(-10deg); }
-.landing-deco-heart--2 { top: 56px;  left: 620px;  width: 32px; height: 32px; transform: rotate(16deg); }
-.landing-deco-heart--3 { top: 148px; left: 980px; width: 34px; height: 34px; transform: rotate(-12deg); }
-.landing-deco-heart--4 { top: 478px; left: 280px; width: 28px; height: 28px; transform: rotate(8deg); }
-.landing-deco-heart--5 { top: 258px; left: 1580px; width: 38px; height: 38px; transform: rotate(12deg); }
-.landing-deco-heart--6 { top: 556px; left: 420px; width: 30px; height: 30px; transform: rotate(-8deg); }
-.landing-deco-heart--7 { top: 828px; left: 720px; width: 32px; height: 32px; transform: rotate(10deg); }
-.landing-deco-heart--8 { top: 758px; left: 1420px; width: 36px; height: 36px; transform: rotate(-10deg); }
+/* crush — landing, Figma «Перша сторінка» 1920×1080 */
 
 .landing-info {
     position: absolute;
     left: 190px;
     top: 412px;
     width: 910px;
+    height: 174px;
     z-index: 1;
 }
 
@@ -74,22 +20,8 @@ body.page-home .landing-nav a {
     line-height: 73px;
     display: flex;
     align-items: center;
-    color: var(--crush-ink);
-    white-space: nowrap;
-}
-
-.landing-title__word {
-    margin-right: 0.28em;
-}
-
-.landing-title__word:last-child {
-    margin-right: 0;
-}
-
-.landing-title .accent {
     color: var(--crush-purple);
-    font-style: italic;
-    font-weight: 700;
+    white-space: nowrap;
 }
 
 .landing-desc {
@@ -97,6 +29,7 @@ body.page-home .landing-nav a {
     left: 0;
     top: 98px;
     width: 741px;
+    height: 76px;
     margin: 0;
     font-family: var(--font-body);
     font-style: normal;
@@ -131,6 +64,7 @@ body.page-home .landing-nav a {
     line-height: 25px;
     text-align: center;
     color: var(--crush-purple);
+    box-sizing: border-box;
 }
 
 .landing-cta {
@@ -143,11 +77,10 @@ body.page-home .landing-nav a {
 }
 
 .landing-btn {
-    width: 370px;
-    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
+    height: 72px;
     border-radius: var(--crush-radius-btn);
     font-family: var(--font-body);
     font-style: normal;
@@ -156,9 +89,11 @@ body.page-home .landing-nav a {
     line-height: 38px;
     text-align: center;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
 .landing-btn--primary {
+    width: 411px;
     background: var(--crush-purple);
     color: var(--crush-white);
     border: none;
@@ -171,6 +106,7 @@ body.page-home .landing-nav a {
 }
 
 .landing-btn--secondary {
+    width: 327px;
     background: var(--crush-secondary);
     color: var(--crush-ink);
     border: 1px solid var(--crush-line);
@@ -182,12 +118,12 @@ body.page-home .landing-nav a {
 
 .landing-hero {
     position: absolute;
-    left: 1115px;
-    top: 194px;
-    width: 591px;
-    height: 886px;
+    left: 1080px;
+    top: 200px;
+    width: 760px;
+    height: 850px;
     object-fit: contain;
-    object-position: center bottom;
+    object-position: right bottom;
     pointer-events: none;
     user-select: none;
     z-index: 1;

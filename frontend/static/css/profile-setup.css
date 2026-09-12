@@ -1,17 +1,19 @@
-/* crush — profile setup / edit (Figma «Створення облікового запису 2», 1920×1080) */
+/* crush — profile setup / edit (Figma кроки 2–5, кадр 1920 і змінна висота) */
 
-/* Full-bleed фон: те саме фонове зображення, що на login/register, без декоративних сердечок */
+/* Full-bleed фон: те саме зображення, що на login/register. Cover + fixed —
+   щоб при scale/скролі не було білих смуг по боках. */
 body.page-setup {
     overflow: hidden;
     width: 100%;
     height: 100%;
     height: 100dvh;
     margin: 0;
-    background-color: #ffffff;
+    background-color: #f6f6f6;
     background-image: var(--auth-bg-image);
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 100% 100%;
+    background-size: cover;
+    background-attachment: fixed;
 }
 
 html:has(body.page-setup) {
@@ -20,46 +22,78 @@ html:has(body.page-setup) {
     height: 100%;
     height: 100dvh;
     margin: 0;
-    background-color: #ffffff;
+    background-color: #f6f6f6;
     background-image: var(--auth-bg-image);
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 100% 100%;
+    background-size: cover;
+    background-attachment: fixed;
 }
 
-body.page-setup .crush-viewport::before {
-    background-color: #ffffff;
+body.page-setup .crush-viewport {
+    position: relative;
+    background: transparent;
+    overflow: hidden;
+}
+
+body.page-setup .crush-frame {
+    z-index: 1;
+}
+
+body.page-setup:not(.page-edit):not([data-setup-step="1"]) .crush-viewport {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.page-setup .crush-viewport::before,
+body.page-setup .setup-page-backdrop {
+    background-color: #f6f6f6;
     background-image: var(--auth-bg-image);
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 100% 100%;
+    background-size: cover;
 }
 
-/* Логотип поза карткою */
+.setup-page-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.crush-frame-spacer {
+    width: 1px;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Логотип / вийти — той самий масштаб, що профіль */
 .page-setup .setup-logo {
     position: absolute;
-    left: 190px;
-    top: 15px;
-    width: 127px;
-    height: 50px;
+    left: calc(190 * var(--crush-u));
+    top: calc(11 * var(--crush-u));
+    width: auto;
+    height: calc(50 * var(--crush-u));
     font-family: var(--font-brand);
     font-style: normal;
     font-weight: 400;
-    font-size: 40px;
-    line-height: 50px;
+    font-size: calc(40 * var(--crush-u));
+    line-height: calc(50 * var(--crush-u));
     color: var(--crush-purple);
-    z-index: 2;
+    z-index: 5;
 }
 
 .page-setup .setup-logout {
     position: absolute;
-    top: 25px;
-    left: 1750px;
-    z-index: 2;
+    top: calc(25 * var(--crush-u));
+    right: calc(190 * var(--crush-u));
+    left: auto;
+    z-index: 5;
     font-family: var(--font-body);
-    font-size: 16px;
+    font-size: calc(16 * var(--crush-u));
     font-weight: 700;
-    line-height: 20px;
+    line-height: calc(20 * var(--crush-u));
     color: var(--crush-muted);
 }
 
@@ -84,10 +118,39 @@ body.page-setup .crush-viewport::before {
     overflow: hidden;
 }
 
+.page-setup[data-setup-step="2"] .setup-card,
+.page-setup[data-setup-step="3"] .setup-card,
+.page-setup[data-setup-step="4"] .setup-card {
+    width: 846px;
+    left: calc(50% - 423px);
+    overflow: hidden;
+}
+
+.page-setup[data-setup-step="2"] .setup-card {
+    top: 80px;
+    height: 1382px;
+}
+
+.page-setup[data-setup-step="3"] .setup-card {
+    top: 75px;
+    height: 1761px;
+}
+
+.page-setup[data-setup-step="4"] .setup-card {
+    top: 80px;
+    height: 2214px;
+}
+
 .page-setup .setup-card__head {
     flex-shrink: 0;
     padding-top: 45px;
     text-align: center;
+}
+
+.page-setup[data-setup-step="2"] .setup-card__head,
+.page-setup[data-setup-step="3"] .setup-card__head,
+.page-setup[data-setup-step="4"] .setup-card__head {
+    padding-top: 33px;
 }
 
 .page-setup .setup-card__head h1 {
@@ -116,16 +179,26 @@ body.page-setup .crush-viewport::before {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    gap: 38px;
+    gap: 20px;
     list-style: none;
     margin: 16px 0 0;
+    padding: 0;
+}
+
+.page-setup[data-setup-step="1"] .setup-steps {
+    gap: 38px;
     padding: 0 40px;
 }
 
 .page-setup .setup-steps__item {
     position: relative;
-    min-width: 124px;
-    padding: 11px 0 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 137px;
+    height: 48px;
+    padding: 11px 8px 9px;
     font-family: var(--font-body);
     font-style: normal;
     font-weight: 700;
@@ -134,6 +207,22 @@ body.page-setup .crush-viewport::before {
     text-align: center;
     color: var(--crush-muted);
     border-bottom: 2px solid var(--crush-muted);
+}
+
+.page-setup .setup-steps__check {
+    display: none;
+    width: 21px;
+    height: 21px;
+    flex-shrink: 0;
+}
+
+.page-setup .setup-steps__item.is-done {
+    color: #e7d5ff;
+    border-bottom-color: #e7d5ff;
+}
+
+.page-setup .setup-steps__item.is-done .setup-steps__check {
+    display: block;
 }
 
 .page-setup .setup-steps__item.is-active {
@@ -177,6 +266,13 @@ body.page-setup .crush-viewport::before {
     padding: 16px 91px 0;
 }
 
+.page-setup[data-setup-step="2"] .setup-card__body,
+.page-setup[data-setup-step="3"] .setup-card__body,
+.page-setup[data-setup-step="4"] .setup-card__body {
+    overflow: visible;
+    padding: 15px 86px 0;
+}
+
 .page-setup[data-setup-step="1"] .setup-card__head {
     padding-top: 38px;
 }
@@ -205,6 +301,15 @@ body.page-setup .crush-viewport::before {
 .page-setup .setup-card__footer {
     flex-shrink: 0;
     padding: 16px 91px 28px;
+}
+
+.page-setup[data-setup-step="2"] .setup-card__footer,
+.page-setup[data-setup-step="4"] .setup-card__footer {
+    padding: 20px 86px 28px;
+}
+
+.page-setup[data-setup-step="3"] .setup-card__footer {
+    padding: 20px 86px 24px;
 }
 
 /* Повідомлення про помилки */
@@ -236,23 +341,39 @@ body.page-setup .crush-viewport::before {
     margin: 0 0 12px;
 }
 
+.page-setup .panel > h2 {
+    display: none;
+}
+
 .page-setup .hint {
-    color: #4a4a4a;
-    font-size: 17px;
-    line-height: 22px;
+    width: 100%;
+    margin: 0 0 20px;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 20px;
+    text-align: center;
+    color: #8c8c8c;
+}
+
+.page-setup .panel--dating .hint,
+.page-setup .panel--bff .hint {
+    line-height: 23px;
+    letter-spacing: 0.02em;
     margin-bottom: 24px;
 }
 
-/* Сітка фото — 3×2, 264×264 */
+/* Сітка фото — 3×2, кадр 240×264 як у Figma */
 .page-setup .photo-grid {
     display: grid;
-    grid-template-columns: repeat(3, 264px);
-    gap: 24px 24px;
+    grid-template-columns: repeat(3, 240px);
+    gap: 20px 20px;
     justify-content: center;
 }
 
 .page-setup .photo-slot {
-    width: 264px;
+    width: 240px;
     height: 264px;
     border: 1px solid var(--crush-line);
     border-radius: 24px;
@@ -271,9 +392,16 @@ body.page-setup .crush-viewport::before {
 }
 
 .page-setup .photo-slot img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
+    max-width: none;
+    max-height: none;
+    min-width: 0;
+    min-height: 0;
     object-fit: cover;
+    object-position: center;
 }
 
 .page-setup .photo-slot__plus {
@@ -310,8 +438,9 @@ body.page-setup .crush-viewport::before {
 
 .page-setup .photo-slot__label {
     position: absolute;
-    left: 20px;
-    bottom: 20px;
+    left: 15px;
+    bottom: 15px;
+    z-index: 1;
     font-family: var(--font-body);
     font-size: 14px;
     line-height: 18px;
@@ -388,8 +517,10 @@ body.page-setup .crush-viewport::before {
 /* "Ім'я в профілі" — велике поле за Figma (Rectangle 125): фон #F8F8F8,
    рамка rgba(0,0,0,.51), радіус 12, текст/плейсхолдер 20/25 */
 .page-setup .field input[type="text"] {
+    box-sizing: border-box;
     width: 100%;
-    padding: 16px 14px;
+    height: 58px;
+    padding: 0 15px;
     border: 1px solid rgba(0, 0, 0, 0.51);
     border-radius: 12px;
     background: #f8f8f8;
@@ -404,21 +535,25 @@ body.page-setup .crush-viewport::before {
 }
 
 .page-setup .field input[type="number"] {
+    box-sizing: border-box;
     width: 100%;
-    padding: 12px 14px;
-    border: 1px solid var(--crush-line);
-    border-radius: var(--crush-radius-btn);
-    background: var(--crush-white);
+    height: 42px;
+    padding: 0 15px;
+    border: 1px solid #8c8c8c;
+    border-radius: 9px;
+    background: #f8f8f8;
     font: inherit;
-    font-size: 17px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 20px;
     color: var(--crush-ink);
 }
 
 /* Опис (Rectangle 520): світліша рамка й більший радіус, ніж у звичайних полів. */
 .page-setup .field textarea {
+    box-sizing: border-box;
     width: 100%;
-    padding: 12px 20px;
+    min-height: 155px;
+    padding: 15px 20px;
     border: 1px solid #dbdbdb;
     border-radius: 23px;
     background: var(--crush-white);
@@ -437,8 +572,10 @@ body.page-setup .crush-viewport::before {
    (Rectangle 519): фон #F8F8F8, рамка #8C8C8C, радіус 9, текст 16/20 */
 .page-setup .list-row input,
 .page-setup .list-row select {
+    box-sizing: border-box;
     width: 100%;
-    padding: 11px 12px;
+    height: 42px;
+    padding: 0 12px;
     border: 1px solid #8c8c8c;
     border-radius: 9px;
     background: #f8f8f8;
@@ -446,6 +583,15 @@ body.page-setup .crush-viewport::before {
     font-size: 16px;
     line-height: 20px;
     color: var(--crush-ink);
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.page-setup .list-row select {
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%230D0D0D' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
 }
 
 .page-setup .list-row input::placeholder {
@@ -463,8 +609,9 @@ body.page-setup .crush-viewport::before {
 
 .page-setup .birth-date__row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 154px 240px 239px;
+    gap: 20px;
+    justify-content: space-between;
 }
 
 .page-setup .birth-date__field {
@@ -474,21 +621,26 @@ body.page-setup .crush-viewport::before {
 .page-setup .birth-date__trigger {
     box-sizing: border-box;
     width: 100%;
-    min-height: 46px;
+    height: 58px;
+    min-height: 58px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 10px 12px;
-    border: 1px solid var(--crush-line);
-    border-radius: var(--crush-radius-btn);
-    background: var(--crush-white);
+    padding: 0 15px;
+    border: 1px solid rgba(0, 0, 0, 0.51);
+    border-radius: 12px;
+    background: #f8f8f8;
     font: inherit;
-    font-size: 17px;
-    line-height: 22px;
-    color: var(--crush-ink);
+    font-size: 20px;
+    line-height: 25px;
+    color: #8c8c8c;
     cursor: pointer;
     text-align: left;
+}
+
+.page-setup .birth-date__trigger.is-filled {
+    color: var(--crush-ink);
 }
 
 .page-setup .birth-date__trigger::after {
@@ -633,8 +785,16 @@ body.page-setup .crush-viewport::before {
 
 /* Групи з 3 варіантами (Кого шукаєш / Мета знайомства / Ставлення до
    паління-алкоголю / Формат зустрічей) — ширші кнопки за макетом (Rectangle 517, 240×30). */
+.page-setup .chips.chips--wide {
+    display: grid;
+    grid-template-columns: 240px 239px 153px;
+    justify-content: space-between;
+    gap: 15px 20px;
+}
+
+.page-setup .chips.chips--wide .chip,
 .page-setup .chips.chips--wide .chip span {
-    width: 240px;
+    width: 100%;
 }
 
 /* Вертикальний стовпчик чіпів (вибагливість щодо віку, поруч з полями віку).
@@ -649,17 +809,27 @@ body.page-setup .crush-viewport::before {
     width: 153px;
 }
 
-/* Загальні інтереси / «Що шукаєш» (кроки «Знайомства» і «Друзі») — за макетом
-   це РІВНО 4 колонки (кроки 623/797/970/1143px = крок ~173px). flex-wrap тут
-   не годиться, бо кількість елементів у рядку «пливе» залежно від ширини
-   вікна — тому фіксуємо сітку явно, щоб порядок завжди читався так само, як
-   у Figma. Стосується обох панелей: dating (інтереси) і bff (цілі, інтереси). */
+/* Загальні інтереси — рівно 4 колонки, як у Figma (623/797/970/1143). */
 .page-setup .panel--dating .chips.chips--wrap,
 .page-setup .panel--bff .chips.chips--wrap {
     display: grid;
     grid-template-columns: repeat(4, 154px);
     justify-content: space-between;
     gap: 15px 0;
+}
+
+/* «Що шукаєш» у друзях — чіпи різної ширини, тому flex-wrap. */
+.page-setup .panel--bff fieldset.field:first-of-type .chips.chips--wrap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 15px 20px;
+}
+
+.page-setup .panel--bff fieldset.field:first-of-type .chips.chips--wrap .chip span {
+    width: auto;
+    min-width: 153px;
+    padding: 5px 16px;
 }
 
 .page-setup .panel--dating .chips.chips--wrap .chip span,
@@ -679,23 +849,27 @@ body.page-setup .crush-viewport::before {
 }
 
 .page-setup .list-card {
-    border: 1px solid var(--crush-line);
-    border-radius: 16px;
+    box-sizing: border-box;
+    width: 674px;
+    border: 1px solid #dbdbdb;
+    border-radius: 23px;
     overflow: hidden;
     background: var(--crush-white);
     margin-bottom: 12px;
+    padding: 16px 15px 18px;
 }
 
 .page-setup .list-row {
     display: grid;
-    grid-template-columns: 168px 1fr;
-    gap: 16px;
+    grid-template-columns: 139px 485px;
+    gap: 20px;
     align-items: center;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--crush-input-line);
-    font-size: 18px;
-    line-height: 23px;
-    font-weight: 600;
+    padding: 10px 0;
+    border-bottom: 0;
+    font-size: 20px;
+    line-height: 25px;
+    font-weight: 700;
+    color: var(--crush-ink);
 }
 
 .page-setup .list-row:last-of-type {
@@ -704,22 +878,27 @@ body.page-setup .crush-viewport::before {
 
 .page-setup .list-row input,
 .page-setup .list-row select {
+    box-sizing: border-box;
+    height: 42px;
     font-weight: 400;
-    padding: 8px 10px;
+    padding: 0 10px 0 10px;
 }
 
 .page-setup .mode-cards {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    grid-template-columns: 327px 327px;
+    gap: 20px;
     margin-top: 2px;
 }
 
 .page-setup .mode-card {
     position: relative;
+    box-sizing: border-box;
+    width: 327px;
+    height: 102px;
     border: 1px solid var(--crush-line);
     border-radius: 26px;
-    padding: 18px 52px 18px 20px;
+    padding: 20px 52px 18px 20px;
     background: var(--crush-white);
     cursor: pointer;
 }
@@ -760,15 +939,15 @@ body.page-setup .crush-viewport::before {
 .page-setup .mode-card__title {
     display: block;
     font-weight: 700;
-    font-size: 18px;
-    line-height: 23px;
+    font-size: 20px;
+    line-height: 25px;
 }
 
 .page-setup .mode-card__text {
     display: block;
-    color: #4a4a4a;
-    font-size: 15px;
-    line-height: 19px;
+    color: #8c8c8c;
+    font-size: 16px;
+    line-height: 20px;
     margin-top: 6px;
 }
 
@@ -778,15 +957,15 @@ body.page-setup .crush-viewport::before {
 }
 
 .page-setup .mode-card--bff:has(input:checked) {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: #e866ff;
+    box-shadow: 0 0 8px #e866ff;
 }
 
 .page-setup .age-row {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 240px 240px 153px;
     align-items: end;
-    gap: 14px;
+    gap: 20px;
 }
 
 .page-setup .age-row__extra {
@@ -906,26 +1085,56 @@ body.page-setup .crush-viewport::before {
 
 .page-setup .toggle {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
-    margin-top: 20px;
-    font-size: 18px;
-    line-height: 23px;
-    font-weight: 600;
+    margin-top: 28px;
+    font-size: 20px;
+    line-height: 25px;
+    font-weight: 700;
+    color: var(--crush-ink);
+}
+
+.page-setup .toggle input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 4px;
+    flex-shrink: 0;
+    border: 1px solid #161616;
+    border-radius: 2px;
+    background: var(--crush-white);
+    cursor: pointer;
+}
+
+.page-setup .toggle input:checked {
+    background: var(--crush-purple);
+    border-color: var(--crush-purple);
+}
+
+.page-setup .toggle input:checked::after {
+    content: "";
+    display: block;
+    width: 5px;
+    height: 9px;
+    margin: 1px auto 0;
+    border: solid #fffdfe;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .page-setup .toggle small {
     display: block;
     font-weight: 400;
-    color: #4a4a4a;
-    margin-top: 6px;
-    font-size: 15px;
-    line-height: 19px;
+    color: #8c8c8c;
+    margin-top: 4px;
+    font-size: 16px;
+    line-height: 20px;
 }
 
 .page-setup .setup-actions {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     margin-top: 0;
 }
 
@@ -937,575 +1146,64 @@ body.page-setup .crush-viewport::before {
 .page-setup .setup-actions .btn-secondary {
     flex: 1;
     min-width: 0;
-    height: 56px;
+    height: 52px;
     padding: 0 16px;
-    font-size: 18px;
-    line-height: 23px;
-    border-radius: var(--crush-radius-btn);
+    font-size: 20px;
+    line-height: 25px;
+    font-weight: 700;
+    border-radius: 12px;
 }
 
-/* Крок 4: три кнопки в один ряд — трохи компактніше, щоб «Зберегти профіль» вміщалась */
-.page-setup .setup-actions:has(#btn-skip:not([hidden])) .btn-primary,
-.page-setup .setup-actions:has(#btn-skip:not([hidden])) .btn-secondary {
-    font-size: 16px;
-    line-height: 20px;
-    padding: 0 12px;
+.page-setup[data-setup-step="2"] .setup-actions #btn-back {
+    flex: 0 0 240px;
+}
+
+.page-setup[data-setup-step="2"] .setup-actions #btn-next {
+    flex: 0 0 414px;
+}
+
+.page-setup[data-setup-step="3"] .setup-actions #btn-back,
+.page-setup[data-setup-step="3"] .setup-actions #btn-skip {
+    flex: 0 0 154px;
+}
+
+.page-setup[data-setup-step="3"] .setup-actions #btn-next {
+    flex: 0 0 327px;
+}
+
+.page-setup[data-setup-step="4"] .setup-actions #btn-back {
+    flex: 0 0 154px;
+}
+
+.page-setup[data-setup-step="4"] .setup-actions #btn-skip {
+    flex: 0 0 168px;
+}
+
+.page-setup[data-setup-step="4"] .setup-actions #btn-submit {
+    flex: 0 0 312px;
 }
 
 .page-setup .setup-actions .btn-primary {
-    box-shadow: 0 2px 10px 3px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
 }
 
-/* «Назад» / «Пропустити» (Rectangle 514): біла кнопка з сірою рамкою й текстом. */
+/* «Назад»: біла кнопка, чорна рамка. «Пропустити»: сіра рамка/текст. */
 .page-setup .setup-actions .btn-secondary {
-    background: var(--crush-white);
-    color: var(--crush-line);
-    border: 1px solid var(--crush-line);
+    background: #fffdfe;
+    color: #161616;
+    border: 1px solid #161616;
     box-shadow: none;
+}
+
+.page-setup .setup-actions #btn-skip {
+    color: #8c8c8c;
+    border-color: #8c8c8c;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .page-setup .step-error {
     color: #dc2626;
     font-size: 14px;
     margin-top: 12px;
-}
-
-/* Редагування профілю — компактний layout без Figma-frame */
-body:not(.page-setup) .setup-wrap {
-    width: min(640px, calc(100% - 2rem));
-    margin: 0 auto;
-    padding: 2rem 0 4rem;
-}
-
-body:not(.page-setup) .setup-header {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-body:not(.page-setup) .setup-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.35rem;
-}
-
-body:not(.page-setup) .setup-logout {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--crush-muted);
-}
-
-body:not(.page-setup) .setup-logout:hover {
-    color: var(--crush-ink);
-}
-
-body:not(.page-setup) .setup-header h1 {
-    font-size: 1.7rem;
-    margin: 0.35rem 0 0.5rem;
-}
-
-body:not(.page-setup) .lead,
-body:not(.page-setup) .hint {
-    color: var(--crush-muted);
-    font-size: 0.92rem;
-    line-height: 1.45;
-}
-
-body:not(.page-setup) .steps {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.4rem;
-    list-style: none;
-    margin-bottom: 1.25rem;
-}
-
-body:not(.page-setup) .steps__item {
-    text-align: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--crush-muted);
-    padding-bottom: 0.45rem;
-    border-bottom: 3px solid var(--crush-input-line);
-}
-
-body:not(.page-setup) .steps__item.is-active {
-    color: var(--crush-purple);
-    border-bottom-color: var(--crush-purple);
-}
-
-body:not(.page-setup) .errors,
-body:not(.page-setup) .errorlist {
-    list-style: none;
-    margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--crush-radius-btn);
-    color: #dc2626;
-    font-size: 0.85rem;
-}
-
-body:not(.page-setup) .panel {
-    display: none;
-    background: var(--crush-white);
-    border: 1px solid var(--crush-line);
-    border-radius: 24px;
-    padding: 1.5rem;
-}
-
-body:not(.page-setup) .panel.is-active {
-    display: block;
-}
-
-body:not(.page-setup) .panel h2 {
-    font-size: 1.2rem;
-    margin-bottom: 0.35rem;
-}
-
-body:not(.page-setup) .panel--dating {
-    border-top: 4px solid #e11d48;
-}
-
-body:not(.page-setup) .panel--bff {
-    border-top: 4px solid #2563eb;
-}
-
-body:not(.page-setup) .hint {
-    margin-bottom: 1.1rem;
-}
-
-body:not(.page-setup) .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-}
-
-body:not(.page-setup) .photo-slot {
-    aspect-ratio: 1;
-    border: 1.5px dashed var(--crush-line);
-    border-radius: 16px;
-    background: var(--crush-secondary);
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-body:not(.page-setup) .photo-slot.is-filled {
-    border-style: solid;
-    border-color: var(--crush-purple);
-}
-
-body:not(.page-setup) .photo-slot img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-body:not(.page-setup) .photo-slot__plus {
-    font-size: 1.8rem;
-    color: var(--crush-muted);
-}
-
-body:not(.page-setup) .photo-slot__label {
-    position: absolute;
-    left: 0.4rem;
-    bottom: 0.4rem;
-    font-size: 0.7rem;
-    color: var(--crush-muted);
-    background: rgba(255, 253, 254, 0.9);
-    border-radius: 999px;
-    padding: 0.1rem 0.45rem;
-}
-
-body:not(.page-setup) .photo-slot__remove {
-    position: absolute;
-    top: 0.35rem;
-    right: 0.35rem;
-    z-index: 2;
-    width: 1.6rem;
-    height: 1.6rem;
-    border: none;
-    border-radius: 999px;
-    background: rgba(22, 22, 22, 0.72);
-    color: transparent;
-    font-size: 0;
-    line-height: 0;
-    padding: 0;
-    cursor: pointer;
-    overflow: hidden;
-}
-
-body:not(.page-setup) .photo-slot__remove::before,
-body:not(.page-setup) .photo-slot__remove::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 2px;
-    background: #fff;
-    border-radius: 1px;
-}
-
-body:not(.page-setup) .photo-slot__remove::before {
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-body:not(.page-setup) .photo-slot__remove::after {
-    transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-body:not(.page-setup) #setup-form[data-mode="edit"] .panel {
-    display: block;
-    margin-bottom: 1rem;
-}
-
-body:not(.page-setup) .field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
-    border: 0;
-}
-
-body:not(.page-setup) .field > span,
-body:not(.page-setup) .field legend {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--crush-ink);
-}
-
-body:not(.page-setup) .field input[type="text"],
-body:not(.page-setup) .field input[type="number"],
-body:not(.page-setup) .field textarea,
-body:not(.page-setup) .list-row input,
-body:not(.page-setup) .list-row select,
-body:not(.page-setup) .level-row select {
-    width: 100%;
-    padding: 0.75rem 0.9rem;
-    border: 1px solid var(--crush-input-line);
-    border-radius: var(--crush-radius-btn);
-    background: var(--crush-white);
-    font: inherit;
-    color: var(--crush-ink);
-}
-
-body:not(.page-setup) .field textarea {
-    resize: vertical;
-}
-
-body:not(.page-setup) .birth-date {
-    position: relative;
-    z-index: 1;
-}
-
-body:not(.page-setup) .birth-date.is-open {
-    z-index: 12;
-}
-
-body:not(.page-setup) .birth-date__row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-    gap: 0.75rem;
-}
-
-body:not(.page-setup) .birth-date__field {
-    position: relative;
-}
-
-body:not(.page-setup) .birth-date__trigger {
-    box-sizing: border-box;
-    width: 100%;
-    min-height: 2.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.65rem 0.75rem;
-    border: 1px solid var(--crush-input-line);
-    border-radius: var(--crush-radius-btn);
-    background: var(--crush-white);
-    font: inherit;
-    color: var(--crush-ink);
-    cursor: pointer;
-    text-align: left;
-}
-
-body:not(.page-setup) .birth-date__trigger::after {
-    content: "";
-    flex-shrink: 0;
-    width: 12px;
-    height: 8px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238C8C8C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-body:not(.page-setup) .birth-date__trigger.is-open,
-body:not(.page-setup) .birth-date__trigger:focus-visible {
-    outline: none;
-    border-color: var(--crush-purple);
-    box-shadow: 0 0 0 3px rgba(151, 71, 255, 0.15);
-}
-
-body:not(.page-setup) .birth-date__menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    z-index: 30;
-    max-height: 9.75rem;
-    overflow-y: auto;
-    margin: 0;
-    padding: 0.25rem 0;
-    list-style: none;
-    background: var(--crush-white);
-    border: 1px solid var(--crush-line);
-    border-radius: 10px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-}
-
-body:not(.page-setup) .birth-date__menu[hidden] {
-    display: none;
-}
-
-body:not(.page-setup) .birth-date__option {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.95rem;
-    line-height: 1.25rem;
-    color: var(--crush-ink);
-    cursor: pointer;
-}
-
-body:not(.page-setup) .birth-date__option:hover,
-body:not(.page-setup) .birth-date__option.is-selected,
-body:not(.page-setup) .compact-select__option:hover,
-body:not(.page-setup) .compact-select__option.is-selected {
-    background: rgba(231, 213, 255, 0.43);
-    color: var(--crush-purple);
-}
-
-body:not(.page-setup) .compact-select {
-    position: relative;
-    min-width: 0;
-}
-
-body:not(.page-setup) .compact-select.is-open {
-    z-index: 15;
-}
-
-body:not(.page-setup) .compact-select__menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-}
-
-body:not(.page-setup) .compact-select__native {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-}
-
-body:not(.page-setup) .compact-select__trigger:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-}
-
-body:not(.page-setup) .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-body:not(.page-setup) .chip {
-    cursor: pointer;
-}
-
-body:not(.page-setup) .chip input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-body:not(.page-setup) .chip span {
-    display: inline-block;
-    padding: 0.45rem 0.85rem;
-    border-radius: 999px;
-    border: 1px solid var(--crush-input-line);
-    background: var(--crush-white);
-    font-size: 0.85rem;
-    color: var(--crush-ink);
-}
-
-body:not(.page-setup) .chip input:checked + span {
-    border-color: var(--crush-purple);
-    background: var(--crush-secondary);
-    color: var(--crush-purple);
-    font-weight: 600;
-}
-
-body:not(.page-setup) .list-card {
-    border: 1px solid var(--crush-input-line);
-    border-radius: 16px;
-    overflow: hidden;
-    background: var(--crush-white);
-    margin-bottom: 0.5rem;
-}
-
-body:not(.page-setup) .list-row {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--crush-input-line);
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-body:not(.page-setup) .list-row:last-of-type {
-    border-bottom: 0;
-}
-
-body:not(.page-setup) .list-row input,
-body:not(.page-setup) .list-row select {
-    font-weight: 400;
-    padding: 0.45rem 0.6rem;
-}
-
-body:not(.page-setup) .mode-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-body:not(.page-setup) .mode-card {
-    border: 1px solid var(--crush-input-line);
-    border-radius: 16px;
-    padding: 1rem;
-    background: var(--crush-white);
-    cursor: pointer;
-}
-
-body:not(.page-setup) .mode-card input {
-    margin-bottom: 0.4rem;
-}
-
-body:not(.page-setup) .mode-card__title {
-    display: block;
-    font-weight: 700;
-}
-
-body:not(.page-setup) .mode-card__text {
-    display: block;
-    color: var(--crush-muted);
-    font-size: 0.8rem;
-    margin-top: 0.2rem;
-}
-
-body:not(.page-setup) .mode-card:has(input:checked) {
-    border-color: #e11d48;
-    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
-}
-
-body:not(.page-setup) .mode-card--bff:has(input:checked) {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-body:not(.page-setup) .age-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-body:not(.page-setup) .level-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-}
-
-body:not(.page-setup) .level-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 140px;
-    gap: 0.6rem;
-    align-items: center;
-    background: var(--crush-white);
-    border: 1px solid var(--crush-input-line);
-    border-radius: var(--crush-radius-btn);
-    padding: 0.45rem 0.7rem;
-}
-
-body:not(.page-setup) .level-row__pick {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-width: 0;
-    cursor: pointer;
-}
-
-body:not(.page-setup) .level-row__pick input {
-    flex-shrink: 0;
-}
-
-body:not(.page-setup) .level-row__name {
-    font-size: 0.9rem;
-}
-
-body:not(.page-setup) .toggle {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    margin-top: 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-}
-
-body:not(.page-setup) .toggle small {
-    display: block;
-    font-weight: 400;
-    color: var(--crush-muted);
-    margin-top: 0.2rem;
-}
-
-body:not(.page-setup) .setup-actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-}
-
-body:not(.page-setup) .setup-actions .btn-primary,
-body:not(.page-setup) .setup-actions .btn-secondary {
-    flex: 1;
-    padding: 0.9rem 1.2rem;
-    font-size: 1rem;
-    box-shadow: none;
-}
-
-body:not(.page-setup) .setup-actions .btn-primary {
-    box-shadow: var(--crush-shadow-btn);
-}
-
-body:not(.page-setup) .step-error {
-    color: #dc2626;
-    font-size: 0.85rem;
-    margin-top: 0.75rem;
-}
-
-@media (max-width: 560px) {
-    body:not(.page-setup) .list-row,
-    body:not(.page-setup) .level-row {
-        grid-template-columns: 1fr;
-    }
-
-    body:not(.page-setup) .mode-cards,
-    body:not(.page-setup) .age-row {
-        grid-template-columns: 1fr;
-    }
 }

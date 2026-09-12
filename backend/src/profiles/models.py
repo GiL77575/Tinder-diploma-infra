@@ -9,6 +9,8 @@ from django.db import models
 
 def calculate_age(birth_date):
     """Повних років на сьогодні за датою народження."""
+    if birth_date is None:
+        return None
     today = date.today()
     return (
         today.year
@@ -234,14 +236,6 @@ class Profile(models.Model):
     def age(self):
         """Вік користувача для картки профілю."""
         return calculate_age(self.birth_date)
-
-    @property
-    def is_visible(self):
-        """Чи можна показувати профіль іншим у пошуку."""
-        return (
-            self.is_discoverable
-            and self.moderation_status == ModerationStatus.APPROVED
-        )
 
     def get_mode(self, mode):
         """Контур Dating або BFF, або None."""

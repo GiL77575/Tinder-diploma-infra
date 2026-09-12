@@ -8,7 +8,7 @@ from messaging.models import Conversation, Message, PushSubscription
 class MessageInline(admin.TabularInline):
     model = Message
     extra = 0
-    fields = ('sender', 'text', 'created_at', 'read_at')
+    fields = ('sender', 'text', 'image_url', 'created_at', 'read_at')
     readonly_fields = ('created_at',)
     ordering = ('created_at',)
 
@@ -40,14 +40,22 @@ class ConversationAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'conversation', 'sender', 'short_text', 'created_at', 'read_at')
+    list_display = ('id', 'conversation', 'sender', 'short_text', 'has_image', 'created_at', 'read_at')
     list_filter = ('conversation__match__mode',)
     search_fields = ('text', 'sender__email', 'sender__username')
     autocomplete_fields = ('conversation', 'sender')
 
     @admin.display(description='Текст')
     def short_text(self, obj):
-        return obj.text[:60]
+        if obj.text:
+            return obj.text[:60]
+        if obj.image_url:
+            return '📷 Фото'
+        return '—'
+
+    @admin.display(description='Фото', boolean=True)
+    def has_image(self, obj):
+        return bool(obj.image_url)
 
 
 @admin.register(PushSubscription)

@@ -14,22 +14,11 @@
 <body class="page-home">
     <div class="crush-viewport">
         {# Figma: Перша сторінка 1920×1080 #}
+        {% include 'includes/landing_header.html' %}
         <div class="crush-frame">
-            <div class="landing-deco-hearts" aria-hidden="true">
-                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--1" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="40" height="40">
-                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--2"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
-                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--3" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="34" height="34">
-                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--4"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
-                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--5" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="38" height="38">
-                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--6"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
-                <img class="landing-deco-heart landing-deco-heart--png landing-deco-heart--7" src="{% static 'img/brand/heart-outline.png' %}" alt="" width="32" height="32">
-                <svg class="landing-deco-heart landing-deco-heart--svg landing-deco-heart--8"><use href="{% static 'img/brand/heart-outline.svg' %}#heart-outline"></use></svg>
-            </div>
-
-            {% include 'includes/landing_header.html' %}
 
             <div class="landing-info">
-                <h1 class="landing-title"><span class="landing-title__word"><span class="accent">C</span>reate</span> <span class="landing-title__word"><span class="accent">R</span>eal</span> <span class="landing-title__word"><span class="accent">U</span>nique</span> <span class="landing-title__word"><span class="accent">S</span>tories</span> <span class="landing-title__word"><span class="accent">H</span>ere</span></h1>
+                <h1 class="landing-title">Create Real Unique Stories Here</h1>
                 <p class="landing-desc">
                     Платформа для пошуку романтичних знайомств та однодумців за спільними інтересами, подіями та мовним обміном
                 </p>
@@ -51,18 +40,14 @@
                 {% endif %}
             </div>
 
-            {% comment %}
-                Випадкове фото при кожному завантаженні сторінки: список кандидатів —
-                у data-hero-photos (js/home.js обирає один випадковий варіант).
-            {% endcomment %}
             <img
                 class="landing-hero"
                 id="landing-hero-photo"
-                src="{% static 'img/brand/hero-couple.png' %}"
-                data-hero-photos="{% static 'img/brand/hero-couple.png' %}|{% static 'img/brand/hero-group.png' %}|{% static 'img/brand/hero-couple-dark.png' %}"
+                src="{% vstatic 'img/brand/hero-couple.png' %}"
+                data-hero-photos="{% vstatic 'img/brand/hero-couple.png' %}|{% vstatic 'img/brand/hero-group.png' %}|{% vstatic 'img/brand/hero-couple-dark.png' %}"
                 alt=""
-                width="591"
-                height="886"
+                width="760"
+                height="850"
                 decoding="async"
             >
         </div>

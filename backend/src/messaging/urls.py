@@ -6,6 +6,7 @@ from messaging.views import (
     conversation_mark_read_view,
     conversation_messages_view,
     conversation_send_message_view,
+    conversation_send_photo_view,
     conversations_list_view,
     open_conversation_view,
 )
@@ -22,6 +23,11 @@ urlpatterns = [
         'conversations/<int:conversation_id>/send/',
         conversation_send_message_view,
         name='conversation_send',
+    ),
+    path(
+        'conversations/<int:conversation_id>/photo/',
+        conversation_send_photo_view,
+        name='conversation_send_photo',
     ),
     path(
         'conversations/<int:conversation_id>/read/',

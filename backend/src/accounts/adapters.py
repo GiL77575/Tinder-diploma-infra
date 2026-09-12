@@ -16,7 +16,7 @@ class AccountAdapter(DefaultAccountAdapter):
         user = request.user
         if user.is_authenticated and not user.is_profile_complete:
             return reverse('profile_setup')
-        return reverse('home')
+        return reverse('app_dashboard')
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):

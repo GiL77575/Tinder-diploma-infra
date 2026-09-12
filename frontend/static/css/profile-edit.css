@@ -1,0 +1,583 @@
+/* crush — редагування профілю, Figma 1920×1080 */
+
+html:has(body.page-edit),
+body.page-edit {
+    overflow: hidden;
+    overflow: clip;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    background-color: #f7eef8;
+    background-image: linear-gradient(180deg, #fff9fc 0%, #f3ecff 52%, #ffeaf6 100%);
+}
+
+body.page-setup.page-edit .crush-viewport,
+body.page-edit .crush-viewport {
+    overflow: hidden;
+    overflow: clip;
+    overscroll-behavior: none;
+    background: transparent;
+}
+
+body.page-edit .crush-frame {
+    position: fixed;
+}
+
+body.page-edit .crush-viewport::before,
+body.page-edit .edit-page-backdrop,
+body.page-edit .setup-page-backdrop {
+    background-color: #f7eef8;
+    background-image: linear-gradient(180deg, #fff9fc 0%, #f3ecff 52%, #ffeaf6 100%);
+}
+
+.edit-page-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.edit-glow {
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    left: 1180px;
+    top: -180px;
+    background: rgba(232, 201, 255, 0.26);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.edit-header {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: calc(76 * var(--crush-u));
+    padding: 0 calc(190 * var(--crush-u));
+    box-sizing: border-box;
+}
+
+.edit-header-spacer {
+    height: 76px;
+    flex-shrink: 0;
+}
+
+.edit-logo {
+    font-family: var(--font-brand);
+    font-size: calc(40 * var(--crush-u));
+    line-height: calc(50 * var(--crush-u));
+    background: linear-gradient(90deg, #9345ff 0%, #ea66d8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.edit-header__right {
+    display: flex;
+    align-items: center;
+    gap: calc(28 * var(--crush-u));
+}
+
+.edit-mode {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: calc(219 * var(--crush-u));
+    height: calc(44 * var(--crush-u));
+    padding: calc(4 * var(--crush-u));
+    background: #fffdfe;
+    border: 1px solid #c9bdc9;
+    border-radius: 999px;
+    box-sizing: border-box;
+}
+
+.edit-mode__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(36 * var(--crush-u));
+    padding: 0 calc(18 * var(--crush-u));
+    border-radius: 999px;
+    font-size: calc(14 * var(--crush-u));
+    line-height: calc(18 * var(--crush-u));
+    color: #8f8992;
+}
+
+.edit-mode__btn.is-active {
+    background: #ea66d8;
+    color: #fff;
+    font-weight: 700;
+}
+
+.edit-header__name {
+    font-weight: 700;
+    font-size: calc(16 * var(--crush-u));
+    line-height: calc(20 * var(--crush-u));
+    color: #242126;
+}
+
+.edit-header__avatar {
+    width: calc(42 * var(--crush-u));
+    height: calc(42 * var(--crush-u));
+    border-radius: 50%;
+    border: 1px solid #242126;
+    overflow: hidden;
+    background: #fff;
+}
+
+.edit-header__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.edit-form {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-workspace {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    padding: 18px 190px 0;
+    height: 850px;
+    box-sizing: border-box;
+}
+
+.edit-photos {
+    width: 620px;
+    height: 814px;
+    padding: 16px;
+    background: #fffdfe;
+    border: 1px solid #c9bdc9;
+    box-shadow: 0 14px 40px rgba(109, 60, 143, 0.09);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-sizing: border-box;
+}
+
+.edit-photos__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.edit-photos__head h2 {
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 700;
+    color: #242126;
+}
+
+.edit-photos__head p,
+.edit-photos__rule {
+    font-size: 13px;
+    line-height: 16px;
+    color: #8f8992;
+}
+
+.page-edit .edit-photos .panel {
+    display: block;
+    margin: 0;
+}
+
+.page-edit .edit-photos .photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px 10px;
+    width: 588px;
+}
+
+.page-edit .edit-photos .photo-slot {
+    width: 98px;
+    height: 112px;
+    border: none;
+    border-radius: 14px;
+    box-shadow: none;
+    background: #f5eeff;
+    overflow: hidden;
+}
+
+.page-edit .edit-photos .photo-slot[data-slot="0"] {
+    flex: 0 0 588px;
+    width: 588px;
+    height: 500px;
+    border: 2px solid #9345ff;
+    border-radius: 18px;
+    background: #efe6f8;
+}
+
+.page-edit .edit-photos .photo-slot__label {
+    display: none;
+}
+
+.page-edit .edit-photos .photo-slot[data-slot="0"] .photo-slot__label,
+.page-edit .edit-photos .photo-slot[data-slot="0"].is-filled .photo-slot__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    left: 16px;
+    top: 16px;
+    right: auto;
+    bottom: auto;
+    width: 120px;
+    height: 30px;
+    padding: 7px 14px;
+    background: rgba(36, 27, 47, 0.8);
+    border-radius: 999px;
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.page-edit .edit-photos .photo-slot__change {
+    display: none;
+}
+
+.page-edit .edit-photos .photo-slot[data-slot="0"].is-filled .photo-slot__change {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 95px;
+    height: 38px;
+    background: #fffdfe;
+    border-radius: 999px;
+    font-size: 14px;
+    line-height: 18px;
+    font-weight: 700;
+    color: #9345ff;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.page-edit .edit-photos .photo-slot:not(.is-filled):not([data-slot="0"]) {
+    display: none;
+}
+
+.page-edit .edit-photos .photo-slot.is-filled + .photo-slot:not(.is-filled) {
+    display: flex;
+    width: 48px;
+    height: 112px;
+    border: 1px dashed #9345ff;
+    background: #f5eeff;
+}
+
+.page-edit .edit-photos .photo-slot:not(.is-filled) .photo-slot__plus {
+    color: transparent;
+    font-size: 0;
+}
+
+.page-edit .edit-photos .photo-slot:not(.is-filled) .photo-slot__plus::before,
+.page-edit .edit-photos .photo-slot:not(.is-filled) .photo-slot__plus::after {
+    background: #9345ff;
+}
+
+.page-edit .edit-photos .photo-slot__remove {
+    width: 24px;
+    height: 24px;
+    right: 6px;
+    top: 6px;
+    background: rgba(40, 30, 50, 0.72);
+    border-radius: 999px;
+}
+
+.edit-card {
+    flex: 1;
+    width: 892px;
+    height: 814px;
+    padding: 20px;
+    background: rgba(255, 253, 254, 0.92);
+    border: 1px solid #c9bdc9;
+    box-shadow: 0 14px 40px rgba(109, 60, 143, 0.09);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.edit-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.edit-card__head h1 {
+    font-size: 28px;
+    line-height: 35px;
+    font-weight: 700;
+    color: #242126;
+}
+
+.edit-card__head p {
+    margin-top: 3px;
+    font-size: 13px;
+    line-height: 16px;
+    color: #8f8992;
+}
+
+.edit-visibility {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 13px;
+    border-radius: 999px;
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 700;
+}
+
+.edit-visibility.is-on {
+    background: #e9f8ed;
+    color: #32804a;
+}
+
+.edit-visibility.is-off {
+    background: #f6e9ea;
+    color: #8c3a42;
+}
+
+.edit-card__body {
+    overflow-y: auto;
+    min-height: 0;
+    padding-right: 6px;
+}
+
+.page-edit .edit-card .panel {
+    display: block;
+    margin-bottom: 18px;
+}
+
+.page-edit .edit-card .panel > h2 {
+    display: block;
+    font-size: 17px;
+    line-height: 21px;
+    font-weight: 700;
+    color: #242126;
+    margin: 0 0 10px;
+}
+
+.page-edit .edit-card .hint {
+    display: none;
+}
+
+.page-edit .field {
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.page-edit .field > span,
+.page-edit .field legend {
+    font-size: 12px;
+    line-height: 15px;
+    font-weight: 700;
+    color: #8f8992;
+}
+
+.page-edit .field input[type="text"],
+.page-edit .field input[type="number"],
+.page-edit .list-row input,
+.page-edit .list-row select,
+.page-edit .birth-date__trigger {
+    height: 42px;
+    min-height: 42px;
+    border: 1px solid #c9bdc9;
+    border-radius: 12px;
+    background: #fffdfe;
+    font-size: 15px;
+    line-height: 19px;
+}
+
+.page-edit .birth-date__row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.page-edit .field textarea {
+    min-height: 116px;
+    border: 1px solid #c9bdc9;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.page-edit .list-card {
+    width: 100%;
+    border-color: #c9bdc9;
+    border-radius: 16px;
+    padding: 12px;
+}
+
+.page-edit .list-row {
+    grid-template-columns: 140px minmax(0, 1fr);
+    font-size: 14px;
+    line-height: 18px;
+    padding: 6px 0;
+}
+
+.page-edit .chips:not(.chips--wrap) .chip span,
+.page-edit .chips.chips--wide,
+.page-edit .panel--dating .chips.chips--wrap,
+.page-edit .panel--bff .chips.chips--wrap {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+    grid-template-columns: none;
+}
+
+.page-edit .chips.chips--wide {
+    display: flex;
+}
+
+.page-edit .chip span,
+.page-edit .chips:not(.chips--wrap) .chip span,
+.page-edit .chips.chips--wide .chip span,
+.page-edit .panel--dating .chips.chips--wrap .chip span,
+.page-edit .panel--bff .chips.chips--wrap .chip span {
+    width: auto;
+    min-width: 0;
+    height: 30px;
+    padding: 7px 13px;
+    border-radius: 999px;
+    font-size: 13px;
+    line-height: 16px;
+}
+
+.page-edit .chip input:checked + span {
+    background: #f0deff;
+    border-color: #9345ff;
+    color: #9345ff;
+    font-weight: 700;
+}
+
+.page-edit .mode-cards {
+    grid-template-columns: 1fr 1fr;
+}
+
+.page-edit .mode-card {
+    width: 100%;
+    height: auto;
+    min-height: 72px;
+    border-radius: 16px;
+    padding: 12px 48px 12px 14px;
+}
+
+.page-edit .age-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.page-edit .setup-logo,
+.page-edit .setup-logout,
+.page-edit .setup-card {
+    display: none;
+}
+
+.edit-bar-spacer {
+    height: 104px;
+    flex-shrink: 0;
+}
+
+.edit-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: calc(104 * var(--crush-u));
+    padding: 0 calc(190 * var(--crush-u));
+    background: #fffdfe;
+    border-top: 1px solid #c9bdc9;
+    box-sizing: border-box;
+}
+
+.edit-bar__hint {
+    font-size: calc(14 * var(--crush-u));
+    line-height: calc(18 * var(--crush-u));
+    color: #8f8992;
+    margin: 0;
+}
+
+.edit-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: calc(12 * var(--crush-u));
+}
+
+.edit-bar__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(54 * var(--crush-u));
+    padding: 0 calc(20 * var(--crush-u));
+    border: none;
+    font-family: "Roboto", var(--font-body);
+    font-weight: 600;
+    font-size: calc(20 * var(--crush-u));
+    line-height: calc(23 * var(--crush-u));
+    color: #320009;
+    cursor: pointer;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.edit-bar__btn--ghost {
+    width: calc(180 * var(--crush-u));
+    background: transparent;
+    border-radius: calc(10 * var(--crush-u));
+}
+
+.edit-bar__btn--preview {
+    width: calc(250 * var(--crush-u));
+    border-radius: calc(20 * var(--crush-u));
+    background:
+        linear-gradient(0deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)),
+        rgba(255, 0, 77, 0.45);
+    box-shadow: 2px 2px 16px 1px #ffa9e7, inset -4px -4px 8px rgba(255, 0, 184, 0.25);
+}
+
+.edit-bar__btn--save {
+    width: calc(230 * var(--crush-u));
+    border-radius: calc(10 * var(--crush-u));
+    background:
+        linear-gradient(0deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)),
+        rgba(255, 0, 77, 0.55);
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.page-edit .errors,
+.page-edit .errorlist {
+    margin: 0 0 8px;
+    color: #dc2626;
+    font-size: 13px;
+}
+
+.page-setup:not(.page-edit) .photo-slot__change {
+    display: none;
+}

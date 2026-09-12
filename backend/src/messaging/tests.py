@@ -2,6 +2,7 @@
 
 import asyncio
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
@@ -10,6 +11,12 @@ from matching.tests import make_user_with_profile
 from messaging.models import Conversation, Message
 from messaging.services import conversations_for_user, mark_conversation_read
 from profiles.models import SearchMode
+
+# Мінімальний валідний 1×1 PNG для тестів завантаження фото.
+TINY_PNG = bytes.fromhex(
+    '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489'
+    '0000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082'
+)
 
 
 def make_match(user_a, user_b, mode=SearchMode.DATING):
@@ -64,6 +71,71 @@ class ConversationAccessTests(TestCase):
             reverse('conversation_send', args=[self.conversation.id]),
             data={'text': 'Хочу втрутитись'},
             content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Message.objects.filter(conversation=self.conversation).exists())
+
+
+class ChatPhotoTests(TestCase):
+    def setUp(self):
+        self.alice = make_user_with_profile('alice-photo@example.com', 'Аліса')
+        self.bob = make_user_with_profile('bob-photo@example.com', 'Боб')
+        self.stranger = make_user_with_profile('stranger-photo@example.com', 'Чужий')
+        self.match = make_match(self.alice, self.bob)
+        self.conversation = Conversation.objects.get(match=self.match)
+
+    def test_send_photo_without_text(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            reverse('conversation_send_photo', args=[self.conversation.id]),
+            data={'image': SimpleUploadedFile('shot.png', TINY_PNG, content_type='image/png')},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()['message']
+        self.assertTrue(payload['image_url'])
+        self.assertEqual(payload['text'], '')
+        message = Message.objects.get(pk=payload['id'])
+        self.assertEqual(message.sender_id, self.alice.id)
+        self.assertTrue(message.image_url)
+
+    def test_send_photo_with_caption(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            reverse('conversation_send_photo', args=[self.conversation.id]),
+            data={
+                'image': SimpleUploadedFile('shot.png', TINY_PNG, content_type='image/png'),
+                'text': 'Дивись!',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()['message']
+        self.assertEqual(payload['text'], 'Дивись!')
+        self.assertTrue(payload['image_url'])
+
+    def test_photo_preview_in_dialog_list(self):
+        Message.objects.create(
+            conversation=self.conversation,
+            sender=self.alice,
+            text='',
+            image_url='/media/chat/1/x.png',
+        )
+        items = conversations_for_user(self.alice, SearchMode.DATING)
+        self.assertEqual(items[0]['last_message_preview'], '📷 Фото')
+
+    def test_rejects_non_image(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            reverse('conversation_send_photo', args=[self.conversation.id]),
+            data={'image': SimpleUploadedFile('note.txt', b'hello', content_type='text/plain')},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Message.objects.filter(conversation=self.conversation).exists())
+
+    def test_stranger_cannot_send_photo(self):
+        self.client.force_login(self.stranger)
+        response = self.client.post(
+            reverse('conversation_send_photo', args=[self.conversation.id]),
+            data={'image': SimpleUploadedFile('shot.png', TINY_PNG, content_type='image/png')},
         )
         self.assertEqual(response.status_code, 404)
         self.assertFalse(Message.objects.filter(conversation=self.conversation).exists())

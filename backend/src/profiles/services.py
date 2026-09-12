@@ -211,7 +211,6 @@ def save_profile(user, data, draft_photos=None):
             mode=SearchMode.BFF,
             defaults={
                 'bio': data['bff_bio'],
-                # «Що шукаєш» — множинний вибір, зберігаємо через кому.
                 'looking_for': ','.join(data.get('bff_looking_for') or []),
                 'min_age': 18,
                 'max_age': 99,

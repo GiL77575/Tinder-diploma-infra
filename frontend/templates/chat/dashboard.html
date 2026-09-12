@@ -13,79 +13,107 @@
     <link rel="stylesheet" href="{% vstatic 'css/chat.css' %}">
 </head>
 <body class="page-chat"
+      data-mode="{% if initial_mode == 'bff' %}bff{% else %}dating{% endif %}"
       data-initial-mode="{{ initial_mode }}"
       data-my-user-id="{{ request.user.id }}">
 
 <div class="crush-viewport">
     <div class="chat-page-backdrop" aria-hidden="true"></div>
-    <div class="crush-frame">
-        <div class="deco-hearts" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
-                <symbol id="chat-heart-outline" viewBox="0 0 48 48">
-                    <path d="M23.5395 15.6038C19.3697 6.75697 5.99871 8.2203 6.43215 19.7122C6.86559 31.2041 24.4645 40.1307 24.4645 40.1307C24.4645 40.1307 41.3411 29.9038 40.9076 18.4119C40.4742 6.92 27.0309 6.46802 23.5395 15.6038Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                </symbol>
-            </svg>
-            {% for i in "12345678901" %}
-                <svg class="deco-heart chat-heart--{{ forloop.counter }}" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-            {% endfor %}
+    <header class="chat-header">
+        <a href="{% url 'home' %}" class="chat-logo">crush</a>
+
+        <div class="mode-switch" role="tablist" aria-label="Режим пошуку" id="mode-switch" data-active="{{ initial_mode }}">
+            <span class="mode-switch__pill" id="mode-switch-pill" aria-hidden="true"></span>
+            <button type="button" class="mode-switch__btn" data-mode="dating" role="tab" aria-selected="{% if initial_mode != 'bff' %}true{% else %}false{% endif %}">
+                <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/mode-romance.svg' %}" width="18" height="18" alt="" aria-hidden="true">
+                Романтика
+            </button>
+            <button type="button" class="mode-switch__btn" data-mode="bff" role="tab" aria-selected="{% if initial_mode == 'bff' %}true{% else %}false{% endif %}">
+                <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="18" height="18" alt="" aria-hidden="true">
+                Дружба
+            </button>
         </div>
 
+        <div class="chat-profile">
+            <span class="chat-profile__name">{{ my_display_name }}</span>
+            <a href="{% url 'profile_me' %}" class="chat-profile__avatar" title="Мій профіль">
+                {% if my_avatar_url %}
+                    <img src="{{ my_avatar_url }}" alt="{{ my_display_name }}">
+                {% else %}
+                    <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="" aria-hidden="true">
+                {% endif %}
+            </a>
+        </div>
+    </header>
+    <div class="crush-frame">
+        <svg xmlns="http://www.w3.org/2000/svg" class="chat-deco-symbols" aria-hidden="true">
+            <symbol id="chat-heart-outline" viewBox="0 0 48 48">
+                <path d="M23.5395 15.6038C19.3697 6.75697 5.99871 8.2203 6.43215 19.7122C6.86559 31.2041 24.4645 40.1307 24.4645 40.1307C24.4645 40.1307 41.3411 29.9038 40.9076 18.4119C40.4742 6.92 27.0309 6.46802 23.5395 15.6038Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </symbol>
+            <symbol id="chat-star-outline" viewBox="0 0 48 48">
+                <path d="M24 4.5l5.7 12.4 13.5 1.5-10.2 9.1 3 13.2L24 33.8 11.9 40.7l3-13.2L4.8 18.4l13.5-1.5L24 4.5z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+            </symbol>
+            <symbol id="chat-coffee-outline" viewBox="0 0 48 48">
+                <path d="M10 14h22v16a8 8 0 01-8 8h-6a8 8 0 01-8-8V14z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+                <path d="M32 18h4.5a5.5 5.5 0 010 11H32" fill="none" stroke="currentColor" stroke-width="2.4"/>
+                <path d="M16 8c0 2 2 3 2 5M22 8c0 2 2 3 2 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </symbol>
+            <symbol id="chat-camera-outline" viewBox="0 0 48 48">
+                <path d="M8 16h6l2.4-4h15.2L34 16h6v20H8V16z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+                <circle cx="24" cy="26" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+            </symbol>
+            <symbol id="chat-bubble-outline" viewBox="0 0 48 48">
+                <path d="M10 12h28v20H20l-8 6v-6H10V12z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+                <circle cx="18" cy="22" r="1.6" fill="currentColor"/>
+                <circle cx="24" cy="22" r="1.6" fill="currentColor"/>
+                <circle cx="30" cy="22" r="1.6" fill="currentColor"/>
+            </symbol>
+        </svg>
+        <div class="chat-deco chat-deco--hearts" aria-hidden="true">
+            {% for i in "12345678901" %}
+                <svg class="chat-deco__item chat-heart--{{ forloop.counter }}" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+            {% endfor %}
+        </div>
+        <div class="chat-deco chat-deco--stars" aria-hidden="true">
+            {% for i in "123456789012" %}
+                <svg class="chat-deco__item chat-star--{{ forloop.counter }}" viewBox="0 0 48 48"><use href="#chat-star-outline"></use></svg>
+            {% endfor %}
+        </div>
         <div class="chat-shell">
-            <header class="chat-header">
-                <a href="{% url 'home' %}" class="chat-logo">crush</a>
-
-                <div class="mode-switch" role="tablist" aria-label="Режим пошуку" id="mode-switch" data-active="{{ initial_mode }}">
-                    <span class="mode-switch__pill" id="mode-switch-pill" aria-hidden="true"></span>
-                    <button type="button" class="mode-switch__btn" data-mode="dating" role="tab" aria-selected="{% if initial_mode != 'bff' %}true{% else %}false{% endif %}">
-                        <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/heart-signal.png' %}" width="18" height="18" alt="" aria-hidden="true">
-                        Романтика
-                    </button>
-                    <button type="button" class="mode-switch__btn" data-mode="bff" role="tab" aria-selected="{% if initial_mode == 'bff' %}true{% else %}false{% endif %}">
-                        <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="18" height="18" alt="" aria-hidden="true">
-                        Дружба
-                    </button>
-                </div>
-
-                <div class="chat-profile">
-                    <span class="chat-profile__name">{{ my_display_name }}{% if my_age %} {{ my_age }}{% endif %}</span>
-                    <a href="{% url 'profile_me' %}" class="chat-profile__avatar" title="Мій профіль">
-                        {% if my_avatar_url %}
-                            <img src="{{ my_avatar_url }}" alt="{{ my_display_name }}">
-                        {% else %}
-                            <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="" aria-hidden="true">
-                        {% endif %}
-                    </a>
-                </div>
-            </header>
+            <div class="chat-header-spacer" aria-hidden="true"></div>
 
             <div class="chat-body">
                 <aside class="chat-sidebar" id="chat-sidebar">
                     <section class="panel matches-panel">
                         <h2 class="panel__title">
-                            Метчі
+                            <span class="panel__title-text">Метчі</span>
                             <img class="panel__title-icon panel__title-icon--heart" src="{% static 'img/brand/hearts-glow.png' %}" width="18" height="18" alt="" aria-hidden="true">
-                        </h2>
-                        <div class="matches-wrap">
-                            <div class="matches-grid" id="matches-grid">
-                                <p class="panel__empty" data-empty-for="matches">Поки немає метчів у цьому режимі</p>
-                            </div>
                             <button type="button" class="matches-more" id="matches-more" hidden aria-label="Більше метчів">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                                     <path d="M9 5l7 7-7 7" stroke="#0D0D0D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </button>
+                        </h2>
+                        <div class="matches-wrap">
+                            <div class="matches-grid" id="matches-grid">
+                                <p class="panel__empty" data-empty-for="matches">У вас поки немає метчів</p>
+                            </div>
                         </div>
                     </section>
 
                     <section class="panel dialogs-panel">
                         <h2 class="panel__title">
-                            Діалоги
+                            <span class="panel__title-text" id="dialogs-title">{% if initial_mode == 'bff' %}Діалоги/Групи{% else %}Діалоги{% endif %}</span>
                             <img class="panel__title-icon panel__title-icon--chat" src="{% static 'img/brand/thought-bubble.png' %}" width="18" height="18" alt="" aria-hidden="true">
                         </h2>
                         <div class="dialogs-list" id="dialogs-list">
-                            <p class="panel__empty" data-empty-for="dialogs">Тут з'являться ваші діалоги</p>
+                            <p class="panel__empty" data-empty-for="dialogs">Екран готовий до довгих діалогів. Залишилося знайти взаємну симпатію та увімкнути цей чат на максимум</p>
                         </div>
                     </section>
+
+                    <button type="button" class="create-meeting-btn" id="create-meeting-btn"{% if initial_mode != 'bff' %} hidden{% endif %}>
+                        Створити мітінг
+                    </button>
                 </aside>
 
                 <main class="chat-main">
@@ -120,10 +148,31 @@
                     </section>
 
                     <section class="chat-view" id="chat-view" hidden>
+                        <div class="chat-view__deco" aria-hidden="true">
+                            <svg class="chat-view__deco-item chat-view__deco--coffee-1" viewBox="0 0 48 48"><use href="#chat-coffee-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--coffee-2" viewBox="0 0 48 48"><use href="#chat-coffee-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-1" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-2" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-3" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-4" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-5" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-6" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-7" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-8" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--heart-9" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--bubble-1" viewBox="0 0 48 48"><use href="#chat-bubble-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--bubble-2" viewBox="0 0 48 48"><use href="#chat-bubble-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--camera-1" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--camera-2" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--camera-3" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--camera-4" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--star-1" viewBox="0 0 48 48"><use href="#chat-star-outline"></use></svg>
+                            <svg class="chat-view__deco-item chat-view__deco--star-2" viewBox="0 0 48 48"><use href="#chat-star-outline"></use></svg>
+                        </div>
                         <header class="chat-view__header">
                             <button type="button" class="chat-view__back" id="chat-back-btn" aria-label="Назад до анкет">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                    <path d="M15 5l-7 7 7 7" stroke="#161616" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M15 5l-7 7 7 7" stroke="#0D0D0D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </button>
                             <img class="chat-view__avatar" id="chat-partner-avatar" src="" alt="" hidden>
@@ -131,43 +180,78 @@
                                 <span class="chat-view__name" id="chat-partner-name"></span>
                                 <span class="chat-view__status" id="chat-partner-status"></span>
                             </div>
+                            <button type="button" class="chat-view__more" id="chat-more-btn" aria-label="Ще">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <circle cx="12" cy="5" r="1.6" fill="#161616"/>
+                                    <circle cx="12" cy="12" r="1.6" fill="#161616"/>
+                                    <circle cx="12" cy="19" r="1.6" fill="#161616"/>
+                                </svg>
+                            </button>
                         </header>
 
                         <div class="chat-view__messages" id="chat-messages"></div>
 
                         <form class="chat-view__composer" id="chat-form" autocomplete="off">
-                            <input type="text" id="chat-input" name="text" placeholder="Написати повідомлення…" maxlength="2000" required>
-                            <button type="submit" class="chat-view__send" aria-label="Надіслати">
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                    <path d="M5 12h12M13 6l6 6-6 6" stroke="#FFFDFE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
+                            <div class="chat-photo-preview" id="chat-photo-preview" hidden>
+                                <img class="chat-photo-preview__img" id="chat-photo-preview-img" alt="">
+                                <button type="button" class="chat-photo-preview__remove" id="chat-photo-preview-remove" aria-label="Прибрати фото">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="chat-view__composer-row">
+                                <button type="button" class="chat-view__attach" id="chat-attach-btn" aria-label="Надіслати фото">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M4 7h4l1.6-2.4h4.8L16 7h4v12H4V7z" stroke="#161616" stroke-width="1.8" stroke-linejoin="round"/>
+                                        <circle cx="12" cy="13" r="3.2" stroke="#161616" stroke-width="1.8"/>
+                                    </svg>
+                                </button>
+                                <input type="file" id="chat-photo-input" accept="image/jpeg,image/png,image/webp" hidden>
+                                <div class="chat-view__composer-field">
+                                    <input type="text" id="chat-input" name="text" placeholder="Написати повідомлення.." maxlength="2000">
+                                    <button type="submit" class="chat-view__send" aria-label="Надіслати">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                            <path d="M4.2 11.4l15.1-7.2-7.6 15.3-1.7-6.4-5.8-1.7z" stroke="#FFFDFE" stroke-width="1.8" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </form>
                     </section>
                 </main>
             </div>
 
-            <div class="full-profile-overlay" id="full-profile-overlay" hidden>
-                <div class="full-profile-overlay__backdrop" id="full-profile-backdrop"></div>
-                <div class="full-profile" role="dialog" aria-modal="true" aria-labelledby="full-profile-name">
-                    <button type="button" class="full-profile__close" id="full-profile-close" aria-label="Закрити">
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
-                        </svg>
-                    </button>
-                    <div class="full-profile__gallery">
-                        <img class="full-profile__main-photo" id="full-profile-main-photo" src="" alt="">
-                        <div class="full-profile__thumbs" id="full-profile-thumbs"></div>
-                    </div>
-                    <div class="full-profile__content">
-                        <div class="full-profile__header">
-                            <h2 class="full-profile__name" id="full-profile-name"></h2>
-                            <p class="full-profile__city" id="full-profile-city"></p>
-                            <p class="full-profile__bio" id="full-profile-bio"></p>
-                        </div>
-                        <div class="full-profile__tags" id="full-profile-tags"></div>
-                    </div>
+            <div class="chat-lightbox" id="chat-lightbox" hidden>
+                <button type="button" class="chat-lightbox__close" id="chat-lightbox-close" aria-label="Закрити">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M5 5L19 19M19 5L5 19" stroke="#FFFDFE" stroke-width="2.2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <img class="chat-lightbox__image" id="chat-lightbox-image" alt="Фото">
+            </div>
+        </div>
+    </div>
+
+    <div class="full-profile-overlay" id="full-profile-overlay" hidden>
+        <div class="full-profile-overlay__backdrop" id="full-profile-backdrop"></div>
+        <div class="full-profile" role="dialog" aria-modal="true" aria-labelledby="full-profile-name">
+            <button type="button" class="full-profile__close" id="full-profile-close" aria-label="Закрити">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <div class="full-profile__gallery">
+                <img class="full-profile__main-photo" id="full-profile-main-photo" src="" alt="">
+                <div class="full-profile__thumbs" id="full-profile-thumbs"></div>
+            </div>
+            <div class="full-profile__content">
+                <div class="full-profile__header">
+                    <h2 class="full-profile__name" id="full-profile-name"></h2>
+                    <p class="full-profile__city" id="full-profile-city"></p>
+                    <p class="full-profile__bio" id="full-profile-bio"></p>
                 </div>
+                <div class="full-profile__tags" id="full-profile-tags"></div>
             </div>
         </div>
     </div>

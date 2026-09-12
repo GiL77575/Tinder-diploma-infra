@@ -1,4 +1,4 @@
-/** Wizard анкети / редагування: кроки, фото 800×800, рівні хобі та мов. */
+/** Wizard анкети / редагування: кроки, фото без квадратної обрізки, рівні хобі та мов. */
 (function () {
     const form = document.getElementById('setup-form');
     if (!form) {
@@ -21,19 +21,22 @@
     const setupPage = document.body.classList.contains('page-setup');
     const cardBody = document.querySelector('.setup-card__body');
     const setupCard = document.querySelector('.setup-card');
+    const crushFrame = document.querySelector('.crush-frame');
+    const SETUP_FRAME = {
+        1: { h: 1080, fit: 'contain' },
+        2: { h: 1513, fit: 'width' },
+        3: { h: 1860, fit: 'width' },
+        4: { h: 2342, fit: 'width' },
+    };
     let currentStep = 1;
     let syncBirthDateHidden = () => {};
 
-    /** Картка ніколи не має скролитись сама (лише .setup-card__body).
-     * Браузер іноді сам скролює найближчий overflow-контейнер під час
-     * фокусу на вкладеному елементі — це «зʼїдає» верх картки. */
     if (setupCard) {
         setupCard.addEventListener('scroll', () => {
             setupCard.scrollTop = 0;
         });
     }
 
-    /** Закриває всі компактні dropdown (дата, рівні хобі/мов). */
     const compactDropdowns = {
         items: [],
         register(api) {
@@ -90,7 +93,6 @@
         menu.style.zIndex = '';
     }
 
-    /** Чи блок «Друзі» лишився порожнім (можна пропустити). */
     function isBffEmpty() {
         return !checked('bff_looking_for')
             && !form.bff_bio.value.trim()
@@ -99,7 +101,6 @@
             && !form.querySelector('input[name="bff_interests"]:checked');
     }
 
-    /** Чи блок «Знайомства» лишився порожнім (можна пропустити). */
     function isDatingEmpty() {
         return !checked('dating_looking_for')
             && !form.dating_bio.value.trim()
@@ -112,14 +113,12 @@
         }
     }
 
-    /** Прапорець «блок Знайомства свідомо пропущено кнопкою Пропустити». */
     function setSkipDating(value) {
         if (skipDatingInput) {
             skipDatingInput.value = value ? '1' : '';
         }
     }
 
-    /** Показує крок wizard і оновлює кнопки «Назад / Далі / Зберегти». */
     function showStep(step) {
         step = Math.max(1, Math.min(4, Number(step) || 1));
         currentStep = step;
@@ -132,10 +131,19 @@
             panel.classList.toggle('is-active', Number(panel.dataset.step) === step);
         });
         dots.forEach((dot) => {
-            dot.classList.toggle('is-active', Number(dot.dataset.stepDot) === step);
+            const dotStep = Number(dot.dataset.stepDot);
+            dot.classList.toggle('is-active', dotStep === step);
+            dot.classList.toggle('is-done', dotStep < step);
         });
         if (setupPage) {
             document.body.dataset.setupStep = String(step);
+            if (crushFrame && SETUP_FRAME[step]) {
+                crushFrame.setAttribute('data-frame-h', String(SETUP_FRAME[step].h));
+                crushFrame.setAttribute('data-frame-fit', SETUP_FRAME[step].fit);
+                if (typeof window.crushFrameFit === 'function') {
+                    window.crushFrameFit();
+                }
+            }
         }
         if (btnBack) {
             btnBack.hidden = step === 1;
@@ -147,8 +155,6 @@
             btnSubmit.hidden = step !== 4;
         }
         if (btnSkip) {
-            // На кроці 3 «Пропустити» пропускає лише анкету знайомств і йде далі
-            // (до «Друзі»); на кроці 4 — пропускає «Друзі» й одразу зберігає профіль.
             btnSkip.hidden = step !== 3 && step !== 4;
         }
         if (stepError) {
@@ -588,20 +594,25 @@
         return '';
     }
 
-    /** Обрізає зображення до квадрата 800×800 і повертає JPEG-blob. */
-    function cropToSquare(file) {
+    /** Зменшує фото, зберігаючи пропорції. Кадр у слоті 240×264 — без квадратної обрізки. */
+    function preparePhoto(file) {
         return new Promise((resolve, reject) => {
             const image = new Image();
             const url = URL.createObjectURL(file);
             image.onload = () => {
-                const side = Math.min(image.width, image.height);
-                const sx = (image.width - side) / 2;
-                const sy = (image.height - side) / 2;
+                const maxSide = 1600;
+                let width = image.width;
+                let height = image.height;
+                if (width > maxSide || height > maxSide) {
+                    const scale = maxSide / Math.max(width, height);
+                    width = Math.max(1, Math.round(width * scale));
+                    height = Math.max(1, Math.round(height * scale));
+                }
                 const canvas = document.createElement('canvas');
-                canvas.width = 800;
-                canvas.height = 800;
+                canvas.width = width;
+                canvas.height = height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(image, sx, sy, side, side, 0, 0, 800, 800);
+                ctx.drawImage(image, 0, 0, width, height);
                 canvas.toBlob(
                     (blob) => {
                         URL.revokeObjectURL(url);
@@ -706,7 +717,7 @@
                     return;
                 }
                 try {
-                    const blob = await cropToSquare(file);
+                    const blob = await preparePhoto(file);
                     photoBlobs[index] = blob;
                     renderSlot(index);
                     syncPhotoInput();
@@ -779,9 +790,6 @@
             syncBirthDateHidden();
             compactDropdowns.closeAll();
 
-            // Крок 3: пропускаємо лише анкету знайомств і переходимо до «Друзі».
-            // Єдина вимога — заповнені кроки 1–2 (фото й «Про себе»); режим
-            // за замовчуванням уже обраний радіо-кнопкою «Основний режим зараз».
             if (currentStep === 3) {
                 setSkipDating(true);
                 const message = [1, 2].map(validateStep).find(Boolean);
@@ -794,7 +802,6 @@
                 return;
             }
 
-            // Крок 4: пропускаємо «Друзі» й одразу зберігаємо профіль.
             setSkipBff(true);
             const message = [1, 2, 3].map(validateStep).find(Boolean);
             if (message) {

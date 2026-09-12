@@ -8,42 +8,80 @@
     --chat-muted: #8c8c8c;
     --chat-radius-lg: 23px;
     --chat-radius-card: 93px;
-    --chat-gap: 30px;
-    --chat-sidebar-w: 450px;
-    --chat-card-w: 610px;
+    --chat-gap: 279px;
+    --chat-sidebar-w: 414px;
+    --chat-card-w: 587px;
+    --chat-bg-base: #ebe2f8;
+    --chat-backdrop:
+        linear-gradient(
+            285.56deg,
+            rgba(249, 130, 207, 0.01) -14.06%,
+            #f6f6f6 25.77%,
+            rgba(231, 213, 255, 0.5) 62.02%,
+            #f6f6f6 92.15%
+        ),
+        linear-gradient(rgba(193, 165, 230, 0.26), rgba(193, 165, 230, 0.26));
 }
 
 .page-chat [hidden] {
     display: none !important;
 }
 
+/* Фон на html/body + fixed backdrop — letterbox при scale без білих смуг */
 html:has(body.page-chat),
 body.page-chat {
-    background-color: #ebe2f8;
+    background-color: var(--chat-bg-base);
+    background-image: var(--chat-backdrop);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
 }
 
-/* Fixed backdrop — заповнює letterbox по боках при scale кадру */
+body.page-chat[data-mode="bff"] {
+    --chat-accent: #ffee00;
+    --chat-bg-base: #f3f0e4;
+    --chat-backdrop: linear-gradient(
+        285.56deg,
+        rgba(224, 218, 140, 0.5) -14.06%,
+        rgba(231, 213, 255, 0.5) 29.85%,
+        rgba(151, 71, 255, 0.01) 67.13%,
+        rgba(255, 249, 158, 0.1) 90.11%
+    );
+}
+
+html:has(body.page-chat[data-mode="bff"]) {
+    --chat-bg-base: #f3f0e4;
+    --chat-backdrop: linear-gradient(
+        285.56deg,
+        rgba(224, 218, 140, 0.5) -14.06%,
+        rgba(231, 213, 255, 0.5) 29.85%,
+        rgba(151, 71, 255, 0.01) 67.13%,
+        rgba(255, 249, 158, 0.1) 90.11%
+    );
+    background-color: var(--chat-bg-base);
+    background-image: var(--chat-backdrop);
+}
+
+/* Fixed backdrop — дублює фон на весь viewport (кросбраузерно з scale) */
 .chat-page-backdrop {
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    background-color: #ebe2f8;
-    background-image:
-        radial-gradient(
-            ellipse 55% 50% at 100% 100%,
-            rgba(249, 130, 207, 0.45) 0%,
-            rgba(232, 102, 255, 0.24) 40%,
-            transparent 72%
-        ),
-        linear-gradient(
-            285.56deg,
-            rgba(249, 130, 207, 0.04) -14.06%,
-            #f6f6f6 25.77%,
-            rgba(231, 213, 255, 0.55) 62.02%,
-            #f6f6f6 92.15%
-        ),
-        linear-gradient(rgba(193, 165, 230, 0.26), rgba(193, 165, 230, 0.26));
+    background-color: var(--chat-bg-base);
+    background-image: var(--chat-backdrop);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Не показуємо landing-градієнт з crush.css — інакше білі смуги по боках */
+body.page-chat .crush-viewport::before {
+    background-color: var(--chat-bg-base);
+    background-image: var(--chat-backdrop);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
 }
 
 body.page-chat .crush-viewport {
@@ -57,7 +95,16 @@ body.page-chat .crush-frame {
     background: transparent;
 }
 
-body.page-chat .deco-hearts {
+/* ---------- Декор: серця (романтика) / зірки (дружба) ---------- */
+
+.chat-deco-symbols {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.chat-deco {
     position: absolute;
     inset: 0;
     z-index: 0;
@@ -65,10 +112,23 @@ body.page-chat .deco-hearts {
     color: #fffdfe;
 }
 
-body.page-chat .deco-heart {
+.chat-deco__item {
+    position: absolute;
     fill: none;
     overflow: visible;
     filter: drop-shadow(0 0 2px rgba(151, 71, 255, 0.35));
+}
+
+.chat-deco--stars {
+    display: none;
+}
+
+body.page-chat[data-mode="bff"] .chat-deco--hearts {
+    display: none;
+}
+
+body.page-chat[data-mode="bff"] .chat-deco--stars {
+    display: block;
 }
 
 /* Позиції сердечок — Figma «Декор», border #FFFDFE */
@@ -84,6 +144,20 @@ body.page-chat .deco-heart {
 .chat-heart--10 { top: 931px;    left: 700px;    width: 46px; height: 46px; opacity: 0.62; transform: rotate(-18.04deg); }
 .chat-heart--11 { top: 989px;    left: 1519px;   width: 46px; height: 46px; opacity: 0.65; transform: rotate(19.96deg); }
 
+/* Позиції зірок — Figma «Головна сторінка дружба» */
+.chat-star--1  { top: 40px;   left: 1435px; width: 38px; height: 38px; opacity: 0.7;  transform: rotate(-1.99deg); }
+.chat-star--2  { top: 172px;  left: 693px;  width: 38px; height: 38px; opacity: 0.65; transform: rotate(-16.66deg); }
+.chat-star--3  { top: 172px;  left: 1497px; width: 50px; height: 50px; opacity: 0.72; transform: rotate(35.18deg); }
+.chat-star--4  { top: 172px;  left: 1635px; width: 55px; height: 55px; opacity: 0.68; transform: rotate(-1.99deg); }
+.chat-star--5  { top: 102px;  left: 1575px; width: 35px; height: 35px; opacity: 0.7;  transform: rotate(35.18deg); }
+.chat-star--6  { top: 316px;  left: 1516px; width: 50px; height: 50px; opacity: 0.7;  transform: rotate(35.18deg); }
+.chat-star--7  { top: 297px;  left: 1641px; width: 35px; height: 35px; opacity: 0.65; transform: rotate(35.18deg); }
+.chat-star--8  { top: 766px;  left: 711px;  width: 38px; height: 38px; opacity: 0.65; transform: matrix(-1, -0.03, -0.03, 1, 0, 0); }
+.chat-star--9  { top: 908px;  left: 616px;  width: 50px; height: 50px; opacity: 0.7;  transform: rotate(-16.21deg); }
+.chat-star--10 { top: 944px;  left: 865px;  width: 50px; height: 50px; opacity: 0.68; transform: matrix(-0.82, 0.58, 0.58, 0.82, 0, 0); }
+.chat-star--11 { top: 941px;  left: 656px;  width: 55px; height: 55px; opacity: 0.65; transform: matrix(-1, -0.03, -0.03, 1, 0, 0); }
+.chat-star--12 { top: 899px;  left: 745px;  width: 35px; height: 35px; opacity: 0.65; transform: matrix(-0.82, 0.58, 0.58, 0.82, 0, 0); }
+
 /* ---------- Shell: Figma 1920×1080 content area ---------- */
 
 .chat-shell {
@@ -93,58 +167,70 @@ body.page-chat .deco-heart {
     flex-direction: column;
     width: 1920px;
     height: 1080px;
-    padding: 11px 190px 28px;
+    padding: 11px 190px 20px;
     box-sizing: border-box;
 }
 
-/* ---------- Header — Figma: прозорий, top 11, height 50 ---------- */
+/* ---------- Header — той самий масштаб, що профіль ---------- */
 
 .chat-header {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    z-index: 5;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    height: 50px;
-    margin-bottom: 41px;
-    flex-shrink: 0;
+    height: calc(61 * var(--crush-u));
+    padding: calc(11 * var(--crush-u)) calc(190 * var(--crush-u)) 0;
+    box-sizing: border-box;
+    margin: 0;
     background: transparent;
+}
+
+.chat-header-spacer {
+    height: 91px;
+    flex-shrink: 0;
 }
 
 .chat-logo {
     font-family: var(--font-brand);
     font-style: normal;
     font-weight: 400;
-    font-size: 40px;
-    line-height: 50px;
+    font-size: calc(40 * var(--crush-u));
+    line-height: calc(50 * var(--crush-u));
     color: var(--crush-purple);
     justify-self: start;
-    width: 127px;
-    height: 50px;
+    width: auto;
+    height: calc(50 * var(--crush-u));
 }
 
 .mode-switch {
     position: relative;
     display: inline-flex;
-    width: 344px;
-    height: 44px;
-    padding: 3px;
+    width: calc(344 * var(--crush-u));
+    height: calc(44 * var(--crush-u));
+    padding: calc(3 * var(--crush-u));
     background: var(--chat-surface);
     border-radius: 22px;
 }
 
 .mode-switch__pill {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 180px;
-    height: 38px;
+    top: calc(3 * var(--crush-u));
+    left: calc(3 * var(--crush-u));
+    width: calc(180 * var(--crush-u));
+    height: calc(38 * var(--crush-u));
     border-radius: 22px;
-    background: var(--chat-accent);
-    transition: transform 0.25s ease;
+    background: #e866ff;
+    transition: transform 0.25s ease, background-color 0.25s ease;
     z-index: 0;
 }
 
 .mode-switch[data-active="bff"] .mode-switch__pill {
-    transform: translateX(161px);
+    transform: translateX(calc(161 * var(--crush-u)));
+    background: #ffee00;
 }
 
 .mode-switch__btn {
@@ -154,13 +240,13 @@ body.page-chat .deco-heart {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: calc(6 * var(--crush-u));
     border: none;
     background: transparent;
     cursor: pointer;
     font-family: var(--font-brand);
-    font-size: 16px;
-    line-height: 20px;
+    font-size: calc(16 * var(--crush-u));
+    line-height: calc(20 * var(--crush-u));
     color: var(--chat-muted);
     opacity: 0.45;
     border-radius: 22px;
@@ -173,9 +259,20 @@ body.page-chat .deco-heart {
     opacity: 1;
 }
 
+/* Дружба: активна вкладка — темний текст на жовтому; романтика неактивна — #CBCACA */
+.mode-switch[data-active="bff"] .mode-switch__btn[data-mode="bff"][aria-selected="true"] {
+    color: #161616;
+    opacity: 1;
+}
+
+.mode-switch[data-active="bff"] .mode-switch__btn[data-mode="dating"] {
+    color: #cbcaca;
+    opacity: 1;
+}
+
 .mode-switch__icon {
-    width: 18px;
-    height: 18px;
+    width: calc(18 * var(--crush-u));
+    height: calc(18 * var(--crush-u));
     flex-shrink: 0;
     display: block;
     object-fit: contain;
@@ -192,28 +289,38 @@ body.page-chat .deco-heart {
     filter: brightness(1.15);
 }
 
+.mode-switch[data-active="bff"] .mode-switch__btn[data-mode="dating"] .mode-switch__icon--heart {
+    opacity: 0.33;
+    filter: none;
+}
+
+.mode-switch[data-active="bff"] .mode-switch__btn[data-mode="bff"] .mode-switch__icon--friends {
+    opacity: 1;
+    filter: none;
+}
+
 .chat-profile {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 16px;
-    height: 42px;
+    gap: calc(16 * var(--crush-u));
+    height: calc(42 * var(--crush-u));
 }
 
 .chat-profile__name {
     font-family: var(--font-body);
     font-weight: 700;
-    font-size: 16px;
-    line-height: 20px;
+    font-size: calc(16 * var(--crush-u));
+    line-height: calc(20 * var(--crush-u));
     color: var(--crush-ink);
 }
 
 .chat-profile__avatar {
-    width: 42px;
-    height: 42px;
+    width: calc(42 * var(--crush-u));
+    height: calc(42 * var(--crush-u));
     border-radius: 50%;
     background: #ffffff;
-    border: 1px solid #d9d9d9;
+    border: 1px solid #161616;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -240,17 +347,30 @@ body.page-chat .deco-heart {
     display: flex;
     flex-direction: column;
     gap: 30px;
+    width: var(--chat-sidebar-w);
     height: 948px;
     min-height: 0;
+}
+
+body.page-chat[data-mode="bff"] .chat-sidebar {
+    gap: 20px;
 }
 
 .chat-body {
     display: grid;
     grid-template-columns: var(--chat-sidebar-w) minmax(0, 1fr);
-    gap: var(--chat-gap);
+    column-gap: var(--chat-gap);
     align-items: start;
     flex: 1;
     min-height: 0;
+}
+
+body.page-chat.is-chat-open .chat-body {
+    column-gap: 19px;
+}
+
+body.page-chat.is-chat-open .chat-deco {
+    display: none;
 }
 
 .panel {
@@ -261,6 +381,8 @@ body.page-chat .deco-heart {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .matches-panel {
@@ -269,10 +391,48 @@ body.page-chat .deco-heart {
     flex-shrink: 0;
 }
 
+body.page-chat[data-mode="bff"] .matches-panel {
+    height: 158px;
+}
+
 .dialogs-panel {
     height: 662px;
     flex-shrink: 0;
     min-height: 0;
+    flex: 0 0 auto;
+}
+
+body.page-chat[data-mode="bff"] .dialogs-panel {
+    height: 709px;
+}
+
+.create-meeting-btn {
+    width: 100%;
+    height: 42px;
+    flex-shrink: 0;
+    margin-top: auto;
+    box-sizing: border-box;
+    background: #fffffd;
+    border: 1px solid #161616;
+    border-radius: 11px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 25px;
+    color: #161616;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.create-meeting-btn:hover {
+    background: #f4edff;
+}
+
+.create-meeting-btn:active {
+    transform: scale(0.98);
 }
 
 .panel__title {
@@ -285,6 +445,11 @@ body.page-chat .deco-heart {
     line-height: 30px;
     color: var(--crush-ink);
     margin-bottom: 16px;
+    position: relative;
+}
+
+.panel__title-text {
+    flex: 0 0 auto;
 }
 
 .panel__title-icon {
@@ -293,6 +458,14 @@ body.page-chat .deco-heart {
     display: block;
     object-fit: contain;
     flex-shrink: 0;
+}
+
+body.page-chat[data-mode="bff"] .matches-panel .panel__title {
+    margin-bottom: 12px;
+}
+
+body.page-chat[data-mode="bff"] .panel__title-icon--heart {
+    display: none;
 }
 
 .mode-switch__icon--heart {
@@ -313,10 +486,25 @@ body.page-chat .deco-heart {
 
 .panel__empty {
     color: var(--chat-muted);
-    font-size: 15px;
-    line-height: 1.4;
-    padding: 12px 4px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 20px;
+    padding: 0;
+    margin: 0;
     grid-column: 1 / -1;
+    width: 240px;
+    justify-self: center;
+    text-align: center;
+}
+
+.matches-grid .panel__empty {
+    margin: 44px auto 0;
+}
+
+.dialogs-list .panel__empty {
+    width: 240px;
+    margin: 178px auto 0;
+    line-height: 25px;
 }
 
 /* ---------- Matches ---------- */
@@ -335,7 +523,12 @@ body.page-chat .deco-heart {
     gap: 20px 12px;
     overflow: visible;
     max-height: 192px;
-    padding: 8px 6px 4px 0;
+    padding: 0;
+}
+
+body.page-chat[data-mode="bff"] .matches-grid {
+    max-height: 78px;
+    gap: 0;
 }
 
 .matches-grid.is-expanded {
@@ -372,15 +565,12 @@ body.page-chat .deco-heart {
 
 .match-avatar:hover .match-avatar__img,
 .match-avatar.is-active .match-avatar__img {
-    border-color: var(--chat-accent);
+    border-color: #e866ff;
     box-shadow: 0 0 0 3px rgba(232, 102, 255, 0.35);
 }
 
 .matches-more {
-    position: absolute;
-    right: 2px;
-    top: 50%;
-    transform: translateY(-50%);
+    margin-left: auto;
     width: 23px;
     height: 24px;
     border: 1px solid #d9d9d9;
@@ -391,6 +581,7 @@ body.page-chat .deco-heart {
     justify-content: center;
     cursor: pointer;
     padding: 0;
+    flex-shrink: 0;
 }
 
 .matches-more svg {
@@ -425,9 +616,24 @@ body.page-chat .deco-heart {
     font-family: var(--font-body);
 }
 
-.dialog-item:hover .dialog-item__name,
-.dialog-item.is-active .dialog-item__name {
+.dialog-item:hover .dialog-item__name {
     color: var(--crush-purple);
+}
+
+.dialog-item.is-active {
+    margin-left: -15px;
+    margin-right: -15px;
+    width: calc(100% + 30px);
+    padding: 0 15px;
+    box-sizing: border-box;
+    background: rgba(232, 102, 255, 0.2);
+    border: 1px solid #e866ff;
+    border-radius: 6px;
+}
+
+body.page-chat[data-mode="bff"] .dialog-item.is-active {
+    background: rgba(255, 238, 0, 0.28);
+    border-color: #ffee00;
 }
 
 .dialog-item__avatar {
@@ -517,7 +723,7 @@ body.page-chat .deco-heart {
     min-width: 0;
     height: 948px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: flex-start;
 }
 
@@ -526,7 +732,7 @@ body.page-chat .deco-heart {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 40px;
+    gap: 24px;
     padding-top: 56px;
 }
 
@@ -534,11 +740,11 @@ body.page-chat .deco-heart {
     width: 100%;
 }
 
-/* Картка анкети — без декоративних рамок */
+/* Картка анкети — Figma 587×722, border #E7D5FF */
 .swipe-card-frame {
     position: relative;
-    width: 610px;
-    margin: 0 auto;
+    width: var(--chat-card-w);
+    margin: 0;
     padding: 0;
     border: none;
     box-shadow: none;
@@ -561,7 +767,9 @@ body.page-chat .deco-heart {
     display: flex;
     align-items: flex-end;
     z-index: 0;
-    border: none;
+    border-width: 2px 2px 0 2px;
+    border-style: solid;
+    border-color: #e7d5ff;
     box-shadow: none;
     outline: none;
     cursor: grab;
@@ -570,9 +778,23 @@ body.page-chat .deco-heart {
     user-select: none;
     -webkit-touch-callout: none;
     will-change: transform;
+    box-sizing: border-box;
 }
 
 /* ---- Анімація свайпу: драг картки пальцем/мишкою + виліт при лайку/дизлайку ---- */
+
+.swipe-card.is-empty {
+    background: #f9daff;
+    border: 2px solid #e7d5ff;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+}
+
+body.page-chat[data-mode="bff"] .swipe-card.is-empty {
+    background: #fff8c4;
+    border-color: #f3e27a;
+}
 
 .swipe-card.is-dragging {
     cursor: grabbing;
@@ -611,6 +833,15 @@ body.page-chat .deco-heart {
     padding: 40px;
     margin: auto;
     font-size: 18px;
+    line-height: 1.4;
+}
+
+.swipe-card.is-empty .swipe-card__placeholder {
+    width: 413px;
+    padding: 0;
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 30px;
 }
 
 .swipe-card__photo {
@@ -631,7 +862,9 @@ body.page-chat .deco-heart {
     height: 287px;
     background: linear-gradient(180deg, rgba(217, 217, 217, 0) 0%, #f4f4f4 75.96%);
     border-radius: 0 0 91px 92px;
+    border-bottom: 2px solid #8c8c8c;
     pointer-events: none;
+    box-sizing: border-box;
 }
 
 .swipe-card__dots {
@@ -641,7 +874,7 @@ body.page-chat .deco-heart {
     transform: translateX(-50%);
     display: flex;
     gap: 20px;
-    width: 350px;
+    width: 369px;
     z-index: 2;
 }
 
@@ -661,8 +894,9 @@ body.page-chat .deco-heart {
 .swipe-card__info {
     position: relative;
     z-index: 1;
-    padding: 0 56px 48px;
+    padding: 0 80px 48px 89px;
     width: 100%;
+    box-sizing: border-box;
 }
 
 /* Вертикальна риска зліва тепер на спільному враппері імені й опису,
@@ -697,6 +931,10 @@ body.page-chat .deco-heart {
     max-width: 460px;
     padding-left: 15px;
     margin-top: 14px;
+}
+
+.swipe-card .swipe-card__tags .swipe-card__tag:nth-child(n+4) {
+    display: none;
 }
 
 .swipe-card__tag {
@@ -755,8 +993,9 @@ body.page-chat .deco-heart {
 
 .swipe-actions {
     display: flex;
-    gap: 72px;
+    gap: 106px;
     justify-content: center;
+    width: 100%;
 }
 
 .swipe-btn {
@@ -792,143 +1031,365 @@ body.page-chat .deco-heart {
     border: none;
 }
 
-/* ---------- Chat view ---------- */
+/* ---------- Chat view — Figma «Романтика Чат» 1107×948 ---------- */
 
 .chat-view {
-    width: 720px;
-    height: 900px;
-    background: var(--chat-surface);
-    border: 1px solid var(--chat-border);
+    position: relative;
+    width: 1107px;
+    height: 948px;
+    margin: 0;
+    background: linear-gradient(126.39deg, #f0e5fe 18%, #f9d4ff 92.51%);
+    border: 1px solid #8c8c8c;
     border-radius: var(--chat-radius-lg);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    margin-top: 16px;
+    box-sizing: border-box;
 }
 
+body.page-chat[data-mode="bff"] .chat-view {
+    background: linear-gradient(126.39deg, #fff6c8 18%, #f0e5fe 92.51%);
+}
+
+.chat-view__deco {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    color: #ffffff;
+    overflow: hidden;
+}
+
+.chat-view__deco-item {
+    position: absolute;
+    overflow: visible;
+    color: #ffffff;
+}
+
+.chat-view__deco--coffee-1 { left: 82px; top: 344px; width: 142px; height: 142px; transform: rotate(-14.36deg); }
+.chat-view__deco--coffee-2 { left: 883px; top: 500px; width: 142px; height: 142px; transform: rotate(6.4deg); }
+.chat-view__deco--heart-1  { left: 180px; top: 638px; width: 40px; height: 40px; }
+.chat-view__deco--heart-2  { left: 475px; top: 367px; width: 30px; height: 30px; transform: rotate(-26.38deg); }
+.chat-view__deco--heart-3  { left: 603px; top: 777px; width: 40px; height: 40px; transform: rotate(-13.62deg); }
+.chat-view__deco--heart-4  { left: 949px; top: 356px; width: 40px; height: 40px; transform: rotate(-15.15deg); }
+.chat-view__deco--heart-5  { left: 960px; top: 128px; width: 40px; height: 40px; transform: rotate(19.36deg); }
+.chat-view__deco--heart-6  { left: 267px; top: 235px; width: 40px; height: 40px; transform: rotate(11.99deg); }
+.chat-view__deco--heart-7  { left: 552px; top: 522px; width: 40px; height: 40px; transform: rotate(-5.73deg); }
+.chat-view__deco--heart-8  { left: 25px;  top: 348px; width: 40px; height: 40px; transform: rotate(12.16deg); }
+.chat-view__deco--heart-9  { left: 817px; top: 507px; width: 36px; height: 36px; transform: rotate(-8.37deg); }
+.chat-view__deco--bubble-1 { left: 724px; top: 118px; width: 65px; height: 65px; transform: rotate(-14deg); }
+.chat-view__deco--bubble-2 { left: 371px; top: 662px; width: 65px; height: 65px; transform: rotate(13.4deg); }
+.chat-view__deco--camera-1 { left: 341px; top: 480px; width: 70px; height: 70px; transform: rotate(-9.16deg); }
+.chat-view__deco--camera-2 { left: 681px; top: 343px; width: 70px; height: 70px; transform: rotate(13.81deg); }
+.chat-view__deco--camera-3 { left: 82px;  top: 745px; width: 70px; height: 70px; transform: rotate(-9.16deg); }
+.chat-view__deco--camera-4 { left: 962px; top: 749px; width: 70px; height: 70px; transform: rotate(-0.41deg); }
+.chat-view__deco--star-1   { left: 713px; top: 629px; width: 56px; height: 56px; }
+.chat-view__deco--star-2   { left: 127px; top: 100px; width: 38px; height: 38px; transform: rotate(-16.3deg); }
+
 .chat-view__header {
+    position: relative;
+    z-index: 2;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    border-bottom: 1px solid #eee;
+    gap: 20px;
+    height: 85px;
+    padding: 9px 32px 9px 33px;
+    background: var(--chat-surface);
+    border-radius: 23px 23px 0 0;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .chat-view__back {
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 33px;
+    height: 34px;
     border: none;
     background: transparent;
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
+    flex-shrink: 0;
 }
 
 .chat-view__back svg {
-    width: 22px;
-    height: 22px;
+    width: 33px;
+    height: 34px;
 }
 
 .chat-view__avatar {
-    width: 44px;
-    height: 44px;
+    width: 67px;
+    height: 67px;
     border-radius: 50%;
     object-fit: cover;
+    flex-shrink: 0;
+    background: #e9e2f6;
 }
 
 .chat-view__meta {
     display: flex;
     flex-direction: column;
+    gap: 5px;
+    min-width: 0;
 }
 
 .chat-view__name {
     font-weight: 700;
-    font-size: 22px;
-    color: var(--crush-ink);
+    font-size: 20px;
+    line-height: 25px;
+    color: #000000;
 }
 
 .chat-view__status {
-    font-size: 19px;
+    font-size: 16px;
+    line-height: 20px;
+    font-weight: 400;
     color: var(--chat-muted);
 }
 
+.chat-view__more {
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.chat-view__more svg {
+    width: 24px;
+    height: 24px;
+}
+
 .chat-view__messages {
+    position: relative;
+    z-index: 1;
     flex: 1;
     overflow-y: auto;
-    padding: 18px 20px;
+    padding: 20px 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    background-color: #f3effa;
-    background-image:
-        linear-gradient(rgba(255, 253, 254, 0.14), rgba(255, 253, 254, 0.14)),
-        url("../img/chat/messages-bg.jpg");
-    background-position: center top;
-    background-size: 100% auto;
-    background-repeat: repeat-y;
+    gap: 20px;
+    background: transparent;
+}
+
+.msg-date-chip {
+    align-self: center;
+    min-width: 154px;
+    height: 24px;
+    padding: 0 16px;
+    border-radius: 6px;
+    background: rgba(81, 81, 81, 0.39);
+    color: #fffdfe;
+    font-size: 14px;
+    line-height: 24px;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 .msg {
-    max-width: 72%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 21px;
-    line-height: 1.4;
+    max-width: 659px;
+    padding: 12px 20px 8px;
+    border-radius: 14px;
+    font-size: 16px;
+    line-height: 20px;
     word-wrap: break-word;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+}
+
+.msg--image {
+    max-width: min(280px, 78%);
+    padding: 6px 6px 8px;
+}
+
+.msg__image-btn {
+    display: block;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: zoom-in;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.msg__image {
+    display: block;
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.msg--image .msg__text {
+    padding: 4px 10px 0;
+}
+
+.msg--image .msg__meta {
+    padding: 0 10px 2px;
 }
 
 .msg--theirs {
     align-self: flex-start;
-    background: var(--chat-panel);
+    background: var(--chat-surface);
     color: var(--crush-ink);
-    border-bottom-left-radius: 4px;
 }
 
 .msg--mine {
     align-self: flex-end;
     background: var(--crush-purple);
     color: #fffdfe;
-    border-bottom-right-radius: 4px;
+    line-height: 25px;
 }
 
 .msg__meta {
-    font-size: 14px;
-    opacity: 0.75;
+    font-size: 13px;
+    line-height: 16px;
     align-self: flex-end;
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
+.msg--theirs .msg__meta {
+    color: var(--chat-muted);
+}
+
+.msg--mine .msg__meta {
+    color: #e7d5ff;
+}
+
 .chat-view__composer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 86px;
+    padding: 12px 16px;
+    background: var(--chat-surface);
+    box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.25);
+    border-radius: 0 0 23px 23px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.chat-view__composer.is-sending {
+    pointer-events: none;
+    opacity: 0.72;
+}
+
+.chat-photo-preview {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0 0 10px 50px;
+}
+
+.chat-photo-preview[hidden] {
+    display: none;
+}
+
+.chat-photo-preview__img {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+}
+
+.chat-photo-preview__remove {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: #fffdfe;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    margin-top: -4px;
+}
+
+.chat-photo-preview__remove svg {
+    width: 12px;
+    height: 12px;
+}
+
+.chat-view__composer-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 14px 16px;
-    border-top: 1px solid #eee;
+}
+
+.chat-view__attach {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     flex-shrink: 0;
+    padding: 0;
+    border-radius: 12px;
 }
 
-.chat-view__composer input {
+.chat-view__attach:hover {
+    background: rgba(22, 22, 22, 0.06);
+}
+
+.chat-view__attach svg {
+    width: 24px;
+    height: 24px;
+}
+
+.chat-view__composer-field {
+    position: relative;
     flex: 1;
-    border: 1px solid var(--crush-input-line);
-    border-radius: 999px;
-    padding: 12px 18px;
-    font-family: var(--font-body);
-    font-size: 19px;
-    outline: none;
-    background: #fff;
+    min-width: 0;
 }
 
-.chat-view__composer input:focus {
+.chat-view__composer input[type="text"] {
+    width: 100%;
+    height: 50px;
+    border: 1px solid #8c8c8c;
+    border-radius: 16px;
+    padding: 0 52px 0 15px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 19px;
+    outline: none;
+    background: #fffdfe;
+    color: var(--crush-ink);
+    box-sizing: border-box;
+}
+
+.chat-view__composer input[type="text"]::placeholder {
+    color: var(--chat-muted);
+}
+
+.chat-view__composer input[type="text"]:focus {
     border-color: var(--crush-purple);
 }
 
 .chat-view__send {
-    width: 44px;
-    height: 44px;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: var(--crush-purple);
     border: none;
@@ -937,11 +1398,12 @@ body.page-chat .deco-heart {
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
+    padding: 0;
 }
 
 .chat-view__send svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 }
 
 .chat-empty-state {
@@ -949,6 +1411,55 @@ body.page-chat .deco-heart {
     text-align: center;
     color: var(--chat-muted);
     padding: 40px;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 25px;
+    max-width: 320px;
+}
+
+.chat-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 13, 13, 0.82);
+    padding: 48px 24px 24px;
+    box-sizing: border-box;
+}
+
+.chat-lightbox[hidden] {
+    display: none;
+}
+
+.chat-lightbox__image {
+    max-width: min(92vw, 920px);
+    max-height: 86vh;
+    object-fit: contain;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+}
+
+.chat-lightbox__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 253, 254, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.chat-lightbox__close svg {
+    width: 18px;
+    height: 18px;
 }
 
 /* ---------- Full profile overlay (розгорнутий перегляд анкети) ---------- */
@@ -963,7 +1474,7 @@ body.page-chat .deco-heart {
 }
 
 .full-profile-overlay__backdrop {
-    position: absolute;
+    position: fixed;
     inset: 0;
     background: rgba(22, 22, 22, 0.55);
     backdrop-filter: blur(2px);
@@ -972,8 +1483,8 @@ body.page-chat .deco-heart {
 .full-profile {
     position: relative;
     z-index: 1;
-    width: 860px;
-    max-height: 900px;
+    width: min(860px, 92vw);
+    max-height: min(900px, 90vh);
     background: var(--chat-surface);
     border-radius: var(--chat-radius-lg);
     display: flex;
@@ -1018,7 +1529,7 @@ body.page-chat .deco-heart {
 
 .full-profile__main-photo {
     width: 100%;
-    height: 620px;
+    height: min(620px, 62vh);
     object-fit: cover;
     flex-shrink: 0;
     background: #e9e2f6;

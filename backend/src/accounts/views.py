@@ -28,10 +28,10 @@ def _render_auth(request, template, **extra):
 
 
 def redirect_after_auth(user):
-    """Після входу: анкета, якщо профіль порожній, інакше головна."""
+    """Після входу: анкета, якщо профіль порожній, інакше головний екран."""
     if not user.is_profile_complete:
         return redirect('profile_setup')
-    return redirect('home')
+    return redirect('app_dashboard')
 
 
 def home_view(request):
@@ -42,37 +42,25 @@ def home_view(request):
 
 
 INFO_PAGES = {
-    'about': {
-        'title': 'Про нас',
-        'template': 'about.html',
-        'paragraphs': [],
-    },
-    'safety': {
-        'title': 'Безпека',
-        'template': 'safety.html',
-        'paragraphs': [],
-    },
-    'support': {
-        'title': 'Підтримка',
-        'template': 'support.html',
-        'paragraphs': [],
-    },
+    'about': 'about.html',
+    'safety': 'safety.html',
+    'support': 'support.html',
 }
 
 
 def info_page_view(request, slug):
-    """Юридичні / інфосторінки: Про нас, Безпека, Підтримка."""
-    page = INFO_PAGES.get(slug)
-    if page is None:
+    """Інфосторінки: Про нас, Безпека, Підтримка."""
+    template = INFO_PAGES.get(slug)
+    if template is None:
         raise Http404('Сторінку не знайдено')
-    return render(request, page.get('template', 'info.html'), page)
+    return render(request, template)
 
 
 def login_view(request):
-    """Показує форму входу. Завершений профіль з /login/ іде на головну."""
+    """Показує форму входу. Завершений профіль з /login/ іде в застосунок."""
     if request.method == 'GET' and request.user.is_authenticated:
         if request.user.is_profile_complete:
-            return redirect('home')
+            return redirect('app_dashboard')
         logout(request)
 
     posted_username = ''

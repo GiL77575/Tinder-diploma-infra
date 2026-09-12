@@ -5,10 +5,6 @@
     display: none;
 }
 
-.page-login .landing-logo {
-    left: 190px;
-}
-
 .login-card,
 .auth-card {
     position: absolute;
@@ -32,10 +28,6 @@
 }
 
 /* Register — Figma: 658×802, top 139, horizontal center +1px */
-body.page-register .landing-logo {
-    left: 190px;
-}
-
 .page-register .register-card {
     width: 658px;
     min-height: 802px;
@@ -145,20 +137,6 @@ body.page-register .landing-logo {
 
 .page-auth .password-wrapper input {
     padding-right: 48px;
-}
-
-.auth-forgot {
-    display: block;
-    margin-top: -10px;
-    font-family: var(--font-body);
-    font-weight: 400;
-    font-size: 15px;
-    line-height: 19px;
-    color: #8c8c8c;
-}
-
-.auth-forgot:hover {
-    color: var(--crush-purple);
 }
 
 .page-auth .btn-submit,

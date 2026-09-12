@@ -3,34 +3,86 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Редагування профілю — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,400&family=Roboto:wght@600&family=Rubik+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
     <link rel="stylesheet" href="{% vstatic 'css/profile-setup.css' %}">
+    <link rel="stylesheet" href="{% vstatic 'css/profile-edit.css' %}">
 </head>
-<body>
-    <div class="setup-wrap">
-        <header class="setup-header">
-            <p class="brand">crush</p>
-            <h1>Редагування профілю</h1>
-            <p class="lead">Онови спільні дані та окремі анкети для знайомств і пошуку друзів.</p>
-        </header>
-
-        {% include 'profiles/_form_messages.html' %}
-
-        <form id="setup-form" method="post" enctype="multipart/form-data" novalidate data-mode="edit">
-            {% include 'profiles/_form.html' %}
-            <div class="setup-actions">
-                <a href="{% url 'profile_me' %}" class="btn-secondary" id="btn-back">Скасувати</a>
-                <button type="button" class="btn-primary" id="btn-next" hidden>Далі</button>
-                <button type="submit" class="btn-primary" id="btn-submit">Зберегти зміни</button>
+<body class="page-setup page-edit">
+    <div class="crush-viewport">
+        <div class="edit-page-backdrop" aria-hidden="true"></div>
+        <header class="edit-header">
+            <a href="{% url 'home' %}" class="edit-logo">crush</a>
+            <div class="edit-header__right">
+                <div class="edit-mode" aria-label="Поточний режим">
+                    <a href="{% url 'app_dashboard' %}?mode=bff" class="edit-mode__btn {% if profile and profile.active_mode == 'bff' %}is-active{% endif %}">Дружба</a>
+                    <a href="{% url 'app_dashboard' %}?mode=dating" class="edit-mode__btn {% if not profile or profile.active_mode != 'bff' %}is-active{% endif %}">Романтика</a>
+                </div>
+                <span class="edit-header__name">{% if profile %}{{ profile.display_name }}{% endif %}</span>
+                <a href="{% url 'profile_me' %}" class="edit-header__avatar" title="Мій профіль">
+                    {% if profile and profile.photos.first %}
+                        <img src="{{ profile.photos.first.url }}" alt="">
+                    {% else %}
+                        <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="">
+                    {% endif %}
+                </a>
             </div>
-            <p class="step-error" id="step-error" hidden></p>
-        </form>
+        </header>
+        <div class="crush-frame" data-frame-w="1920" data-frame-h="1080" data-frame-fit="contain">
+            <div class="edit-glow" aria-hidden="true"></div>
+            <div class="edit-header-spacer" aria-hidden="true"></div>
+
+            <form id="setup-form" class="edit-form" method="post" enctype="multipart/form-data" novalidate data-mode="edit" data-error-step="{{ error_step|default:0 }}">
+                {% csrf_token %}
+                <input type="hidden" name="skip_bff" id="skip-bff" value="">
+                <input type="hidden" name="skip_dating" id="skip-dating" value="">
+                <input type="file" id="photos-input" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
+
+                <div class="edit-workspace">
+                    <aside class="edit-photos">
+                        <div class="edit-photos__head">
+                            <h2>Фотографії</h2>
+                            <p>До 6 фото, перше — головне</p>
+                        </div>
+                        {% include 'profiles/_form.html' with form_part='photos' %}
+                        <p class="edit-photos__rule">JPG, PNG або WEBP.</p>
+                    </aside>
+
+                    <section class="edit-card">
+                        <div class="edit-card__head">
+                            <div>
+                                <h1>Редагування профілю</h1>
+                                <p>Онови дані, інтереси та опис для пошуку</p>
+                            </div>
+                            {% if profile %}
+                                <span class="edit-visibility {% if profile.is_discoverable %}is-on{% else %}is-off{% endif %}">
+                                    {% if profile.is_discoverable %}Профіль видно в пошуку{% else %}Профіль приховано{% endif %}
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% include 'profiles/_form_messages.html' %}
+                        <div class="edit-card__body">
+                            {% include 'profiles/_form.html' with form_part='fields' %}
+                        </div>
+                    </section>
+                </div>
+                <div class="edit-bar-spacer" aria-hidden="true"></div>
+            </form>
+        </div>
+        <footer class="edit-bar">
+            <p class="edit-bar__hint" id="step-error">Зміни збережуться після підтвердження</p>
+            <div class="edit-bar__actions">
+                <a href="{% url 'profile_me' %}" class="edit-bar__btn edit-bar__btn--ghost" id="btn-back">Скасувати</a>
+                <a href="{% url 'profile_me' %}" class="edit-bar__btn edit-bar__btn--preview">Попередній перегляд</a>
+                <button type="submit" form="setup-form" class="edit-bar__btn edit-bar__btn--save" id="btn-submit">Зберегти зміни</button>
+            </div>
+        </footer>
     </div>
-    <script src="{% vstatic 'js/profile-setup.js' %}"></script>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
+    <script src="{% vstatic 'js/profile-setup.js' %}" defer></script>
 </body>
 </html>

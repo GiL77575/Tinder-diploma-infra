@@ -3,113 +3,170 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ profile.display_name }} — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;1,400&family=Rubik+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
     <link rel="stylesheet" href="{% vstatic 'css/profile-detail.css' %}">
 </head>
-<body>
-    <div class="detail-wrap">
-        <header class="detail-top">
-            <a href="{% url 'home' %}" class="brand">crush</a>
-            <nav class="detail-nav">
-                <a href="{% url 'app_dashboard' %}" class="btn-primary">Чат</a>
-                <a href="{% url 'profile_edit' %}" class="btn-ghost">Редагувати</a>
-                <a href="{% url 'logout' %}" class="btn-ghost">Вийти</a>
-            </nav>
-        </header>
+<body class="page-profile">
+    <div class="crush-viewport">
+        <div class="profile-page-backdrop" aria-hidden="true"></div>
+        <div class="crush-frame" data-frame-w="1920" data-frame-h="1860" data-frame-fit="width">
+            <div class="profile-shell">
+                <header class="profile-header">
+                    <a href="{% url 'home' %}" class="profile-logo">crush</a>
+                    <div class="profile-header__user">
+                        <span class="profile-header__name">{{ profile.display_name }}{% if profile.age %} {{ profile.age }}{% endif %}</span>
+                        <span class="profile-header__avatar" aria-hidden="true">
+                            {% if hero_photo %}
+                                <img src="{{ hero_photo.url }}" alt="">
+                            {% else %}
+                                <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="">
+                            {% endif %}
+                        </span>
+                    </div>
+                </header>
 
-        <section class="gallery">
-            {% for photo in profile.photos.all %}
-                <img src="{{ photo.url }}" alt="Фото {{ profile.display_name }}">
-            {% empty %}
-                <div class="gallery-empty">Немає фото</div>
-            {% endfor %}
-        </section>
+                <nav class="profile-actions" aria-label="Дії профілю">
+                    <a href="{% url 'profile_edit' %}" class="profile-actions__btn profile-actions__btn--edit">Редагувати</a>
+                    <a href="{% url 'app_dashboard' %}" class="profile-actions__btn profile-actions__btn--search">Повернутися до пошуку</a>
+                    <a href="{% url 'logout' %}" class="profile-actions__btn profile-actions__btn--logout">Вийти</a>
+                </nav>
 
-        <section class="profile-card">
-            <p class="mode-pill">{{ profile.get_active_mode_display }}</p>
-            <h1>{{ profile.display_name }}, {{ profile.age }}</h1>
-            <p class="username">@{{ profile.user.username }}</p>
-            <ul class="facts">
-                {% if profile.city %}<li>{{ profile.city }}</li>{% endif %}
-                {% if profile.job %}<li>{{ profile.job }}</li>{% endif %}
-                <li>{{ profile.get_gender_display }}</li>
-                <li>{{ profile.get_orientation_display }}</li>
-                {% if profile.height_cm %}<li>{{ profile.height_cm }} см</li>{% endif %}
-                {% if profile.smoking %}<li>{{ profile.get_smoking_display }}</li>{% endif %}
-                {% if profile.alcohol %}<li>Алкоголь: {{ profile.get_alcohol_display }}</li>{% endif %}
-                {% if profile.children %}<li>Діти: {{ profile.get_children_display }}</li>{% endif %}
-                {% if profile.sport %}<li>Спорт: {{ profile.get_sport_display }}</li>{% endif %}
-                {% if profile.pets %}<li>Тварини: {{ profile.get_pets_display }}</li>{% endif %}
-                {% if profile.zodiac_sign %}<li>{{ profile.get_zodiac_sign_display }}</li>{% endif %}
-            </ul>
-            <p class="visibility">
-                {% if profile.is_discoverable %}Профіль видно в пошуку{% else %}Профіль прихований з пошуку{% endif %}
-            </p>
-        </section>
-
-        <section class="mode-block mode-block--dating">
-            <h2>Знайомства</h2>
-            {% if dating %}
-                <p class="meta">
-                    Шукає: {{ dating.looking_for_label }}
-                    · {{ dating.min_age }}–{{ dating.max_age }} років
-                    {% if dating.age_preference %}· {{ dating.get_age_preference_display }}{% endif %}
-                </p>
-                <ul class="facts">
-                    {% if dating.relationship_goal %}<li>Мета: {{ dating.get_relationship_goal_display }}</li>{% endif %}
-                    {% if dating.smoking_attitude %}<li>До паління: {{ dating.get_smoking_attitude_display }}</li>{% endif %}
-                    {% if dating.alcohol_attitude %}<li>До алкоголю: {{ dating.get_alcohol_attitude_display }}</li>{% endif %}
-                    {% if dating.meeting_format %}<li>Формат зустрічей: {{ dating.get_meeting_format_display }}</li>{% endif %}
-                </ul>
-                {% if dating.bio %}<p class="bio">{{ dating.bio }}</p>{% endif %}
-                <div class="chips">
-                    {% for item in dating_interests %}
-                        <span class="chip">{{ item.tag.name }}</span>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="muted">Цей контур ще не заповнено.</p>
-            {% endif %}
-        </section>
-
-        <section class="mode-block mode-block--bff">
-            <h2>Пошук друзів</h2>
-            {% if bff %}
-                <p class="meta">Шукає: {{ bff.looking_for_label }}</p>
-                {% if bff.bio %}<p class="bio">{{ bff.bio }}</p>{% endif %}
-                {% if bff_hobbies %}
-                    <h3>Хобі</h3>
-                    <div class="chips">
-                        {% for item in bff_hobbies %}
-                            <span class="chip">{{ item.tag.name }}{% if item.level %} · {{ item.level_label }}{% endif %}</span>
+                <section class="profile-gallery">
+                    <div class="profile-gallery__hero {% if not hero_photo %}is-empty{% endif %}">
+                        {% if hero_photo %}
+                            <img src="{{ hero_photo.url }}" alt="{{ profile.display_name }}">
+                        {% else %}
+                            <p>Немає фото</p>
+                        {% endif %}
+                    </div>
+                    <div class="profile-gallery__grid">
+                        {% for photo in gallery_slots %}
+                            <div class="profile-gallery__thumb {% if photo and forloop.first %}is-main{% endif %} {% if photo %}is-filled{% endif %}">
+                                {% if photo %}
+                                    <img src="{{ photo.url }}" alt="">
+                                    {% if forloop.first %}
+                                        <span class="profile-gallery__badge">Головне</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
                         {% endfor %}
                     </div>
-                {% endif %}
-                {% if bff_languages %}
-                    <h3>Мови</h3>
-                    <div class="chips">
-                        {% for item in bff_languages %}
-                            <span class="chip">{{ item.tag.name }}{% if item.level %} · {{ item.level_label }}{% endif %}</span>
-                        {% endfor %}
+                </section>
+
+                <section class="profile-about">
+                    <div class="profile-about__identity">
+                        <div class="profile-about__field profile-about__field--name">
+                            <span>{{ profile.display_name }}{% if profile.age %} {{ profile.age }}{% endif %}</span>
+                        </div>
+                        <div class="profile-about__field profile-about__field--muted">
+                            <span>@{{ profile.user.username }}</span>
+                        </div>
+                        <div class="profile-about__field profile-about__field--muted">
+                            <span>{{ profile.birth_date|date:"d.m.Y" }}</span>
+                        </div>
+                        <span class="profile-about__mode">{{ profile.get_active_mode_display }}</span>
                     </div>
-                {% endif %}
-                {% if bff_interests %}
-                    <h3>Інтереси</h3>
-                    <div class="chips">
-                        {% for item in bff_interests %}
-                            <span class="chip">{{ item.tag.name }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% else %}
-                <p class="muted">Цей контур ще не заповнено.</p>
-            {% endif %}
-        </section>
+
+                    <ul class="profile-chips profile-chips--about">
+                        <li>{{ profile.get_gender_display }}</li>
+                        <li>{{ profile.get_orientation_display }}</li>
+                        {% if profile.city %}<li>{{ profile.city }}</li>{% endif %}
+                        {% if profile.job %}<li>{{ profile.job }}</li>{% endif %}
+                        {% if profile.height_cm %}<li>{{ profile.height_cm }} см</li>{% endif %}
+                        {% if profile.smoking == 'no' %}<li>Не курю</li>
+                        {% elif profile.smoking == 'sometimes' %}<li>Інколи курю</li>
+                        {% elif profile.smoking == 'yes' %}<li>Курю</li>
+                        {% endif %}
+                        {% if profile.alcohol == 'no' %}<li>Не п’ю</li>
+                        {% elif profile.alcohol == 'sometimes' %}<li>Інколи п’ю</li>
+                        {% elif profile.alcohol == 'yes' %}<li>П’ю</li>
+                        {% endif %}
+                        {% if profile.children == 'no' %}<li>Дітей немає</li>
+                        {% elif profile.children == 'have' %}<li>Є діти</li>
+                        {% elif profile.children == 'want' %}<li>Хочу дітей</li>
+                        {% elif profile.children == 'unsure' %}<li>Поки не знаю</li>
+                        {% endif %}
+                        {% if profile.sport == 'no' %}<li>Не займаюся спортом</li>
+                        {% elif profile.sport == 'sometimes' %}<li>Займаюся спортом інколи</li>
+                        {% elif profile.sport == 'yes' %}<li>Займаюся спортом часто</li>
+                        {% endif %}
+                        {% if profile.pets == 'have' %}<li>Маю тварину</li>
+                        {% elif profile.pets == 'no' %}<li>Тварин немає</li>
+                        {% endif %}
+                        {% if profile.zodiac_sign %}<li>{{ profile.get_zodiac_sign_display }}</li>{% endif %}
+                        <li class="profile-about__visibility">
+                            {% if profile.is_discoverable %}Профіль видно в пошуку{% else %}Профіль прихований з пошуку{% endif %}
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="profile-mode profile-mode--dating">
+                    {% if dating %}
+                        <ul class="profile-chips profile-chips--dating">
+                            {% if dating.looking_for_label %}
+                                <li>Шукаю {{ dating.looking_for_label|lower }}{% if dating.min_age and dating.max_age %} {{ dating.min_age }}-{{ dating.max_age }}{% endif %}</li>
+                            {% endif %}
+                            {% if dating.relationship_goal %}<li>{{ dating.get_relationship_goal_display }}</li>{% endif %}
+                            {% if dating.meeting_format %}<li>{{ dating.get_meeting_format_display }}</li>{% endif %}
+                            {% if dating.alcohol_attitude %}<li>{{ dating.get_alcohol_attitude_display }} ставлення до алкоголю</li>{% endif %}
+                            {% if dating.smoking_attitude %}<li>{{ dating.get_smoking_attitude_display }} ставлення до паління</li>{% endif %}
+                        </ul>
+                        <div class="profile-bio">
+                            <p>{% if dating.bio %}{{ dating.bio }}{% else %}Опис для знайомств ще не додано.{% endif %}</p>
+                            <span class="profile-bio__count">{{ dating.bio|default:''|length }}/500</span>
+                        </div>
+                        {% if dating_interests %}
+                            <ul class="profile-chips profile-chips--interest">
+                                {% for item in dating_interests %}
+                                    <li>{{ item.tag.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% else %}
+                        <p class="profile-mode__empty">Контур знайомств ще не заповнено.</p>
+                    {% endif %}
+                </section>
+
+                <section class="profile-mode profile-mode--bff">
+                    {% if bff %}
+                        <ul class="profile-chips profile-chips--bff">
+                            {% for item in bff_looking_labels %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                        <div class="profile-bio">
+                            <p>{% if bff.bio %}{{ bff.bio }}{% else %}Опис для друзів ще не додано.{% endif %}</p>
+                            <span class="profile-bio__count">{{ bff.bio|default:''|length }}/500</span>
+                        </div>
+                        {% if bff_interests %}
+                            <ul class="profile-chips profile-chips--interest">
+                                {% for item in bff_interests %}
+                                    <li>{{ item.tag.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if bff_hobbies or bff_languages %}
+                            <ul class="profile-chips profile-chips--level">
+                                {% for item in bff_hobbies %}
+                                    <li>{{ item.tag.name }}{% if item.level %} — Рівень: {{ item.level_label }}{% endif %}</li>
+                                {% endfor %}
+                                {% for item in bff_languages %}
+                                    <li>{{ item.tag.name }}{% if item.level %} — Рівень: {{ item.level_label }}{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% else %}
+                        <p class="profile-mode__empty">Контур пошуку друзів ще не заповнено.</p>
+                    {% endif %}
+                </section>
+            </div>
+        </div>
     </div>
+    <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
 </body>
 </html>

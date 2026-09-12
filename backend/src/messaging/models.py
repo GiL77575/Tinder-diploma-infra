@@ -26,7 +26,7 @@ class Conversation(models.Model):
 
 
 class Message(models.Model):
-    """Текстове повідомлення в чаті матчу."""
+    """Повідомлення в чаті матчу: текст і/або фото."""
 
     conversation = models.ForeignKey(
         Conversation,
@@ -38,7 +38,9 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name='messages_sent',
     )
-    text = models.TextField(max_length=2000)
+    text = models.TextField(max_length=2000, blank=True)
+    image_url = models.CharField(max_length=500, blank=True, default='')
+    image_public_id = models.CharField(max_length=255, blank=True, default='')
     read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

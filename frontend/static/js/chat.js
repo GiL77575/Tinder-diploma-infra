@@ -10,16 +10,21 @@
         conversationOpen: '/app/conversations/open/',
         conversationMessages: (id) => `/app/conversations/${id}/messages/`,
         conversationRead: (id) => `/app/conversations/${id}/read/`,
+        conversationSendPhoto: (id) => `/app/conversations/${id}/photo/`,
     };
 
-    /* Анімація свайпу картки: скільки пікселів треба перетягнути, щоб зарахувати
-       лайк/дизлайк, і на скільки мінімально зрушити, щоб не сплутати з тапом. */
+    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
     const SWIPE_DRAG_THRESHOLD = 110;
     const SWIPE_MOVE_DEADZONE = 6;
 
     const body = document.body;
+    const urlMode = new URLSearchParams(window.location.search).get('mode');
     const state = {
-        mode: body.dataset.initialMode || 'dating',
+        mode: (urlMode === 'dating' || urlMode === 'bff')
+            ? urlMode
+            : (body.dataset.initialMode || 'dating'),
         myUserId: parseInt(body.dataset.myUserId, 10) || null,
         conversationId: null,
         ws: null,
@@ -32,6 +37,9 @@
         swipeLocked: false,
         animating: false,
         cardWasDragged: false,
+        sending: false,
+        pendingPhoto: null,
+        pendingPhotoUrl: null,
     };
 
     const els = {
@@ -59,12 +67,20 @@
         chatMessages: document.getElementById('chat-messages'),
         chatForm: document.getElementById('chat-form'),
         chatInput: document.getElementById('chat-input'),
+        chatAttachBtn: document.getElementById('chat-attach-btn'),
+        chatPhotoInput: document.getElementById('chat-photo-input'),
+        chatPhotoPreview: document.getElementById('chat-photo-preview'),
+        chatPhotoPreviewImg: document.getElementById('chat-photo-preview-img'),
+        chatPhotoPreviewRemove: document.getElementById('chat-photo-preview-remove'),
+        chatLightbox: document.getElementById('chat-lightbox'),
+        chatLightboxImage: document.getElementById('chat-lightbox-image'),
+        chatLightboxClose: document.getElementById('chat-lightbox-close'),
         chatPartnerAvatar: document.getElementById('chat-partner-avatar'),
         chatPartnerName: document.getElementById('chat-partner-name'),
         chatPartnerStatus: document.getElementById('chat-partner-status'),
-        sidebarToggle: document.getElementById('sidebar-toggle'),
-        sidebar: document.getElementById('chat-sidebar'),
         matchesMore: document.getElementById('matches-more'),
+        dialogsTitle: document.getElementById('dialogs-title'),
+        createMeetingBtn: document.getElementById('create-meeting-btn'),
     };
 
     function csrfToken() {
@@ -82,7 +98,12 @@
             opts.headers['X-CSRFToken'] = csrfToken();
             opts.headers['Content-Type'] = 'application/json';
         }
-        const response = await fetch(url, opts);
+        let response;
+        try {
+            response = await fetch(url, opts);
+        } catch (err) {
+            throw new Error('Немає зв’язку з сервером. Оновіть сторінку.');
+        }
         if (!response.ok) {
             let detail = '';
             try {
@@ -109,7 +130,15 @@
         );
     }
 
-    /* ---------------- Режим (Романтика / Дружба) ---------------- */
+    function applyModeChrome(mode) {
+        body.dataset.mode = mode;
+        if (els.dialogsTitle) {
+            els.dialogsTitle.textContent = mode === 'bff' ? 'Діалоги/Групи' : 'Діалоги';
+        }
+        if (els.createMeetingBtn) {
+            els.createMeetingBtn.hidden = mode !== 'bff';
+        }
+    }
 
     function setMode(mode, { silent } = {}) {
         state.mode = mode;
@@ -118,6 +147,7 @@
             const active = btn.dataset.mode === mode;
             btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
+        applyModeChrome(mode);
         closeChat();
         loadMatches();
         loadDialogs();
@@ -135,7 +165,11 @@
         });
     });
 
-    /* ---------------- Метчі ---------------- */
+    if (els.createMeetingBtn) {
+        els.createMeetingBtn.addEventListener('click', () => {
+            window.alert('Створення мітінгу з’явиться незабаром.');
+        });
+    }
 
     async function loadMatches() {
         try {
@@ -151,13 +185,14 @@
         grid.innerHTML = '';
         grid.classList.remove('is-expanded');
         if (els.matchesMore) {
-            els.matchesMore.hidden = matches.length <= 8;
+            const visibleLimit = state.mode === 'bff' ? 4 : 8;
+            els.matchesMore.hidden = matches.length <= visibleLimit;
             els.matchesMore.setAttribute('aria-expanded', 'false');
         }
         if (!matches.length) {
             const empty = document.createElement('p');
             empty.className = 'panel__empty';
-            empty.textContent = 'Поки немає метчів у цьому режимі';
+            empty.textContent = 'У вас поки немає метчів';
             grid.appendChild(empty);
             return;
         }
@@ -185,8 +220,6 @@
         });
     }
 
-    /* ---------------- Діалоги ---------------- */
-
     async function loadDialogs() {
         try {
             const data = await apiFetch(API.conversations(state.mode));
@@ -202,7 +235,7 @@
         if (!dialogs.length) {
             const empty = document.createElement('p');
             empty.className = 'panel__empty';
-            empty.textContent = "Тут з'являться ваші діалоги";
+            empty.textContent = 'Екран готовий до довгих діалогів. Залишилося знайти взаємну симпатію та увімкнути цей чат на максимум';
             list.appendChild(empty);
             return;
         }
@@ -272,17 +305,12 @@
         }
     }
 
-    /* ---------------- Свайпи / картка ---------------- */
-
-    /* Прибирає драг/виліт-анімацію з картки, щоб новий кандидат з'явився в нейтральному стані. */
     function resetCardTransform() {
         els.swipeCard.classList.remove('is-dragging', 'is-returning', 'is-leaving-like', 'is-leaving-dislike');
         els.swipeCard.style.transform = '';
         els.swipeCard.style.opacity = '';
     }
 
-    /* Плавний виліт картки вбік (лайк — праворуч, дизлайк — ліворуч). Повертає
-       проміс, що виконується після завершення transition (з резервним таймаутом). */
     function flyCardOut(isPositive) {
         return new Promise((resolve) => {
             els.swipeCard.classList.remove('is-dragging', 'is-returning');
@@ -300,8 +328,6 @@
         });
     }
 
-    /* Єдина точка запуску лайку/дизлайку — і з кнопок, і з драгу картки:
-       спершу візуальний виліт, потім запис свайпу та підвантаження наступної анкети. */
     async function triggerSwipe(isPositive) {
         if (state.animating || state.swipeLocked || !state.activeCandidateUserId) return;
         state.animating = true;
@@ -309,8 +335,6 @@
         state.animating = false;
         swipe(isPositive);
     }
-
-    /* ---- Драг картки пальцем/мишкою: картка нахиляється й слідує за курсором ---- */
 
     const cardDrag = { dragging: false, pointerId: null, startX: 0, currentX: 0, moved: false };
 
@@ -344,7 +368,7 @@
         cardDrag.pointerId = null;
         els.swipeCard.classList.remove('is-dragging');
 
-        if (!cardDrag.moved) return; // це був тап (напр. перемикання фото), не свайп
+        if (!cardDrag.moved) return;
 
         state.cardWasDragged = true;
         const draggedX = cardDrag.currentX;
@@ -367,6 +391,7 @@
         state.swipeLocked = false;
         resetCardTransform();
         closeFullProfile();
+        els.swipeCard.classList.remove('is-empty');
         els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Завантаження…</p></div>';
         els.swipeActions.hidden = true;
         if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
@@ -374,15 +399,20 @@
             const data = await apiFetch(API.discover(state.mode));
             renderCandidate(data.candidate);
         } catch (err) {
-            els.swipeCard.innerHTML = `<div class="swipe-card__placeholder"><p>${escapeHtml(err.message)}</p></div>`;
+            try {
+                const data = await apiFetch(API.discover(state.mode));
+                renderCandidate(data.candidate);
+            } catch (retryErr) {
+                els.swipeCard.classList.add('is-empty');
+                els.swipeCard.innerHTML = `<div class="swipe-card__placeholder"><p>${escapeHtml(retryErr.message)}</p></div>`;
+            }
         }
     }
 
-    /* Рядок з тегами кандидата; ті, що збігаються з профілем переглядача
-       (candidate.tags[].is_shared), підсвічуються кольором акценту. */
-    function renderCandidateTags(tags) {
+    function renderCandidateTags(tags, limit) {
         if (!tags || !tags.length) return '';
-        const chips = tags.map((tag) => {
+        const visible = Number.isFinite(limit) ? tags.slice(0, limit) : tags;
+        const chips = visible.map((tag) => {
             const label = tag.level ? `${tag.name} · ${tag.level}` : tag.name;
             const sharedClass = tag.is_shared ? ' swipe-card__tag--shared' : '';
             return `<span class="swipe-card__tag${sharedClass}">${escapeHtml(label)}</span>`;
@@ -397,11 +427,13 @@
             state.activeCandidate = null;
             els.swipeActions.hidden = true;
             if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
-            els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Анкети закінчились. Спробуйте пізніше 💜</p></div>';
+            els.swipeCard.classList.add('is-empty');
+            els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Анкети закінчилися<br>Спробуйте пізніше</p></div>';
             return;
         }
         state.activeCandidateUserId = candidate.user_id;
         state.activeCandidate = candidate;
+        els.swipeCard.classList.remove('is-empty');
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
         const dots = photos.map((_, idx) => `<span class="swipe-card__dot ${idx === 0 ? 'is-active' : ''}"></span>`).join('');
 
@@ -414,7 +446,7 @@
                     <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
                     <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
                 </div>
-                ${renderCandidateTags(candidate.tags)}
+                ${renderCandidateTags(candidate.tags, 3)}
             </div>
         `;
 
@@ -441,9 +473,6 @@
         if (els.expandProfileBtn) els.expandProfileBtn.hidden = false;
     }
 
-    /* ---------------- Повний перегляд профілю (усі фото + опис) ---------------- */
-
-    /* Заповнює і показує оверлей з повним профілем поточного кандидата. */
     function openFullProfile() {
         if (!state.activeCandidate || !els.fullProfileOverlay) return;
         renderFullProfile(state.activeCandidate);
@@ -454,8 +483,6 @@
         if (els.fullProfileOverlay) els.fullProfileOverlay.hidden = true;
     }
 
-    /* Малює галерею всіх фото (з мініатюрами для перемикання), ім'я, місто,
-       повне біо та теги (зі збереженою підсвіткою спільних) у оверлеї профілю. */
     function renderFullProfile(candidate) {
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
 
@@ -536,8 +563,6 @@
         setTimeout(() => toast.remove(), 3200);
     }
 
-    /* ---------------- Чат ---------------- */
-
     async function openConversationByMatch(match) {
         state.activeMatchId = match.match_id;
         if (match.conversation_id) {
@@ -568,21 +593,20 @@
         state.conversationId = conversationId;
         highlightActiveDialog(conversationId);
 
+        body.classList.add('is-chat-open');
         els.discoverView.hidden = true;
         els.chatView.hidden = false;
         els.chatMessages.innerHTML = '<p class="chat-empty-state">Завантаження історії…</p>';
         if (hint) {
-            els.chatPartnerName.textContent = `${hint.displayName || ''}${hint.age ? ', ' + hint.age : ''}`;
+            els.chatPartnerName.textContent = `${hint.displayName || ''}${hint.age ? ' ' + hint.age : ''}`;
             if (hint.avatarUrl) {
                 els.chatPartnerAvatar.src = hint.avatarUrl;
                 els.chatPartnerAvatar.hidden = false;
             }
         }
-        closeSidebarOnMobile();
-
         try {
             const data = await apiFetch(API.conversationMessages(conversationId));
-            els.chatPartnerName.textContent = `${data.other_user.display_name}${data.other_user.age ? ', ' + data.other_user.age : ''}`;
+            els.chatPartnerName.textContent = `${data.other_user.display_name}${data.other_user.age ? ' ' + data.other_user.age : ''}`;
             els.chatPartnerAvatar.src = data.other_user.avatar_url || avatarPlaceholder();
             els.chatPartnerAvatar.hidden = false;
             els.chatPartnerStatus.textContent = state.mode === 'dating' ? 'Романтика' : 'Дружба';
@@ -596,7 +620,10 @@
 
     function closeChat() {
         closeWebSocket();
+        closeLightbox();
+        clearPendingPhoto();
         state.conversationId = null;
+        body.classList.remove('is-chat-open');
         els.chatView.hidden = true;
         els.discoverView.hidden = false;
         els.chatMessages.innerHTML = '';
@@ -611,6 +638,47 @@
         });
     }
 
+    function messageDayKey(message) {
+        if (!message.created_at) return 'today';
+        const date = new Date(message.created_at);
+        if (Number.isNaN(date.getTime())) return 'today';
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }
+
+    function messageDayLabel(message) {
+        if (!message.created_at) return 'Сьогодні';
+        const date = new Date(message.created_at);
+        if (Number.isNaN(date.getTime())) return 'Сьогодні';
+        const today = new Date();
+        const sameDay = (a, b) => (
+            a.getFullYear() === b.getFullYear()
+            && a.getMonth() === b.getMonth()
+            && a.getDate() === b.getDate()
+        );
+        if (sameDay(date, today)) return 'Сьогодні';
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        if (sameDay(date, yesterday)) return 'Вчора';
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}.${month}.${date.getFullYear()}`;
+    }
+
+    function lastRenderedDayKey() {
+        const chips = els.chatMessages.querySelectorAll('.msg-date-chip');
+        return chips.length ? chips[chips.length - 1].dataset.dayKey : null;
+    }
+
+    function ensureDateChip(message) {
+        const key = messageDayKey(message);
+        if (lastRenderedDayKey() === key) return;
+        const chip = document.createElement('div');
+        chip.className = 'msg-date-chip';
+        chip.dataset.dayKey = key;
+        chip.textContent = messageDayLabel(message);
+        els.chatMessages.appendChild(chip);
+    }
+
     function renderMessages(messages) {
         els.chatMessages.innerHTML = '';
         if (!messages.length) {
@@ -621,19 +689,39 @@
         scrollMessagesToBottom();
     }
 
+    function messagePreviewText(message) {
+        const text = (message.text || '').trim();
+        if (text) return text;
+        if (message.image_url) return '📷 Фото';
+        return '';
+    }
+
     function appendMessage(message) {
+        if (message.id && els.chatMessages.querySelector(`[data-message-id="${message.id}"]`)) {
+            return;
+        }
         if (els.chatMessages.querySelector('.chat-empty-state')) {
             els.chatMessages.innerHTML = '';
         }
+        ensureDateChip(message);
         const bubble = document.createElement('div');
-        bubble.className = `msg ${message.is_mine ? 'msg--mine' : 'msg--theirs'}`;
+        const hasImage = Boolean(message.image_url);
+        bubble.className = `msg ${message.is_mine ? 'msg--mine' : 'msg--theirs'}${hasImage ? ' msg--image' : ''}`;
         bubble.dataset.messageId = message.id;
+        const checkStroke = '#E7D5FF';
         const checkIcon = message.is_mine
-            ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M2 12l5 5L14 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>${message.is_read ? '<path d="M9 12l5 5L22 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' : ''}</svg>`
+            ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12l5 5L14 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${message.is_read ? `<path d="M9 12l5 5L22 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}</svg>`
+            : '';
+        const imageHtml = hasImage
+            ? `<button type="button" class="msg__image-btn" data-image-url="${escapeHtml(message.image_url)}"><img class="msg__image" src="${escapeHtml(message.image_url)}" alt="Фото"></button>`
+            : '';
+        const textHtml = (message.text || '').trim()
+            ? `<span class="msg__text">${escapeHtml(message.text)}</span>`
             : '';
         bubble.innerHTML = `
-            <span class="msg__text">${escapeHtml(message.text)}</span>
-            <span class="msg__meta">${escapeHtml(message.time_label)} ${checkIcon}</span>
+            ${imageHtml}
+            ${textHtml}
+            <span class="msg__meta">${escapeHtml(message.time_label || '')}${checkIcon}</span>
         `;
         els.chatMessages.appendChild(bubble);
         scrollMessagesToBottom();
@@ -642,8 +730,6 @@
     function scrollMessagesToBottom() {
         els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
     }
-
-    /* ---------------- WebSocket ---------------- */
 
     function connectWebSocket(conversationId) {
         const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -692,12 +778,6 @@
         }
     }
 
-    /* ---------------- Постійний inbox-канал (живий на всій сторінці /app/) ---------------- */
-
-    /* На відміну від чат-сокета (тільки поки відкритий конкретний діалог), inbox-сокет
-       підключається один раз при завантаженні сторінки і не закривається при переходах
-       між свайпами/діалогами — саме тому нові повідомлення й прев'ю оновлюються без
-       перезавантаження сторінки, навіть якщо співрозмовник зараз не в цьому чаті. */
     function connectInboxSocket() {
         const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const ws = new WebSocket(`${proto}://${window.location.host}/ws/inbox/`);
@@ -720,7 +800,7 @@
         ws.onclose = (event) => {
             if (state.inboxWs !== ws) return;
             state.inboxWs = null;
-            if (event.code === 4001) return; // неавторизований — реконект не допоможе
+            if (event.code === 4001) return;
             state.inboxReconnectAttempts += 1;
             const delay = Math.min(1000 * state.inboxReconnectAttempts, 10000);
             setTimeout(connectInboxSocket, delay);
@@ -738,7 +818,7 @@
                         state.ws.send(JSON.stringify({ type: 'read' }));
                     }
                 }
-                bumpDialogPreview(payload.message.conversation_id, payload.message.text, payload.message.time_label, payload.message.sender_id);
+                bumpDialogPreview(payload.message.conversation_id, messagePreviewText(payload.message), payload.message.time_label, payload.message.sender_id);
                 break;
             case 'dialog_update':
                 if (payload.mode === state.mode) {
@@ -751,7 +831,7 @@
                     if (meta && !meta.innerHTML.includes('22 8')) {
                         meta.innerHTML = meta.innerHTML.replace(
                             '</svg>',
-                            '<path d="M9 12l5 5L22 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
+                            '<path d="M9 12l5 5L22 8" stroke="#E7D5FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                         );
                     }
                 });
@@ -764,9 +844,178 @@
         }
     }
 
+    function prepareChatPhoto(file) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            const url = URL.createObjectURL(file);
+            image.onload = () => {
+                const maxSide = 1600;
+                let width = image.width;
+                let height = image.height;
+                if (width > maxSide || height > maxSide) {
+                    const scale = maxSide / Math.max(width, height);
+                    width = Math.max(1, Math.round(width * scale));
+                    height = Math.max(1, Math.round(height * scale));
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    URL.revokeObjectURL(url);
+                    if (!blob) {
+                        reject(new Error('Не вдалося обробити фото.'));
+                        return;
+                    }
+                    resolve(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.88);
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Не вдалося прочитати фото.'));
+            };
+            image.src = url;
+        });
+    }
+
+    function clearPendingPhoto() {
+        state.pendingPhoto = null;
+        if (state.pendingPhotoUrl) {
+            URL.revokeObjectURL(state.pendingPhotoUrl);
+            state.pendingPhotoUrl = null;
+        }
+        if (els.chatPhotoPreview) els.chatPhotoPreview.hidden = true;
+        if (els.chatPhotoPreviewImg) els.chatPhotoPreviewImg.removeAttribute('src');
+        if (els.chatInput) els.chatInput.placeholder = 'Написати повідомлення..';
+    }
+
+    async function uploadChatPhoto(conversationId, file, text) {
+        const form = new FormData();
+        form.append('image', file, file.name || 'photo.jpg');
+        if (text) form.append('text', text);
+        const response = await fetch(API.conversationSendPhoto(conversationId), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken(),
+            },
+            body: form,
+        });
+        if (!response.ok) {
+            let detail = '';
+            try {
+                detail = (await response.json()).error || '';
+            } catch (e) { /* ignore */ }
+            throw new Error(detail || `Помилка запиту (${response.status})`);
+        }
+        return response.json();
+    }
+
+    function sendChatPhoto(file, text) {
+        if (!state.conversationId || state.sending) return;
+        state.sending = true;
+        els.chatForm.classList.add('is-sending');
+        uploadChatPhoto(state.conversationId, file, text)
+            .then((data) => {
+                clearPendingPhoto();
+                els.chatInput.value = '';
+                if (!(state.ws && state.ws.readyState === WebSocket.OPEN)) {
+                    appendMessage(data.message);
+                    bumpDialogPreview(
+                        data.message.conversation_id,
+                        messagePreviewText(data.message),
+                        data.message.time_label,
+                        data.message.sender_id,
+                    );
+                }
+            })
+            .catch((err) => alert(err.message))
+            .finally(() => {
+                state.sending = false;
+                els.chatForm.classList.remove('is-sending');
+            });
+    }
+
+    function openLightbox(url) {
+        if (!url || !els.chatLightbox) return;
+        els.chatLightboxImage.src = url;
+        els.chatLightbox.hidden = false;
+    }
+
+    function closeLightbox() {
+        if (!els.chatLightbox) return;
+        els.chatLightbox.hidden = true;
+        els.chatLightboxImage.removeAttribute('src');
+    }
+
+    if (els.chatAttachBtn && els.chatPhotoInput) {
+        els.chatAttachBtn.addEventListener('click', () => {
+            if (state.sending) return;
+            els.chatPhotoInput.click();
+        });
+        els.chatPhotoInput.addEventListener('change', async () => {
+            const file = els.chatPhotoInput.files && els.chatPhotoInput.files[0];
+            els.chatPhotoInput.value = '';
+            if (!file) return;
+            if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+                alert('Фото має бути JPEG, PNG або WebP.');
+                return;
+            }
+            if (file.size > MAX_PHOTO_BYTES) {
+                alert('Фото має бути не більше 5 МБ.');
+                return;
+            }
+            try {
+                const prepared = await prepareChatPhoto(file);
+                clearPendingPhoto();
+                state.pendingPhoto = prepared;
+                state.pendingPhotoUrl = URL.createObjectURL(prepared);
+                els.chatPhotoPreviewImg.src = state.pendingPhotoUrl;
+                els.chatPhotoPreview.hidden = false;
+                els.chatInput.placeholder = 'Підпис (необов\'язково)..';
+                els.chatInput.focus();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+    }
+
+    if (els.chatPhotoPreviewRemove) {
+        els.chatPhotoPreviewRemove.addEventListener('click', clearPendingPhoto);
+    }
+
+    if (els.chatMessages) {
+        els.chatMessages.addEventListener('click', (evt) => {
+            const btn = evt.target.closest('.msg__image-btn');
+            if (!btn) return;
+            openLightbox(btn.dataset.imageUrl);
+        });
+    }
+
+    if (els.chatLightboxClose) {
+        els.chatLightboxClose.addEventListener('click', closeLightbox);
+    }
+    if (els.chatLightbox) {
+        els.chatLightbox.addEventListener('click', (evt) => {
+            if (evt.target === els.chatLightbox) closeLightbox();
+        });
+    }
+    document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape' && els.chatLightbox && !els.chatLightbox.hidden) {
+            closeLightbox();
+        }
+    });
+
     els.chatForm.addEventListener('submit', (evt) => {
         evt.preventDefault();
+        if (state.sending) return;
         const text = els.chatInput.value.trim();
+        if (state.pendingPhoto) {
+            sendChatPhoto(state.pendingPhoto, text);
+            return;
+        }
         if (!text) return;
         if (state.ws && state.ws.readyState === WebSocket.OPEN) {
             state.ws.send(JSON.stringify({ type: 'message', text }));
@@ -781,39 +1030,6 @@
             }).catch((err) => alert(err.message));
         }
     });
-
-    /* ---------------- Мобільний drawer (якщо кнопка є) ---------------- */
-
-    if (els.sidebarToggle && els.sidebar) {
-        els.sidebarToggle.addEventListener('click', () => {
-            const isOpen = els.sidebar.classList.toggle('is-open');
-            els.sidebarToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        });
-    }
-
-    function closeSidebarOnMobile() {
-        if (window.innerWidth <= 960 && els.sidebar && els.sidebarToggle) {
-            els.sidebar.classList.remove('is-open');
-            els.sidebarToggle.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    document.addEventListener('click', (evt) => {
-        if (
-            els.sidebar
-            && els.sidebarToggle
-            && window.innerWidth <= 960
-            && els.sidebar.classList.contains('is-open')
-            && !els.sidebar.contains(evt.target)
-            && evt.target !== els.sidebarToggle
-            && !els.sidebarToggle.contains(evt.target)
-        ) {
-            els.sidebar.classList.remove('is-open');
-            els.sidebarToggle.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    /* ---------------- Ініціалізація ---------------- */
 
     setMode(state.mode, { silent: true });
     connectInboxSocket();

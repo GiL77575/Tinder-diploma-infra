@@ -1,8 +1,11 @@
+{% if not form_part %}
 {% csrf_token %}
 <input type="hidden" name="skip_bff" id="skip-bff" value="">
 <input type="hidden" name="skip_dating" id="skip-dating" value="">
 <input type="file" id="photos-input" name="photos" accept="image/jpeg,image/png,image/webp" multiple hidden>
+{% endif %}
 
+{% if not form_part or form_part == 'photos' %}
 <section class="panel is-active" data-step="1">
     <div class="photo-grid">
         {% for slot in photo_slots %}
@@ -15,18 +18,23 @@
                     <span class="photo-slot__plus">+</span>
                 {% endif %}
                 <span class="photo-slot__label">{% if slot.index == 0 %}Головне{% else %}{{ slot.index|add:1 }}{% endif %}</span>
+                {% if slot.index == 0 %}
+                    <span class="photo-slot__change">Змінити</span>
+                {% endif %}
             </div>
         {% endfor %}
     </div>
 </section>
+{% endif %}
 
+{% if not form_part or form_part == 'fields' %}
 <section class="panel" data-step="2">
     <h2>Про себе</h2>
-    <p class="hint">Спільні дані для обох режимів. Ім'я в профілі може відрізнятись від логіна.</p>
+    <p class="hint">Спільні дані для обох режимів. Ім’я в профілі може відрізнятися від логіна.</p>
 
     <label class="field">
-        <span>Ім'я в профілі</span>
-        <input type="text" name="display_name" maxlength="100" value="{{ form.display_name.value|default_if_none:'' }}">
+        <span>Ім’я в профілі</span>
+        <input type="text" name="display_name" maxlength="100" placeholder="Ваше ім’я" value="{{ form.display_name.value|default_if_none:'' }}">
         {{ form.display_name.errors }}
     </label>
 
@@ -35,7 +43,7 @@
         <div class="birth-date__row">
             <div class="birth-date__field" data-part="day">
                 <button type="button" class="birth-date__trigger" aria-haspopup="listbox" aria-expanded="false">
-                    <span class="birth-date__value">День</span>
+                    <span class="birth-date__value">Число</span>
                 </button>
                 <ul class="birth-date__menu" role="listbox" hidden></ul>
             </div>
@@ -90,16 +98,16 @@
     <div class="list-card">
         <label class="list-row">
             <span>Місто</span>
-            <input type="text" name="city" maxlength="100" placeholder="Київ" value="{{ form.city.value|default_if_none:'' }}">
+            <input type="text" name="city" maxlength="100" placeholder="Необов’язково" value="{{ form.city.value|default_if_none:'' }}">
         </label>
         {{ form.city.errors }}
         <label class="list-row">
-            <span>Робота / навчання</span>
-            <input type="text" name="job" maxlength="100" placeholder="Необов'язково" value="{{ form.job.value|default_if_none:'' }}">
+            <span>Робота/навч</span>
+            <input type="text" name="job" maxlength="100" placeholder="Необов’язково" value="{{ form.job.value|default_if_none:'' }}">
         </label>
         <label class="list-row">
-            <span>Зріст (см)</span>
-            <input type="number" name="height_cm" min="120" max="230" placeholder="Необов'язково" value="{{ form.height_cm.value|default_if_none:'' }}">
+            <span>Зріст</span>
+            <input type="number" name="height_cm" min="120" max="230" placeholder="Необов’язково" value="{{ form.height_cm.value|default_if_none:'' }}">
         </label>
         {{ form.height_cm.errors }}
         <label class="list-row">
@@ -284,7 +292,7 @@
 
 <section class="panel panel--bff" data-step="4">
     <h2>Пошук друзів</h2>
-    <p class="hint">Окремий опис профілю, твої захоплення та мови, які ти зараз вивчаєш або практикуєш (наприклад, шведська B1). Можеш <strong>пропустити</strong> цей крок і заповнити анкету пізніше в профілі — без неї ти не з’являтимешся в пошуку друзів.</p>
+    <p class="hint">Окремий опис профілю, твої захоплення та мови, які ти зараз вивчаєш або практикуєш (наприклад, шведська B1).</p>
 
     <fieldset class="field">
         <legend>Що шукаєш</legend>
@@ -367,3 +375,4 @@
         </span>
     </label>
 </section>
+{% endif %}

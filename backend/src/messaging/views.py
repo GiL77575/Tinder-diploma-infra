@@ -8,12 +8,14 @@ from django.views.decorators.http import require_GET, require_POST
 
 from messaging.models import Conversation
 from messaging.services import (
+    broadcast_new_message,
     conversations_for_user,
     create_message,
     is_participant,
     mark_conversation_read,
     messages_for_conversation,
     open_conversation_for_match,
+    save_chat_image,
 )
 from profiles.models import SearchMode
 
@@ -110,8 +112,38 @@ def conversation_send_message_view(request, conversation_id):
     except ValueError as exc:
         return JsonResponse({'error': str(exc)}, status=400)
 
-    from messaging.services import serialize_message
-    return JsonResponse({'message': serialize_message(message, request.user)})
+    return JsonResponse({
+        'message': broadcast_new_message(conversation, message, request.user),
+    })
+
+
+@login_required
+@require_POST
+def conversation_send_photo_view(request, conversation_id):
+    """Завантажує фото в чат (multipart) і розсилає повідомлення через канал."""
+    conversation = _get_owned_conversation(request, conversation_id)
+    if conversation is None:
+        return JsonResponse({'error': 'Чат не знайдено або немає доступу.'}, status=404)
+
+    uploaded = request.FILES.get('image')
+    if not uploaded:
+        return JsonResponse({'error': 'Додайте фото.'}, status=400)
+
+    try:
+        public_id, url = save_chat_image(conversation.id, request.user.id, uploaded)
+        message = create_message(
+            conversation,
+            request.user,
+            request.POST.get('text', ''),
+            image_url=url,
+            image_public_id=public_id,
+        )
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
+
+    return JsonResponse({
+        'message': broadcast_new_message(conversation, message, request.user),
+    })
 
 
 @login_required

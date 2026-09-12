@@ -9,10 +9,6 @@ from profiles.models import ModerationStatus, Profile, SearchMode, TagCategory
 MIN_SHARED_DATING_INTERESTS = 2
 
 
-# ---------------------------------------------------------------------------
-# Дрібні хелпери: аватар, канонічна пара, теги профілю
-# ---------------------------------------------------------------------------
-
 def _avatar_url(profile):
     """Посилання на головне фото профілю або None, якщо фото не завантажені."""
     photo = profile.photos.first()
@@ -52,10 +48,6 @@ def _shared_tag_ids(tags_a, tags_b, require_same_level=False):
     return shared
 
 
-# ---------------------------------------------------------------------------
-# Правила показу анкет: у Dating і BFF різні критерії відбору
-# ---------------------------------------------------------------------------
-
 def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     """
     Критерії показу анкети в режимі знайомств:
@@ -73,7 +65,10 @@ def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags
     if viewer_profile.city.strip().lower() != candidate_profile.city.strip().lower():
         return None
 
-    if not (viewer_mode.min_age <= candidate_profile.age <= viewer_mode.max_age):
+    candidate_age = candidate_profile.age
+    if candidate_age is None:
+        return None
+    if not (viewer_mode.min_age <= candidate_age <= viewer_mode.max_age):
         return None
 
     viewer_interests = viewer_tags.get((SearchMode.DATING, TagCategory.INTEREST), {})
@@ -99,8 +94,8 @@ def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     if viewer_mode is None or candidate_mode is None:
         return None
 
-    viewer_goals = set(filter(None, viewer_mode.looking_for.split(',')))
-    candidate_goals = set(filter(None, candidate_mode.looking_for.split(',')))
+    viewer_goals = set(filter(None, (viewer_mode.looking_for or '').split(',')))
+    candidate_goals = set(filter(None, (candidate_mode.looking_for or '').split(',')))
     if not viewer_goals or not (viewer_goals & candidate_goals):
         return None
 
@@ -132,10 +127,6 @@ def _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode):
         return _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags)
     return None
 
-
-# ---------------------------------------------------------------------------
-# Публічне API модуля: серіалізація, добірка кандидатів, свайпи, метчі
-# ---------------------------------------------------------------------------
 
 def serialize_candidate(profile, mode, shared_tags=None):
     """

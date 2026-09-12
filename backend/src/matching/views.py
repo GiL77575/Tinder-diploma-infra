@@ -28,11 +28,14 @@ def dashboard_view(request):
         return redirect('profile_setup')
 
     profile = getattr(request.user, 'profile', None)
-    initial_mode = profile.active_mode if profile else SearchMode.DATING
+    requested_mode = request.GET.get('mode')
+    if _valid_mode(requested_mode):
+        initial_mode = requested_mode
+    else:
+        initial_mode = profile.active_mode if profile else SearchMode.DATING
     avatar = profile.photos.first() if profile else None
     return render(request, 'chat/dashboard.html', {
         'initial_mode': initial_mode,
-        'modes': SearchMode.choices,
         'my_display_name': profile.display_name if profile else request.user.username,
         'my_age': profile.age if profile else None,
         'my_avatar_url': avatar.url if avatar else None,
