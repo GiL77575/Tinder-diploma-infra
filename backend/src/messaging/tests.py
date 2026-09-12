@@ -330,3 +330,110 @@ class InboxConsumerTests(TransactionTestCase):
             await alice_chat.disconnect()
 
         asyncio.run(scenario())
+
+
+class MessageEditDeleteTests(TestCase):
+    """Редагувати і видаляти можна лише своє повідомлення; зміни бачать обидва."""
+
+    def setUp(self):
+        self.alice = make_user_with_profile('alice.edit@example.com', 'Аліса')
+        self.bob = make_user_with_profile('bob.edit@example.com', 'Боб')
+        self.stranger = make_user_with_profile('stranger.edit@example.com', 'Чужий')
+        self.match = make_match(self.alice, self.bob)
+        self.conversation = Conversation.objects.get(match=self.match)
+        self.message = Message.objects.create(
+            conversation=self.conversation,
+            sender=self.alice,
+            text='привіт',
+        )
+
+    def _edit_url(self, message_id=None):
+        return reverse('conversation_edit_message', args=[
+            self.conversation.id, message_id or self.message.id,
+        ])
+
+    def _delete_url(self, message_id=None):
+        return reverse('conversation_delete_message', args=[
+            self.conversation.id, message_id or self.message.id,
+        ])
+
+    def test_author_can_edit_own_message(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            self._edit_url(),
+            data={'text': 'привіт!'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()['message']
+        self.assertEqual(payload['text'], 'привіт!')
+        self.assertTrue(payload['is_edited'])
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.text, 'привіт!')
+        self.assertIsNotNone(self.message.edited_at)
+
+    def test_partner_cannot_edit_someone_elses_message(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            self._edit_url(),
+            data={'text': 'підміна'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 404)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.text, 'привіт')
+
+    def test_stranger_cannot_edit(self):
+        self.client.force_login(self.stranger)
+        response = self.client.post(
+            self._edit_url(),
+            data={'text': 'ні'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_empty_text_is_rejected(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            self._edit_url(),
+            data={'text': '   '},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_author_can_delete_own_message_for_both(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(self._delete_url())
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Message.objects.filter(pk=self.message.id).exists())
+        self.client.force_login(self.bob)
+        history = self.client.get(
+            reverse('conversation_messages', args=[self.conversation.id]),
+        )
+        self.assertEqual(history.json()['messages'], [])
+
+    def test_partner_cannot_delete_someone_elses_message(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(self._delete_url())
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Message.objects.filter(pk=self.message.id).exists())
+
+    def test_edit_and_delete_work_in_bff_mode(self):
+        match = make_match(self.alice, self.bob, SearchMode.BFF)
+        conversation = Conversation.objects.get(match=match)
+        message = Message.objects.create(
+            conversation=conversation, sender=self.bob, text='кава?',
+        )
+        self.client.force_login(self.bob)
+        edit = self.client.post(
+            reverse('conversation_edit_message', args=[conversation.id, message.id]),
+            data={'text': 'чай?'},
+            content_type='application/json',
+        )
+        self.assertEqual(edit.status_code, 200)
+        self.assertEqual(edit.json()['message']['text'], 'чай?')
+        delete = self.client.post(
+            reverse('conversation_delete_message', args=[conversation.id, message.id]),
+        )
+        self.assertEqual(delete.status_code, 200)
+        self.assertFalse(Message.objects.filter(pk=message.id).exists())

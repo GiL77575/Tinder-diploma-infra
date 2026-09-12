@@ -63,6 +63,7 @@ def serialize_message(message, viewer):
         'sender_id': message.sender_id,
         'is_mine': message.sender_id == viewer.id,
         'is_read': message.read_at is not None,
+        'is_edited': message.edited_at is not None,
         'created_at': message.created_at.isoformat(),
         'time_label': _format_timestamp(message.created_at),
     }
@@ -181,31 +182,124 @@ def create_message(conversation, sender, text, image_url='', image_public_id='')
     )
 
 
+def _channel_layer():
+    from channels.layers import get_channel_layer
+    return get_channel_layer()
+
+
+def _group_send(group, event):
+    layer = _channel_layer()
+    if layer is None:
+        return
+    from asgiref.sync import async_to_sync
+    async_to_sync(layer.group_send)(group, event)
+
+
+def _dialog_event(conversation, preview, time_label, sender_id):
+    return {
+        'type': 'dialog.update',
+        'conversation_id': conversation.id,
+        'preview': preview,
+        'time_label': time_label,
+        'sender_id': sender_id,
+        'mode': conversation.mode,
+    }
+
+
+def _notify_dialog_preview(conversation, actor, last_message=None):
+    """Оновлює прев’ю діалогу в inbox обох учасників."""
+    if last_message is None:
+        last_message = conversation.messages.order_by('created_at').last()
+    other_user = conversation.match.other_user(actor)
+    if last_message:
+        event = _dialog_event(
+            conversation,
+            message_preview(last_message.text, last_message.image_url),
+            _format_timestamp(last_message.created_at),
+            last_message.sender_id,
+        )
+    else:
+        event = _dialog_event(conversation, '', '', actor.id)
+    _group_send(f'user_{other_user.id}', event)
+    _group_send(f'user_{actor.id}', event)
+
+
+def _owned_message(conversation, user, message_id):
+    """Повідомлення користувача в цьому чаті або None."""
+    return conversation.messages.filter(pk=message_id, sender=user).first()
+
+
+def edit_own_message(conversation, user, message_id, text):
+    """Редагує текст свого повідомлення; фото без підпису редагувати не можна."""
+    message = _owned_message(conversation, user, message_id)
+    if message is None:
+        raise ValueError('Повідомлення не знайдено.')
+    text = (text or '').strip()
+    if not message.image_url and not text:
+        raise ValueError('Повідомлення не може бути порожнім.')
+    if not text:
+        raise ValueError('Фото без тексту не редагується.')
+    if len(text) > 2000:
+        raise ValueError('Повідомлення занадто довге.')
+    if text == (message.text or '').strip():
+        return message
+    message.text = text
+    message.edited_at = timezone.now()
+    message.save(update_fields=['text', 'edited_at'])
+    return message
+
+
+def delete_own_message(conversation, user, message_id):
+    """Видаляє своє повідомлення з чату (для обох сторін)."""
+    message = _owned_message(conversation, user, message_id)
+    if message is None:
+        raise ValueError('Повідомлення не знайдено.')
+    message_id = message.id
+    message.delete()
+    return message_id
+
+
+def broadcast_message_edited(conversation, message, editor):
+    """Розсилає відредаговане повідомлення в чат і оновлює прев’ю діалогу."""
+    message_data = serialize_message(message, editor)
+    _group_send(
+        f'conversation_{conversation.id}',
+        {'type': 'chat.message_edited', 'message': message_data},
+    )
+    _notify_dialog_preview(conversation, editor, message)
+    return message_data
+
+
+def broadcast_message_deleted(conversation, message_id, actor):
+    """Прибирає повідомлення в обох клієнтах і оновлює прев’ю діалогу."""
+    _group_send(
+        f'conversation_{conversation.id}',
+        {
+            'type': 'chat.message_deleted',
+            'message_id': message_id,
+            'conversation_id': conversation.id,
+        },
+    )
+    _notify_dialog_preview(conversation, actor)
+    return {'message_id': message_id, 'conversation_id': conversation.id}
+
+
 def broadcast_new_message(conversation, message, sender):
     """Розсилає нове повідомлення в групу чату і в inbox обох учасників."""
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-
     message_data = serialize_message(message, sender)
     other_user = conversation.match.other_user(sender)
-    channel_layer = get_channel_layer()
-    if channel_layer is None:
-        return message_data
-
-    async_to_sync(channel_layer.group_send)(
+    _group_send(
         f'conversation_{conversation.id}',
         {'type': 'chat.message', 'message': message_data},
     )
-    dialog_event = {
-        'type': 'dialog.update',
-        'conversation_id': conversation.id,
-        'preview': message_preview(message.text, message.image_url),
-        'time_label': message_data['time_label'],
-        'sender_id': message_data['sender_id'],
-        'mode': conversation.mode,
-    }
-    async_to_sync(channel_layer.group_send)(f'user_{other_user.id}', dialog_event)
-    async_to_sync(channel_layer.group_send)(f'user_{sender.id}', dialog_event)
+    dialog_event = _dialog_event(
+        conversation,
+        message_preview(message.text, message.image_url),
+        message_data['time_label'],
+        message_data['sender_id'],
+    )
+    _group_send(f'user_{other_user.id}', dialog_event)
+    _group_send(f'user_{sender.id}', dialog_event)
     return message_data
 
 

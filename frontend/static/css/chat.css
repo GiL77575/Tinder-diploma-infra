@@ -544,6 +544,18 @@ body.page-chat[data-mode="bff"] .matches-grid {
     overflow-x: visible;
 }
 
+.match-item {
+    position: relative;
+    width: 78px;
+    height: 78px;
+    flex-shrink: 0;
+}
+
+.match-item.is-active .match-avatar__img {
+    border-color: #e866ff;
+    box-shadow: 0 0 0 3px rgba(232, 102, 255, 0.35);
+}
+
 .match-avatar {
     display: flex;
     align-items: center;
@@ -556,6 +568,74 @@ body.page-chat[data-mode="bff"] .matches-grid {
     padding: 0;
     border-radius: 50%;
     overflow: visible;
+}
+
+/* Кнопка анметчу поверх аватарки — не змінює розмір комірки сітки. */
+.match-unmatch {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1.5px solid #e23b3b;
+    border-radius: 50%;
+    background: #fffdfe;
+    color: #e23b3b;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(22, 22, 22, 0.12);
+    transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.match-item:hover .match-unmatch,
+.match-item:focus-within .match-unmatch {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.match-unmatch:hover,
+.match-unmatch:focus-visible {
+    z-index: 4;
+    color: #c62828;
+    border-color: #c62828;
+    background: #fff5f5;
+    outline: none;
+}
+
+.match-unmatch__tip {
+    position: absolute;
+    right: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 7px 12px;
+    border: 1px solid #e7d5ff;
+    border-radius: 11px;
+    background: #fffdfe;
+    color: var(--crush-purple);
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(151, 71, 255, 0.16);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.match-unmatch:hover .match-unmatch__tip,
+.match-unmatch:focus-visible .match-unmatch__tip {
+    opacity: 1;
 }
 
 .match-avatar__img {
@@ -1167,8 +1247,13 @@ body.page-chat[data-mode="bff"] .chat-view {
     color: var(--chat-muted);
 }
 
-.chat-view__more {
+.chat-view__more-wrap {
+    position: relative;
     margin-left: auto;
+    flex-shrink: 0;
+}
+
+.chat-view__more {
     width: 30px;
     height: 30px;
     border: none;
@@ -1178,7 +1263,18 @@ body.page-chat[data-mode="bff"] .chat-view {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    border-radius: 8px;
+}
+
+.chat-view__more:hover,
+.chat-view__more[aria-expanded="true"] {
+    background: rgba(22, 22, 22, 0.06);
+}
+
+.chat-more-menu {
+    top: calc(100% + 8px);
+    right: 0;
+    left: auto;
 }
 
 .chat-view__more svg {
@@ -1283,6 +1379,180 @@ body.page-chat[data-mode="bff"] .chat-view {
 
 .msg--mine .msg__meta {
     color: #e7d5ff;
+}
+
+.msg__edited {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.78;
+}
+
+.msg--theirs .msg__edited {
+    color: var(--chat-muted);
+}
+
+/* Контекстне меню своїх повідомлень — fixed у масштабі кадру, не чіпає сітку чату. */
+.msg-menu {
+    position: absolute;
+    z-index: 40;
+    min-width: 176px;
+    padding: 6px;
+    background: var(--chat-surface);
+    border: 1px solid var(--chat-border);
+    border-radius: 11px;
+    box-shadow: 0 8px 24px rgba(22, 22, 22, 0.14);
+    box-sizing: border-box;
+}
+
+.msg-menu[hidden] {
+    display: none;
+}
+
+.msg-menu__item {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 20px;
+    color: #161616;
+    text-align: left;
+    cursor: pointer;
+}
+
+.msg-menu__item:hover,
+.msg-menu__item:focus-visible {
+    background: var(--chat-panel);
+    color: var(--crush-purple);
+    outline: none;
+}
+
+.msg-menu__item--danger:hover,
+.msg-menu__item--danger:focus-visible {
+    background: #fff5f5;
+    color: #e23b3b;
+}
+
+.chat-edit-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 10px 50px;
+    padding: 8px 12px;
+    background: var(--chat-panel);
+    border: 1px solid #e7d5ff;
+    border-radius: 11px;
+    box-sizing: border-box;
+}
+
+.chat-edit-bar[hidden] {
+    display: none;
+}
+
+.chat-edit-bar__copy {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.chat-edit-bar__label {
+    font-size: 13px;
+    line-height: 16px;
+    color: var(--crush-purple);
+}
+
+.chat-edit-bar__preview {
+    font-size: 14px;
+    line-height: 18px;
+    color: #161616;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-edit-bar__cancel {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #fffdfe;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.chat-edit-bar__cancel svg {
+    width: 12px;
+    height: 12px;
+}
+
+.chat-view__composer.is-editing .chat-view__attach {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.chat-undo-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 10px 50px;
+    padding: 6px 8px 6px 12px;
+    background: var(--chat-panel);
+    border: 1px solid #e7d5ff;
+    border-radius: 11px;
+    box-sizing: border-box;
+    min-height: 44px;
+}
+
+.chat-undo-bar[hidden] {
+    display: none;
+}
+
+.chat-undo-bar__text {
+    margin: 0;
+    min-width: 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 18px;
+    color: #161616;
+}
+
+.chat-undo-bar__count {
+    font-weight: 700;
+    color: var(--crush-purple);
+}
+
+.chat-undo-bar__btn {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 14px;
+    border: 1px solid #161616;
+    border-radius: 11px;
+    background: #fffffd;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 18px;
+    color: #161616;
+    cursor: pointer;
+}
+
+.chat-undo-bar__btn:hover,
+.chat-undo-bar__btn:focus-visible {
+    background: #f4edff;
+    border-color: var(--crush-purple);
+    color: var(--crush-purple);
+    outline: none;
 }
 
 .chat-view__composer {

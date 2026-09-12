@@ -111,6 +111,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'reader_id': event['reader_id'],
         }))
 
+    async def chat_message_edited(self, event):
+        message = dict(event['message'])
+        message['is_mine'] = message['sender_id'] == self.user.id
+        await self.send(text_data=json.dumps({
+            'type': 'message_edited',
+            'message': message,
+        }))
+
+    async def chat_message_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message_deleted',
+            'message_id': event['message_id'],
+            'conversation_id': event['conversation_id'],
+        }))
+
     @database_sync_to_async
     def _get_conversation(self):
         return (
@@ -176,4 +191,12 @@ class InboxConsumer(AsyncWebsocketConsumer):
             'time_label': event['time_label'],
             'sender_id': event['sender_id'],
             'mode': event['mode'],
+        }))
+
+    async def match_removed(self, event):
+        """Друга сторона анметчнула — прибрати метч і діалог у цьому клієнті."""
+        await self.send(text_data=json.dumps({
+            'type': 'match_removed',
+            'conversation_id': event.get('conversation_id'),
+            'mode': event.get('mode'),
         }))

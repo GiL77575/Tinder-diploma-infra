@@ -145,6 +145,54 @@ class LikeViewTests(TestCase):
         self.assertEqual(matches[0]['other_user_id'], self.bob.id)
 
 
+class UnmatchTests(TestCase):
+    """Анметч прибирає метч і діалог у обох сторін, окремо для кожного режиму."""
+
+    def setUp(self):
+        self.alice = make_user_with_profile('alice.unmatch@example.com', 'Аліса')
+        self.bob = make_user_with_profile('bob.unmatch@example.com', 'Боб')
+        self.stranger = make_user_with_profile('stranger.unmatch@example.com', 'Чужий')
+
+    def _make_match(self, mode):
+        record_swipe(self.alice, self.bob.id, mode, True)
+        _, match = record_swipe(self.bob, self.alice.id, mode, True)
+        return match
+
+    def test_unmatch_removes_match_and_conversation_for_both(self):
+        match = self._make_match(SearchMode.DATING)
+        conversation = Conversation.objects.get(match=match)
+        self.client.force_login(self.alice)
+        response = self.client.post(reverse('unmatch', args=[match.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Match.objects.filter(pk=match.id).exists())
+        self.assertFalse(Conversation.objects.filter(pk=conversation.id).exists())
+        self.assertEqual(len(matches_for_user(self.alice, SearchMode.DATING)), 0)
+        self.assertEqual(len(matches_for_user(self.bob, SearchMode.DATING)), 0)
+
+    def test_unmatch_works_in_bff_mode(self):
+        match = self._make_match(SearchMode.BFF)
+        self.client.force_login(self.bob)
+        response = self.client.post(reverse('unmatch', args=[match.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(matches_for_user(self.alice, SearchMode.BFF)), 0)
+        self.assertEqual(len(matches_for_user(self.bob, SearchMode.BFF)), 0)
+
+    def test_stranger_cannot_unmatch(self):
+        match = self._make_match(SearchMode.DATING)
+        self.client.force_login(self.stranger)
+        response = self.client.post(reverse('unmatch', args=[match.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Match.objects.filter(pk=match.id).exists())
+
+    def test_unmatch_does_not_touch_other_mode(self):
+        dating = self._make_match(SearchMode.DATING)
+        bff = self._make_match(SearchMode.BFF)
+        self.client.force_login(self.alice)
+        self.client.post(reverse('unmatch', args=[dating.id]))
+        self.assertFalse(Match.objects.filter(pk=dating.id).exists())
+        self.assertTrue(Match.objects.filter(pk=bff.id).exists())
+
+
 class DatingFilterTests(TestCase):
     """Dating: те саме місто, вік у діапазоні, 2+ спільні інтереси."""
 

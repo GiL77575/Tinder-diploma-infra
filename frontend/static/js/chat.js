@@ -11,6 +11,9 @@
         conversationMessages: (id) => `/app/conversations/${id}/messages/`,
         conversationRead: (id) => `/app/conversations/${id}/read/`,
         conversationSendPhoto: (id) => `/app/conversations/${id}/photo/`,
+        conversationEditMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/edit/`,
+        conversationDeleteMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/delete/`,
+        unmatch: (id) => `/app/unmatch/${id}/`,
     };
 
     const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -40,6 +43,13 @@
         sending: false,
         pendingPhoto: null,
         pendingPhotoUrl: null,
+        editingMessageId: null,
+        menuMessageId: null,
+        pendingDeleteMessageId: null,
+        pendingDeleteConversationId: null,
+        deleteTimerId: null,
+        deleteTickId: null,
+        deleteSecondsLeft: 0,
     };
 
     const els = {
@@ -81,6 +91,16 @@
         matchesMore: document.getElementById('matches-more'),
         dialogsTitle: document.getElementById('dialogs-title'),
         createMeetingBtn: document.getElementById('create-meeting-btn'),
+        chatMoreBtn: document.getElementById('chat-more-btn'),
+        chatMoreMenu: document.getElementById('chat-more-menu'),
+        chatUnmatchBtn: document.getElementById('chat-unmatch-btn'),
+        msgMenu: document.getElementById('msg-menu'),
+        chatEditBar: document.getElementById('chat-edit-bar'),
+        chatEditPreview: document.getElementById('chat-edit-preview'),
+        chatEditCancel: document.getElementById('chat-edit-cancel'),
+        chatUndoBar: document.getElementById('chat-undo-bar'),
+        chatUndoSeconds: document.getElementById('chat-undo-seconds'),
+        chatUndoBtn: document.getElementById('chat-undo-btn'),
     };
 
     function csrfToken() {
@@ -197,20 +217,57 @@
             return;
         }
         matches.forEach((match) => {
+            const item = document.createElement('div');
+            item.className = 'match-item';
+            item.dataset.matchId = String(match.match_id);
+            if (match.match_id === state.activeMatchId) {
+                item.classList.add('is-active');
+            }
+
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'match-avatar';
-            btn.dataset.matchId = match.match_id;
             btn.title = `${match.display_name}${match.age ? ', ' + match.age : ''}`;
-            if (match.match_id === state.activeMatchId) {
-                btn.classList.add('is-active');
-            }
             btn.innerHTML = `
                 <img class="match-avatar__img" src="${match.avatar_url || avatarPlaceholder()}" alt="${escapeHtml(match.display_name)}">
             `;
             btn.addEventListener('click', () => openConversationByMatch(match));
-            grid.appendChild(btn);
+
+            const unmatchBtn = document.createElement('button');
+            unmatchBtn.type = 'button';
+            unmatchBtn.className = 'match-unmatch';
+            unmatchBtn.setAttribute('aria-label', `Анметч ${match.display_name}`);
+            unmatchBtn.innerHTML = '<span aria-hidden="true">×</span><span class="match-unmatch__tip" aria-hidden="true">Анметч</span>';
+            unmatchBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                unmatchPerson(match);
+            });
+
+            item.append(btn, unmatchBtn);
+            grid.appendChild(item);
         });
+    }
+
+    /** Прибирає метч і діалог у обох; оновлює списки без зсуву сітки. */
+    async function unmatchPerson(match) {
+        if (!match || !match.match_id) {
+            return;
+        }
+        try {
+            await apiFetch(API.unmatch(match.match_id), { method: 'POST' });
+        } catch (err) {
+            console.error('Не вдалося анметчнути', err);
+            return;
+        }
+        if (
+            state.activeMatchId === match.match_id
+            || Number(state.conversationId) === Number(match.conversation_id)
+        ) {
+            closeChat();
+        }
+        loadMatches();
+        loadDialogs();
     }
 
     if (els.matchesMore) {
@@ -268,11 +325,14 @@
                 ${metaRight}
                 <span class="dialog-item__preview">${escapeHtml(dialog.last_message_preview) || 'Скажіть привіт!'}</span>
             `;
-            item.addEventListener('click', () => openChat(dialog.conversation_id, {
-                displayName: dialog.other_display_name,
-                age: dialog.other_age,
-                avatarUrl: dialog.avatar_url,
-            }));
+            item.addEventListener('click', () => {
+                state.activeMatchId = dialog.match_id;
+                openChat(dialog.conversation_id, {
+                    displayName: dialog.other_display_name,
+                    age: dialog.other_age,
+                    avatarUrl: dialog.avatar_url,
+                });
+            });
             list.appendChild(item);
         });
     }
@@ -619,10 +679,15 @@
     }
 
     function closeChat() {
+        commitPendingDelete();
         closeWebSocket();
         closeLightbox();
+        hideMsgMenu();
+        hideChatMoreMenu();
+        cancelEditMessage();
         clearPendingPhoto();
         state.conversationId = null;
+        state.activeMatchId = null;
         body.classList.remove('is-chat-open');
         els.chatView.hidden = true;
         els.discoverView.hidden = false;
@@ -696,22 +761,18 @@
         return '';
     }
 
-    function appendMessage(message) {
-        if (message.id && els.chatMessages.querySelector(`[data-message-id="${message.id}"]`)) {
-            return;
-        }
-        if (els.chatMessages.querySelector('.chat-empty-state')) {
-            els.chatMessages.innerHTML = '';
-        }
-        ensureDateChip(message);
-        const bubble = document.createElement('div');
+    function fillMessageBubble(bubble, message) {
         const hasImage = Boolean(message.image_url);
         bubble.className = `msg ${message.is_mine ? 'msg--mine' : 'msg--theirs'}${hasImage ? ' msg--image' : ''}`;
-        bubble.dataset.messageId = message.id;
+        bubble.dataset.messageId = String(message.id);
+        bubble.dataset.text = message.text || '';
+        bubble.dataset.hasImage = hasImage ? '1' : '0';
+        if (message.time_label) bubble.dataset.timeLabel = message.time_label;
         const checkStroke = '#E7D5FF';
         const checkIcon = message.is_mine
             ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12l5 5L14 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${message.is_read ? `<path d="M9 12l5 5L22 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}</svg>`
             : '';
+        const editedHtml = message.is_edited ? '<span class="msg__edited">ред.</span>' : '';
         const imageHtml = hasImage
             ? `<button type="button" class="msg__image-btn" data-image-url="${escapeHtml(message.image_url)}"><img class="msg__image" src="${escapeHtml(message.image_url)}" alt="Фото"></button>`
             : '';
@@ -721,10 +782,235 @@
         bubble.innerHTML = `
             ${imageHtml}
             ${textHtml}
-            <span class="msg__meta">${escapeHtml(message.time_label || '')}${checkIcon}</span>
+            <span class="msg__meta">${editedHtml}${escapeHtml(message.time_label || '')}${checkIcon}</span>
         `;
+    }
+
+    function appendMessage(message) {
+        if (message.id && els.chatMessages.querySelector(`[data-message-id="${message.id}"]`)) {
+            return;
+        }
+        if (els.chatMessages.querySelector('.chat-empty-state')) {
+            els.chatMessages.innerHTML = '';
+        }
+        ensureDateChip(message);
+        const bubble = document.createElement('div');
+        fillMessageBubble(bubble, message);
         els.chatMessages.appendChild(bubble);
         scrollMessagesToBottom();
+    }
+
+    function updateMessageBubble(message) {
+        const bubble = els.chatMessages.querySelector(`[data-message-id="${message.id}"]`);
+        if (!bubble) return;
+        fillMessageBubble(bubble, Object.assign({}, message, {
+            time_label: message.time_label || bubble.dataset.timeLabel || '',
+            is_mine: message.is_mine !== undefined ? message.is_mine : bubble.classList.contains('msg--mine'),
+        }));
+    }
+
+    function removeMessageBubble(messageId) {
+        const bubble = els.chatMessages.querySelector(`[data-message-id="${messageId}"]`);
+        if (!bubble) return;
+        const prev = bubble.previousElementSibling;
+        bubble.remove();
+        if (prev && prev.classList.contains('msg-date-chip')) {
+            const next = prev.nextElementSibling;
+            if (!next || next.classList.contains('msg-date-chip')) {
+                prev.remove();
+            }
+        }
+        if (!els.chatMessages.querySelector('.msg')) {
+            els.chatMessages.innerHTML = '<p class="chat-empty-state">Немає повідомлень. Напишіть перше!</p>';
+        }
+    }
+
+    function viewportToFramePoint(clientX, clientY) {
+        const frame = document.querySelector('.crush-frame');
+        if (!frame) return { x: clientX, y: clientY };
+        const rect = frame.getBoundingClientRect();
+        const frameW = parseFloat(frame.getAttribute('data-frame-w')) || 1920;
+        const frameH = parseFloat(frame.getAttribute('data-frame-h')) || 1080;
+        if (!rect.width || !rect.height) return { x: clientX, y: clientY };
+        return {
+            x: ((clientX - rect.left) / rect.width) * frameW,
+            y: ((clientY - rect.top) / rect.height) * frameH,
+        };
+    }
+
+    function hideMsgMenu() {
+        if (!els.msgMenu) return;
+        els.msgMenu.hidden = true;
+        state.menuMessageId = null;
+    }
+
+    function hideChatMoreMenu() {
+        if (els.chatMoreMenu) els.chatMoreMenu.hidden = true;
+        if (els.chatMoreBtn) els.chatMoreBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleChatMoreMenu() {
+        if (!els.chatMoreMenu || !els.chatMoreBtn) return;
+        hideMsgMenu();
+        const willOpen = els.chatMoreMenu.hidden;
+        els.chatMoreMenu.hidden = !willOpen;
+        els.chatMoreBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    }
+
+    function showMsgMenu(event, bubble) {
+        if (!els.msgMenu) return;
+        const hasText = Boolean((bubble.dataset.text || '').trim());
+        const editBtn = els.msgMenu.querySelector('[data-action="edit"]');
+        if (editBtn) editBtn.hidden = !hasText;
+        state.menuMessageId = bubble.dataset.messageId;
+        els.msgMenu.hidden = false;
+        const point = viewportToFramePoint(event.clientX, event.clientY);
+        const menuW = els.msgMenu.offsetWidth || 176;
+        const menuH = els.msgMenu.offsetHeight || 88;
+        const frameW = 1920;
+        const frameH = 1080;
+        let left = point.x;
+        let top = point.y;
+        if (left + menuW > frameW - 16) left = frameW - menuW - 16;
+        if (top + menuH > frameH - 16) top = point.y - menuH;
+        if (left < 16) left = 16;
+        if (top < 16) top = 16;
+        els.msgMenu.style.left = `${Math.round(left)}px`;
+        els.msgMenu.style.top = `${Math.round(top)}px`;
+    }
+
+    function cancelEditMessage() {
+        state.editingMessageId = null;
+        if (els.chatEditBar) els.chatEditBar.hidden = true;
+        if (els.chatEditPreview) els.chatEditPreview.textContent = '';
+        if (els.chatForm) els.chatForm.classList.remove('is-editing');
+        if (els.chatInput && !state.pendingPhoto) {
+            els.chatInput.placeholder = 'Написати повідомлення..';
+        }
+    }
+
+    function startEditMessage(bubble) {
+        const text = bubble.dataset.text || '';
+        if (!text.trim()) return;
+        hideMsgMenu();
+        if (Number(state.pendingDeleteMessageId) === Number(bubble.dataset.messageId)) {
+            undoPendingDelete();
+        }
+        clearPendingPhoto();
+        state.editingMessageId = bubble.dataset.messageId;
+        if (els.chatEditPreview) els.chatEditPreview.textContent = text;
+        if (els.chatEditBar) els.chatEditBar.hidden = false;
+        if (els.chatForm) els.chatForm.classList.add('is-editing');
+        if (els.chatInput) {
+            els.chatInput.value = text;
+            els.chatInput.placeholder = 'Змінити повідомлення..';
+            els.chatInput.focus();
+            els.chatInput.setSelectionRange(text.length, text.length);
+        }
+    }
+
+    async function saveEditedMessage() {
+        const messageId = state.editingMessageId;
+        const text = els.chatInput.value.trim();
+        if (!messageId || !text || !state.conversationId) return;
+        try {
+            const data = await apiFetch(
+                API.conversationEditMessage(state.conversationId, messageId),
+                { method: 'POST', body: JSON.stringify({ text }) },
+            );
+            if (data.message) updateMessageBubble(data.message);
+            els.chatInput.value = '';
+            cancelEditMessage();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    function updateUndoBar() {
+        if (els.chatUndoSeconds) {
+            els.chatUndoSeconds.textContent = String(Math.max(0, state.deleteSecondsLeft));
+        }
+    }
+
+    function hideUndoBar() {
+        if (els.chatUndoBar) els.chatUndoBar.hidden = true;
+        if (els.chatForm) els.chatForm.classList.remove('is-undoing');
+    }
+
+    function clearDeleteTimer() {
+        if (state.deleteTimerId) {
+            clearTimeout(state.deleteTimerId);
+            state.deleteTimerId = null;
+        }
+        if (state.deleteTickId) {
+            clearInterval(state.deleteTickId);
+            state.deleteTickId = null;
+        }
+    }
+
+    function undoPendingDelete() {
+        clearDeleteTimer();
+        state.pendingDeleteMessageId = null;
+        state.pendingDeleteConversationId = null;
+        state.deleteSecondsLeft = 0;
+        hideUndoBar();
+    }
+
+    function commitPendingDelete() {
+        const messageId = state.pendingDeleteMessageId;
+        const conversationId = state.pendingDeleteConversationId;
+        clearDeleteTimer();
+        hideUndoBar();
+        state.pendingDeleteMessageId = null;
+        state.pendingDeleteConversationId = null;
+        state.deleteSecondsLeft = 0;
+        if (!messageId || !conversationId) return;
+        if (Number(state.editingMessageId) === Number(messageId)) {
+            els.chatInput.value = '';
+            cancelEditMessage();
+        }
+        apiFetch(
+            API.conversationDeleteMessage(conversationId, messageId),
+            { method: 'POST' },
+        ).then(() => {
+            if (Number(state.conversationId) === Number(conversationId)) {
+                removeMessageBubble(messageId);
+            }
+            loadDialogs();
+        }).catch((err) => {
+            alert(err.message);
+        });
+    }
+
+    function scheduleDelete(messageId) {
+        if (!messageId || !state.conversationId) return;
+        hideMsgMenu();
+        if (
+            state.pendingDeleteMessageId
+            && Number(state.pendingDeleteMessageId) !== Number(messageId)
+        ) {
+            commitPendingDelete();
+        }
+        if (Number(state.editingMessageId) === Number(messageId)) {
+            els.chatInput.value = '';
+            cancelEditMessage();
+        }
+        state.pendingDeleteMessageId = messageId;
+        state.pendingDeleteConversationId = state.conversationId;
+        state.deleteSecondsLeft = 5;
+        updateUndoBar();
+        if (els.chatUndoBar) els.chatUndoBar.hidden = false;
+        if (els.chatForm) els.chatForm.classList.add('is-undoing');
+        clearDeleteTimer();
+        state.deleteTickId = setInterval(() => {
+            state.deleteSecondsLeft -= 1;
+            updateUndoBar();
+            if (state.deleteSecondsLeft <= 0) {
+                clearInterval(state.deleteTickId);
+                state.deleteTickId = null;
+            }
+        }, 1000);
+        state.deleteTimerId = setTimeout(commitPendingDelete, 5000);
     }
 
     function scrollMessagesToBottom() {
@@ -823,6 +1109,38 @@
             case 'dialog_update':
                 if (payload.mode === state.mode) {
                     bumpDialogPreview(payload.conversation_id, payload.preview, payload.time_label, payload.sender_id);
+                }
+                break;
+            case 'message_edited':
+                if (payload.message && Number(payload.message.conversation_id) === Number(state.conversationId)) {
+                    updateMessageBubble(payload.message);
+                }
+                if (payload.message) {
+                    bumpDialogPreview(
+                        payload.message.conversation_id,
+                        messagePreviewText(payload.message),
+                        payload.message.time_label,
+                        payload.message.sender_id,
+                    );
+                }
+                break;
+            case 'message_deleted':
+                if (Number(payload.conversation_id) === Number(state.conversationId)) {
+                    removeMessageBubble(payload.message_id);
+                    if (Number(state.editingMessageId) === Number(payload.message_id)) {
+                        els.chatInput.value = '';
+                        cancelEditMessage();
+                    }
+                }
+                loadDialogs();
+                break;
+            case 'match_removed':
+                if (!payload.mode || payload.mode === state.mode) {
+                    if (Number(payload.conversation_id) === Number(state.conversationId)) {
+                        closeChat();
+                    }
+                    loadMatches();
+                    loadDialogs();
                 }
                 break;
             case 'read':
@@ -992,6 +1310,73 @@
             if (!btn) return;
             openLightbox(btn.dataset.imageUrl);
         });
+        els.chatMessages.addEventListener('contextmenu', (evt) => {
+            const bubble = evt.target.closest('.msg--mine');
+            if (!bubble) return;
+            evt.preventDefault();
+            hideChatMoreMenu();
+            showMsgMenu(evt, bubble);
+        });
+    }
+
+    if (els.msgMenu) {
+        els.msgMenu.addEventListener('click', (evt) => {
+            const actionBtn = evt.target.closest('[data-action]');
+            if (!actionBtn) return;
+            const bubble = els.chatMessages.querySelector(`[data-message-id="${state.menuMessageId}"]`);
+            if (!bubble) {
+                hideMsgMenu();
+                return;
+            }
+            if (actionBtn.dataset.action === 'edit') {
+                startEditMessage(bubble);
+            } else if (actionBtn.dataset.action === 'delete') {
+                scheduleDelete(bubble.dataset.messageId);
+            }
+        });
+    }
+
+    if (els.chatEditCancel) {
+        els.chatEditCancel.addEventListener('click', () => {
+            els.chatInput.value = '';
+            cancelEditMessage();
+        });
+    }
+
+    if (els.chatUndoBtn) {
+        els.chatUndoBtn.addEventListener('click', undoPendingDelete);
+    }
+
+    if (els.chatMoreBtn) {
+        els.chatMoreBtn.addEventListener('click', (evt) => {
+            evt.stopPropagation();
+            toggleChatMoreMenu();
+        });
+    }
+
+    if (els.chatUnmatchBtn) {
+        els.chatUnmatchBtn.addEventListener('click', () => {
+            hideChatMoreMenu();
+            unmatchPerson({
+                match_id: state.activeMatchId,
+                conversation_id: state.conversationId,
+            });
+        });
+    }
+
+    document.addEventListener('mousedown', (evt) => {
+        if (els.chatMoreMenu && !els.chatMoreMenu.hidden) {
+            if (!els.chatMoreMenu.contains(evt.target) && !els.chatMoreBtn.contains(evt.target)) {
+                hideChatMoreMenu();
+            }
+        }
+        if (!els.msgMenu || els.msgMenu.hidden) return;
+        if (els.msgMenu.contains(evt.target)) return;
+        hideMsgMenu();
+    });
+    window.addEventListener('resize', hideMsgMenu);
+    if (els.chatMessages) {
+        els.chatMessages.addEventListener('scroll', hideMsgMenu);
     }
 
     if (els.chatLightboxClose) {
@@ -1003,14 +1388,36 @@
         });
     }
     document.addEventListener('keydown', (evt) => {
-        if (evt.key === 'Escape' && els.chatLightbox && !els.chatLightbox.hidden) {
+        if (evt.key !== 'Escape') return;
+        if (els.chatLightbox && !els.chatLightbox.hidden) {
             closeLightbox();
+            return;
+        }
+        if (els.msgMenu && !els.msgMenu.hidden) {
+            hideMsgMenu();
+            return;
+        }
+        if (els.chatMoreMenu && !els.chatMoreMenu.hidden) {
+            hideChatMoreMenu();
+            return;
+        }
+        if (state.pendingDeleteMessageId) {
+            undoPendingDelete();
+            return;
+        }
+        if (state.editingMessageId) {
+            els.chatInput.value = '';
+            cancelEditMessage();
         }
     });
 
     els.chatForm.addEventListener('submit', (evt) => {
         evt.preventDefault();
         if (state.sending) return;
+        if (state.editingMessageId) {
+            saveEditedMessage();
+            return;
+        }
         const text = els.chatInput.value.trim();
         if (state.pendingPhoto) {
             sendChatPhoto(state.pendingPhoto, text);

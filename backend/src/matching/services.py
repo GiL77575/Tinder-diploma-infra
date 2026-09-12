@@ -291,3 +291,56 @@ def serialize_match(match):
         'mode': match.mode,
         'conversation_id': conversation.id if conversation else None,
     }
+
+
+def _notify_unmatch(other_user_id, conversation_id, mode):
+    """Повідомляє другу сторону, що метч і діалог зникли (якщо є Channels)."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+    except ImportError:
+        return
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    async_to_sync(layer.group_send)(
+        f'user_{other_user_id}',
+        {
+            'type': 'match.removed',
+            'conversation_id': conversation_id,
+            'mode': mode,
+        },
+    )
+
+
+def unmatch_pair(user, match_id):
+    """
+    Прибирає метч і пов'язаний діалог для обох сторін.
+    Обидва лайки стають пасом, щоб метч не зібрався знову з тих самих свайпів.
+    """
+    match = (
+        Match.objects
+        .filter(pk=match_id)
+        .filter(Q(user_a=user) | Q(user_b=user))
+        .select_related('user_a', 'user_b')
+        .first()
+    )
+    if match is None:
+        raise ValueError('Метч не знайдено.')
+
+    other = match.other_user(user)
+    mode = match.mode
+    from messaging.models import Conversation
+    conversation_id = Conversation.objects.filter(match=match).values_list('pk', flat=True).first()
+
+    Like.objects.filter(mode=mode).filter(
+        Q(from_user=user, to_user=other) | Q(from_user=other, to_user=user)
+    ).update(is_positive=False)
+
+    match.delete()
+    _notify_unmatch(other.id, conversation_id, mode)
+    return {
+        'other_user_id': other.id,
+        'conversation_id': conversation_id,
+        'mode': mode,
+    }

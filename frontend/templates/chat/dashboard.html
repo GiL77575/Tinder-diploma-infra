@@ -180,18 +180,38 @@
                                 <span class="chat-view__name" id="chat-partner-name"></span>
                                 <span class="chat-view__status" id="chat-partner-status"></span>
                             </div>
-                            <button type="button" class="chat-view__more" id="chat-more-btn" aria-label="Ще">
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                    <circle cx="12" cy="5" r="1.6" fill="#161616"/>
-                                    <circle cx="12" cy="12" r="1.6" fill="#161616"/>
-                                    <circle cx="12" cy="19" r="1.6" fill="#161616"/>
-                                </svg>
-                            </button>
+                            <div class="chat-view__more-wrap">
+                                <button type="button" class="chat-view__more" id="chat-more-btn" aria-label="Ще" aria-expanded="false" aria-haspopup="true" aria-controls="chat-more-menu">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <circle cx="12" cy="5" r="1.6" fill="#161616"/>
+                                        <circle cx="12" cy="12" r="1.6" fill="#161616"/>
+                                        <circle cx="12" cy="19" r="1.6" fill="#161616"/>
+                                    </svg>
+                                </button>
+                                <div class="msg-menu chat-more-menu" id="chat-more-menu" hidden role="menu">
+                                    <button type="button" class="msg-menu__item msg-menu__item--danger" id="chat-unmatch-btn" role="menuitem">Анметч</button>
+                                </div>
+                            </div>
                         </header>
 
                         <div class="chat-view__messages" id="chat-messages"></div>
 
                         <form class="chat-view__composer" id="chat-form" autocomplete="off">
+                            <div class="chat-undo-bar" id="chat-undo-bar" hidden>
+                                <p class="chat-undo-bar__text">Видалення через <span class="chat-undo-bar__count" id="chat-undo-seconds">5</span> с</p>
+                                <button type="button" class="chat-undo-bar__btn" id="chat-undo-btn">Відмінити</button>
+                            </div>
+                            <div class="chat-edit-bar" id="chat-edit-bar" hidden>
+                                <div class="chat-edit-bar__copy">
+                                    <span class="chat-edit-bar__label">Редагування</span>
+                                    <span class="chat-edit-bar__preview" id="chat-edit-preview"></span>
+                                </div>
+                                <button type="button" class="chat-edit-bar__cancel" id="chat-edit-cancel" aria-label="Скасувати редагування">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                            </div>
                             <div class="chat-photo-preview" id="chat-photo-preview" hidden>
                                 <img class="chat-photo-preview__img" id="chat-photo-preview-img" alt="">
                                 <button type="button" class="chat-photo-preview__remove" id="chat-photo-preview-remove" aria-label="Прибрати фото">
@@ -220,6 +240,11 @@
                         </form>
                     </section>
                 </main>
+            </div>
+
+            <div class="msg-menu" id="msg-menu" hidden role="menu">
+                <button type="button" class="msg-menu__item" data-action="edit" role="menuitem">Редагувати</button>
+                <button type="button" class="msg-menu__item msg-menu__item--danger" data-action="delete" role="menuitem">Видалити</button>
             </div>
 
             <div class="chat-lightbox" id="chat-lightbox" hidden>

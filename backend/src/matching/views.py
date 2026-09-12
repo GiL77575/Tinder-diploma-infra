@@ -13,6 +13,7 @@ from matching.services import (
     record_swipe,
     serialize_candidate,
     serialize_match,
+    unmatch_pair,
 )
 from profiles.models import SearchMode
 
@@ -90,3 +91,14 @@ def matches_list_view(request):
     if not _valid_mode(mode):
         return JsonResponse({'error': 'Невірний режим.'}, status=400)
     return JsonResponse({'matches': matches_for_user(request.user, mode)})
+
+
+@login_required
+@require_POST
+def unmatch_view(request, match_id):
+    """Анметч: прибирає метч і діалог у обох користувачів (Dating і BFF)."""
+    try:
+        result = unmatch_pair(request.user, match_id)
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=404)
+    return JsonResponse({'ok': True, **result})

@@ -3,6 +3,8 @@
 from django.urls import path
 
 from messaging.views import (
+    conversation_delete_message_view,
+    conversation_edit_message_view,
     conversation_mark_read_view,
     conversation_messages_view,
     conversation_send_message_view,
@@ -33,5 +35,15 @@ urlpatterns = [
         'conversations/<int:conversation_id>/read/',
         conversation_mark_read_view,
         name='conversation_read',
+    ),
+    path(
+        'conversations/<int:conversation_id>/messages/<int:message_id>/edit/',
+        conversation_edit_message_view,
+        name='conversation_edit_message',
+    ),
+    path(
+        'conversations/<int:conversation_id>/messages/<int:message_id>/delete/',
+        conversation_delete_message_view,
+        name='conversation_delete_message',
     ),
 ]

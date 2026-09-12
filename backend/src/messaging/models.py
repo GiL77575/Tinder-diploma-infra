@@ -42,6 +42,7 @@ class Message(models.Model):
     image_url = models.CharField(max_length=500, blank=True, default='')
     image_public_id = models.CharField(max_length=255, blank=True, default='')
     read_at = models.DateTimeField(null=True, blank=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
