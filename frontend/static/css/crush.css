@@ -16,6 +16,16 @@
     --font-body: "Plus Jakarta Sans", sans-serif;
     /* 1px макета 1920 — як на профілі (scale по ширині вікна) */
     --crush-u: calc(100vw / 1920);
+    /* Синхрон з crush-frame.js (contain / width) */
+    --crush-frame-scale: 1;
+    --crush-frame-x: 0px;
+    --crush-frame-y: 0px;
+    /* Логотип crush — Figma: Rubik One 40/50 @ left 190, top 11 */
+    --crush-brand-left: 190px;
+    --crush-brand-top: 11px;
+    --crush-brand-size: 40px;
+    --crush-brand-lh: 50px;
+    --crush-brand-w: 127px;
     --landing-gradient: radial-gradient(
         112.49% 213.77% at 48.02% 50%,
         rgba(246, 246, 246, 0.5) 0%,
@@ -162,40 +172,88 @@ body.page-auth .crush-viewport::before {
     overflow: visible;
 }
 
-/* Спільний хедер поза crush-frame — масштаб як на /profile/ */
+/* Спільний хедер поза crush-frame — логотип синхронізований з масштабом кадру */
 .landing-header {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    height: calc(80 * var(--crush-u));
+    height: calc(var(--crush-frame-y, 0px) + 80px * var(--crush-frame-scale, 1));
     z-index: 5;
     pointer-events: none;
 }
 
-.landing-logo {
+/*
+ * Слово «crush» — одне місце і розмір на всіх сторінках.
+ * Поза кадром: координати через --crush-frame-* (як контент у contain).
+ * Усередині .crush-frame: design-px (transform кадру масштабує сам).
+ */
+.landing-logo,
+.page-setup .setup-logo,
+.crush-brand {
     position: absolute;
-    left: calc(190 * var(--crush-u));
-    top: calc(11 * var(--crush-u));
-    width: auto;
-    height: calc(50 * var(--crush-u));
+    left: calc(var(--crush-frame-x, 0px) + var(--crush-brand-left) * var(--crush-frame-scale, 1));
+    top: calc(var(--crush-frame-y, 0px) + var(--crush-brand-top) * var(--crush-frame-scale, 1));
+    width: calc(var(--crush-brand-w) * var(--crush-frame-scale, 1));
+    height: calc(var(--crush-brand-lh) * var(--crush-frame-scale, 1));
+    margin: 0;
     font-family: var(--font-brand);
     font-style: normal;
     font-weight: 400;
-    font-size: calc(40 * var(--crush-u));
-    line-height: calc(50 * var(--crush-u));
+    font-size: calc(var(--crush-brand-size) * var(--crush-frame-scale, 1));
+    line-height: calc(var(--crush-brand-lh) * var(--crush-frame-scale, 1));
     color: var(--crush-purple);
+    z-index: 5;
     pointer-events: auto;
+    box-sizing: border-box;
+}
+
+.crush-frame .chat-logo,
+.crush-frame .profile-logo,
+.crush-frame .edit-logo,
+.crush-frame .crush-brand {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: var(--crush-brand-w);
+    height: var(--crush-brand-lh);
+    font-family: var(--font-brand);
+    font-style: normal;
+    font-weight: 400;
+    font-size: var(--crush-brand-size);
+    line-height: var(--crush-brand-lh);
+    color: var(--crush-purple);
+    flex-shrink: 0;
+    z-index: auto;
+}
+
+.crush-frame .edit-top {
+    position: absolute;
+    left: var(--crush-brand-left);
+    top: var(--crush-brand-top);
+    z-index: 2;
+}
+
+.crush-frame .edit-logo {
+    display: block;
+    position: relative;
+    left: auto;
+    top: auto;
+}
+
+.crush-frame .chat-logo {
+    display: block;
+    flex-shrink: 0;
 }
 
 .landing-nav {
     position: absolute;
-    top: calc(25 * var(--crush-u));
-    right: calc(190 * var(--crush-u));
+    top: calc(var(--crush-frame-y, 0px) + 25px * var(--crush-frame-scale, 1));
+    right: calc(var(--crush-frame-x, 0px) + 190px * var(--crush-frame-scale, 1));
     left: auto;
     display: flex;
     align-items: center;
-    gap: calc(40 * var(--crush-u));
+    gap: calc(40px * var(--crush-frame-scale, 1));
     pointer-events: auto;
 }
 
@@ -203,8 +261,8 @@ body.page-auth .crush-viewport::before {
     font-family: var(--font-body);
     font-style: normal;
     font-weight: 700;
-    font-size: calc(20 * var(--crush-u));
-    line-height: calc(25 * var(--crush-u));
+    font-size: calc(20px * var(--crush-frame-scale, 1));
+    line-height: calc(25px * var(--crush-frame-scale, 1));
     color: var(--crush-ink);
     white-space: nowrap;
 }

@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from matching.models import Match
 from messaging.models import Conversation, Message
+from profiles.models import SearchMode
 from profiles.services import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES
 
 PHOTO_PREVIEW = '📷 Фото'
@@ -21,9 +22,40 @@ def get_or_create_conversation_for_match(match):
 
 
 def is_participant(user, conversation):
-    """Чи є користувач одним з двох учасників чату матчу."""
-    match = conversation.match
-    return user.id in (match.user_a_id, match.user_b_id)
+    """Чи є користувач учасником чату матчу або зустрічі."""
+    if conversation.match_id:
+        match = conversation.match
+        return user.id in (match.user_a_id, match.user_b_id)
+    if conversation.meeting_id:
+        from meetings.models import MeetingParticipant
+        return MeetingParticipant.objects.filter(
+            meeting_id=conversation.meeting_id, user=user,
+        ).exists()
+    return False
+
+
+def can_access_conversation(user, conversation):
+    """Учасник + для meeting-чату ще не закритий термін."""
+    if not is_participant(user, conversation):
+        return False
+    if conversation.is_meeting_chat:
+        meeting = conversation.meeting
+        meeting.ensure_completed_if_due()
+        return meeting.is_chat_open
+    return True
+
+
+def participant_user_ids(conversation):
+    """Список id усіх учасників чату (2 для матчу, N для зустрічі)."""
+    if conversation.match_id:
+        match = conversation.match
+        return [match.user_a_id, match.user_b_id]
+    from meetings.models import MeetingParticipant
+    return list(
+        MeetingParticipant.objects
+        .filter(meeting_id=conversation.meeting_id)
+        .values_list('user_id', flat=True)
+    )
 
 
 def _avatar_url(user):
@@ -69,45 +101,100 @@ def serialize_message(message, viewer):
     }
 
 
+def _match_dialog_item(conversation, user, messages):
+    other = conversation.match.other_user(user)
+    last_message = messages[-1] if messages else None
+    unread_count = sum(
+        1 for message in messages
+        if message.sender_id != user.id and message.read_at is None
+    )
+    last_at = last_message.created_at if last_message else conversation.created_at
+    profile = getattr(other, 'profile', None)
+    return {
+        'conversation_id': conversation.id,
+        'kind': 'match',
+        'match_id': conversation.match_id,
+        'meeting_id': None,
+        'other_user_id': other.id,
+        'other_display_name': profile.display_name if profile else other.username,
+        'other_age': profile.age if profile else None,
+        'avatar_url': _avatar_url(other),
+        'last_message_preview': (
+            message_preview(last_message.text, last_message.image_url)
+            if last_message else ''
+        ),
+        'last_message_time': _format_timestamp(last_at),
+        'last_message_is_mine': bool(last_message and last_message.sender_id == user.id),
+        'last_message_is_read': bool(last_message and last_message.read_at is not None),
+        'unread_count': unread_count,
+        '_sort_ts': last_at,
+    }
+
+
+def _meeting_dialog_item(conversation, user, messages):
+    meeting = conversation.meeting
+    meeting.ensure_completed_if_due()
+    if not meeting.is_chat_open:
+        return None
+    last_message = messages[-1] if messages else None
+    unread_count = sum(
+        1 for message in messages
+        if message.sender_id != user.id and message.read_at is None
+    )
+    last_at = last_message.created_at if last_message else conversation.created_at
+    return {
+        'conversation_id': conversation.id,
+        'kind': 'meeting',
+        'match_id': None,
+        'meeting_id': meeting.id,
+        'other_user_id': None,
+        'other_display_name': meeting.title,
+        'other_age': None,
+        'avatar_url': None,
+        'last_message_preview': (
+            message_preview(last_message.text, last_message.image_url)
+            if last_message else ''
+        ),
+        'last_message_time': _format_timestamp(last_at),
+        'last_message_is_mine': bool(last_message and last_message.sender_id == user.id),
+        'last_message_is_read': bool(last_message and last_message.read_at is not None),
+        'unread_count': unread_count,
+        '_sort_ts': last_at,
+    }
+
+
 def conversations_for_user(user, mode):
     """Список діалогів користувача в режимі: непрочитані спершу, потім свіжіші."""
-    conversations = (
+    items = []
+
+    match_conversations = (
         Conversation.objects
-        .filter(match__mode=mode)
+        .filter(match__mode=mode, match__isnull=False)
         .filter(Q(match__user_a=user) | Q(match__user_b=user))
         .select_related('match', 'match__user_a', 'match__user_b')
         .prefetch_related('messages')
     )
-
-    items = []
-    for conversation in conversations:
-        other = conversation.match.other_user(user)
+    for conversation in match_conversations:
         messages = list(conversation.messages.all())
-        last_message = messages[-1] if messages else None
-        unread_count = sum(
-            1 for message in messages
-            if message.sender_id != user.id and message.read_at is None
-        )
-        last_at = last_message.created_at if last_message else conversation.created_at
-        profile = getattr(other, 'profile', None)
+        items.append(_match_dialog_item(conversation, user, messages))
 
-        items.append({
-            'conversation_id': conversation.id,
-            'match_id': conversation.match_id,
-            'other_user_id': other.id,
-            'other_display_name': profile.display_name if profile else other.username,
-            'other_age': profile.age if profile else None,
-            'avatar_url': _avatar_url(other),
-            'last_message_preview': (
-                message_preview(last_message.text, last_message.image_url)
-                if last_message else ''
-            ),
-            'last_message_time': _format_timestamp(last_at),
-            'last_message_is_mine': bool(last_message and last_message.sender_id == user.id),
-            'last_message_is_read': bool(last_message and last_message.read_at is not None),
-            'unread_count': unread_count,
-            '_sort_ts': last_at,
-        })
+    if mode == SearchMode.BFF:
+        from meetings.models import MeetingParticipant
+
+        meeting_ids = MeetingParticipant.objects.filter(user=user).values_list(
+            'meeting_id', flat=True,
+        )
+        meeting_conversations = (
+            Conversation.objects
+            .filter(meeting_id__in=meeting_ids, meeting__isnull=False)
+            .select_related('meeting')
+            .prefetch_related('messages')
+        )
+        for conversation in meeting_conversations:
+            messages = list(conversation.messages.all())
+            item = _meeting_dialog_item(conversation, user, messages)
+            if item is not None:
+                items.append(item)
 
     items.sort(key=lambda item: (0 if item['unread_count'] > 0 else 1, -item['_sort_ts'].timestamp()))
     for item in items:
@@ -166,6 +253,10 @@ def save_chat_image(conversation_id, user_id, uploaded_file):
 
 def create_message(conversation, sender, text, image_url='', image_public_id=''):
     """Створює повідомлення від sender у чаті (текст і/або фото)."""
+    if conversation.is_meeting_chat:
+        from meetings.services import assert_conversation_writable
+        assert_conversation_writable(conversation)
+
     text = (text or '').strip()
     image_url = (image_url or '').strip()
     image_public_id = (image_public_id or '').strip()
@@ -207,10 +298,9 @@ def _dialog_event(conversation, preview, time_label, sender_id):
 
 
 def _notify_dialog_preview(conversation, actor, last_message=None):
-    """Оновлює прев’ю діалогу в inbox обох учасників."""
+    """Оновлює прев’ю діалогу в inbox усіх учасників."""
     if last_message is None:
         last_message = conversation.messages.order_by('created_at').last()
-    other_user = conversation.match.other_user(actor)
     if last_message:
         event = _dialog_event(
             conversation,
@@ -220,8 +310,8 @@ def _notify_dialog_preview(conversation, actor, last_message=None):
         )
     else:
         event = _dialog_event(conversation, '', '', actor.id)
-    _group_send(f'user_{other_user.id}', event)
-    _group_send(f'user_{actor.id}', event)
+    for user_id in participant_user_ids(conversation):
+        _group_send(f'user_{user_id}', event)
 
 
 def _owned_message(conversation, user, message_id):
@@ -231,6 +321,10 @@ def _owned_message(conversation, user, message_id):
 
 def edit_own_message(conversation, user, message_id, text):
     """Редагує текст свого повідомлення; фото без підпису редагувати не можна."""
+    if conversation.is_meeting_chat:
+        from meetings.services import assert_conversation_writable
+        assert_conversation_writable(conversation)
+
     message = _owned_message(conversation, user, message_id)
     if message is None:
         raise ValueError('Повідомлення не знайдено.')
@@ -250,7 +344,11 @@ def edit_own_message(conversation, user, message_id, text):
 
 
 def delete_own_message(conversation, user, message_id):
-    """Видаляє своє повідомлення з чату (для обох сторін)."""
+    """Видаляє своє повідомлення з чату (для всіх учасників)."""
+    if conversation.is_meeting_chat:
+        from meetings.services import assert_conversation_writable
+        assert_conversation_writable(conversation)
+
     message = _owned_message(conversation, user, message_id)
     if message is None:
         raise ValueError('Повідомлення не знайдено.')
@@ -271,7 +369,7 @@ def broadcast_message_edited(conversation, message, editor):
 
 
 def broadcast_message_deleted(conversation, message_id, actor):
-    """Прибирає повідомлення в обох клієнтах і оновлює прев’ю діалогу."""
+    """Прибирає повідомлення в клієнтах і оновлює прев’ю діалогу."""
     _group_send(
         f'conversation_{conversation.id}',
         {
@@ -285,9 +383,8 @@ def broadcast_message_deleted(conversation, message_id, actor):
 
 
 def broadcast_new_message(conversation, message, sender):
-    """Розсилає нове повідомлення в групу чату і в inbox обох учасників."""
+    """Розсилає нове повідомлення в групу чату і в inbox усіх учасників."""
     message_data = serialize_message(message, sender)
-    other_user = conversation.match.other_user(sender)
     _group_send(
         f'conversation_{conversation.id}',
         {'type': 'chat.message', 'message': message_data},
@@ -298,8 +395,8 @@ def broadcast_new_message(conversation, message, sender):
         message_data['time_label'],
         message_data['sender_id'],
     )
-    _group_send(f'user_{other_user.id}', dialog_event)
-    _group_send(f'user_{sender.id}', dialog_event)
+    for user_id in participant_user_ids(conversation):
+        _group_send(f'user_{user_id}', dialog_event)
     return message_data
 
 
@@ -312,3 +409,55 @@ def open_conversation_for_match(user, match_id):
     if user.id not in (match.user_a_id, match.user_b_id):
         return None
     return get_or_create_conversation_for_match(match)
+
+
+def conversation_header_payload(conversation, viewer):
+    """Метадані шапки чату для match або meeting."""
+    if conversation.is_meeting_chat:
+        meeting = conversation.meeting
+        meeting.ensure_completed_if_due()
+        return {
+            'conversation_id': conversation.id,
+            'kind': 'meeting',
+            'mode': conversation.mode,
+            'match_id': None,
+            'meeting_id': meeting.id,
+            'is_creator': meeting.creator_id == viewer.id,
+            'is_chat_open': meeting.is_chat_open,
+            'other_user': {
+                'id': None,
+                'display_name': meeting.title,
+                'age': None,
+                'avatar_url': None,
+            },
+            'meeting': {
+                'id': meeting.id,
+                'title': meeting.title,
+                'location': meeting.location,
+                'starts_at': meeting.starts_at.isoformat(),
+                'status': meeting.status,
+            },
+        }
+
+    other = conversation.match.other_user(viewer)
+    profile = getattr(other, 'profile', None)
+    return {
+        'conversation_id': conversation.id,
+        'kind': 'match',
+        'mode': conversation.mode,
+        'match_id': conversation.match_id,
+        'meeting_id': None,
+        'is_creator': False,
+        'is_chat_open': True,
+        'other_user': {
+            'id': other.id,
+            'display_name': profile.display_name if profile else other.username,
+            'age': profile.age if profile else None,
+            'avatar_url': (
+                profile.photos.first().url
+                if profile and profile.photos.first()
+                else None
+            ),
+        },
+        'meeting': None,
+    }

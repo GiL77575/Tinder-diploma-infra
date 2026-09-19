@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'profiles',
     'matching',
     'messaging',
+    'meetings',
 ]
 
 SITE_ID = 1

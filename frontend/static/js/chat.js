@@ -14,6 +14,14 @@
         conversationEditMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/edit/`,
         conversationDeleteMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/delete/`,
         unmatch: (id) => `/app/unmatch/${id}/`,
+        meetingMine: '/app/meetings/mine/',
+        meetingCreate: '/app/meetings/create/',
+        meetingDetail: (id) => `/app/meetings/${id}/`,
+        meetingEdit: (id) => `/app/meetings/${id}/edit/`,
+        meetingCancel: (id) => `/app/meetings/${id}/cancel/`,
+        meetingJoin: (id) => `/app/meetings/${id}/join/`,
+        meetingLeave: (id) => `/app/meetings/${id}/leave/`,
+        meetingChat: (id) => `/app/meetings/${id}/chat/`,
     };
 
     const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -35,6 +43,9 @@
         inboxWs: null,
         inboxReconnectAttempts: 0,
         activeMatchId: null,
+        activeMeetingId: null,
+        myMeeting: null,
+        chatKind: 'match',
         activeCandidateUserId: null,
         activeCandidate: null,
         swipeLocked: false,
@@ -90,10 +101,44 @@
         chatPartnerStatus: document.getElementById('chat-partner-status'),
         matchesMore: document.getElementById('matches-more'),
         dialogsTitle: document.getElementById('dialogs-title'),
+        meetingActions: document.getElementById('meeting-actions'),
         createMeetingBtn: document.getElementById('create-meeting-btn'),
+        editMeetingBtn: document.getElementById('edit-meeting-btn'),
+        cancelMeetingBtn: document.getElementById('cancel-meeting-btn'),
+        meetingFormOverlay: document.getElementById('meeting-form-overlay'),
+        meetingForm: document.getElementById('meeting-form'),
+        meetingFormTitle: document.getElementById('meeting-form-title'),
+        meetingFormSubmit: document.getElementById('meeting-form-submit'),
+        meetingFormError: document.getElementById('meeting-form-error'),
+        meetingFormName: document.getElementById('meeting-form-name'),
+        meetingFormLocation: document.getElementById('meeting-form-location'),
+        meetingFormDate: document.getElementById('meeting-form-date'),
+        meetingFormTime: document.getElementById('meeting-form-time'),
+        meetingFormDay: document.getElementById('meeting-form-day'),
+        meetingFormMonth: document.getElementById('meeting-form-month'),
+        meetingFormDayLabel: document.getElementById('meeting-form-day-label'),
+        meetingFormMonthLabel: document.getElementById('meeting-form-month-label'),
+        meetingFormDayMenu: document.getElementById('meeting-form-day-menu'),
+        meetingFormMonthMenu: document.getElementById('meeting-form-month-menu'),
+        meetingFormDayTrigger: document.getElementById('meeting-form-day-trigger'),
+        meetingFormMonthTrigger: document.getElementById('meeting-form-month-trigger'),
+        meetingFormDescription: document.getElementById('meeting-form-description'),
+        meetingFormPhoto: document.getElementById('meeting-form-photo'),
+        meetingFormPhotoPreview: document.getElementById('meeting-form-photo-preview'),
+        meetingFormIntro: document.querySelector('.meeting-form__intro'),
+        meetingViewOverlay: document.getElementById('meeting-view-overlay'),
+        meetingViewTitle: document.getElementById('meeting-view-title'),
+        meetingViewLocation: document.getElementById('meeting-view-location'),
+        meetingViewDate: document.getElementById('meeting-view-date'),
+        meetingViewTime: document.getElementById('meeting-view-time'),
+        meetingViewDescription: document.getElementById('meeting-view-description'),
+        meetingViewActions: document.getElementById('meeting-view-actions'),
+        meetingConfirmOverlay: document.getElementById('meeting-confirm-overlay'),
+        meetingConfirmYes: document.getElementById('meeting-confirm-yes'),
         chatMoreBtn: document.getElementById('chat-more-btn'),
         chatMoreMenu: document.getElementById('chat-more-menu'),
         chatUnmatchBtn: document.getElementById('chat-unmatch-btn'),
+        chatLeaveMeetingBtn: document.getElementById('chat-leave-meeting-btn'),
         msgMenu: document.getElementById('msg-menu'),
         chatEditBar: document.getElementById('chat-edit-bar'),
         chatEditPreview: document.getElementById('chat-edit-preview'),
@@ -155,8 +200,381 @@
         if (els.dialogsTitle) {
             els.dialogsTitle.textContent = mode === 'bff' ? 'Діалоги/Групи' : 'Діалоги';
         }
-        if (els.createMeetingBtn) {
-            els.createMeetingBtn.hidden = mode !== 'bff';
+        if (els.meetingActions) {
+            els.meetingActions.hidden = mode !== 'bff';
+        }
+        if (mode === 'bff') {
+            refreshMyMeeting();
+        } else {
+            state.myMeeting = null;
+            updateMeetingSidebarButtons();
+        }
+    }
+
+    function updateMeetingSidebarButtons() {
+        const hasMeeting = Boolean(state.myMeeting);
+        if (els.createMeetingBtn) els.createMeetingBtn.hidden = hasMeeting;
+        if (els.editMeetingBtn) els.editMeetingBtn.hidden = !hasMeeting;
+        if (els.cancelMeetingBtn) els.cancelMeetingBtn.hidden = !hasMeeting;
+    }
+
+    async function refreshMyMeeting() {
+        if (state.mode !== 'bff') {
+            state.myMeeting = null;
+            updateMeetingSidebarButtons();
+            return;
+        }
+        try {
+            const data = await apiFetch(API.meetingMine);
+            state.myMeeting = data.meeting || null;
+        } catch (err) {
+            console.error('Не вдалося завантажити зустріч', err);
+            state.myMeeting = null;
+        }
+        updateMeetingSidebarButtons();
+    }
+
+    function syncMeetingOpenClass() {
+        const open = Boolean(
+            (els.meetingFormOverlay && !els.meetingFormOverlay.hidden)
+            || (els.meetingViewOverlay && !els.meetingViewOverlay.hidden)
+            || (els.meetingConfirmOverlay && !els.meetingConfirmOverlay.hidden)
+        );
+        body.classList.toggle('is-meeting-open', open);
+    }
+
+    function closeMeetingOverlays() {
+        closeMeetingSelectMenus();
+        if (els.meetingFormOverlay) els.meetingFormOverlay.hidden = true;
+        if (els.meetingViewOverlay) els.meetingViewOverlay.hidden = true;
+        if (els.meetingConfirmOverlay) els.meetingConfirmOverlay.hidden = true;
+        if (els.meetingFormError) {
+            els.meetingFormError.hidden = true;
+            els.meetingFormError.textContent = '';
+        }
+        syncMeetingOpenClass();
+    }
+
+    const MEETING_MONTHS = {
+        '01': 'Січень',
+        '02': 'Лютий',
+        '03': 'Березень',
+        '04': 'Квітень',
+        '05': 'Травень',
+        '06': 'Червень',
+        '07': 'Липень',
+        '08': 'Серпень',
+        '09': 'Вересень',
+        '10': 'Жовтень',
+        '11': 'Листопад',
+        '12': 'Грудень',
+    };
+
+    function closeMeetingSelectMenus(exceptRoot) {
+        document.querySelectorAll('.meeting-form__select.is-open').forEach((root) => {
+            if (exceptRoot && root === exceptRoot) return;
+            root.classList.remove('is-open');
+            const trigger = root.querySelector('.meeting-form__select-trigger');
+            const menu = root.querySelector('.meeting-form__select-menu');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+            if (menu) menu.hidden = true;
+        });
+    }
+
+    function setMeetingSelectValue(kind, value, labelText) {
+        const input = kind === 'day' ? els.meetingFormDay : els.meetingFormMonth;
+        const label = kind === 'day' ? els.meetingFormDayLabel : els.meetingFormMonthLabel;
+        const menu = kind === 'day' ? els.meetingFormDayMenu : els.meetingFormMonthMenu;
+        if (!input || !label) return;
+        input.value = value || '';
+        if (!value) {
+            label.textContent = kind === 'day' ? 'Число' : 'Місяць';
+            label.classList.add('is-placeholder');
+        } else {
+            label.textContent = labelText || value;
+            label.classList.remove('is-placeholder');
+        }
+        if (menu) {
+            menu.querySelectorAll('[role="option"]').forEach((opt) => {
+                opt.classList.toggle('is-active', opt.dataset.value === value);
+            });
+        }
+        syncMeetingDateFromSelects();
+    }
+
+    function fillMeetingDayOptions() {
+        if (!els.meetingFormDayMenu || els.meetingFormDayMenu.dataset.filled === '1') return;
+        for (let day = 1; day <= 31; day += 1) {
+            const li = document.createElement('li');
+            const value = String(day).padStart(2, '0');
+            li.setAttribute('role', 'option');
+            li.dataset.value = value;
+            li.tabIndex = -1;
+            li.textContent = String(day);
+            els.meetingFormDayMenu.appendChild(li);
+        }
+        els.meetingFormDayMenu.dataset.filled = '1';
+    }
+
+    function daysInMonth(year, month) {
+        return new Date(year, month, 0).getDate();
+    }
+
+    function resolveMeetingYear(month, day) {
+        const now = new Date();
+        let year = now.getFullYear();
+        const candidate = new Date(year, Number(month) - 1, Number(day), 18, 0, 0);
+        if (candidate <= now) {
+            year += 1;
+        }
+        return year;
+    }
+
+    function syncMeetingDateFromSelects() {
+        if (!els.meetingFormDate || !els.meetingFormDay || !els.meetingFormMonth) return '';
+        const day = els.meetingFormDay.value;
+        const month = els.meetingFormMonth.value;
+        if (!day || !month) {
+            els.meetingFormDate.value = '';
+            return '';
+        }
+        const year = resolveMeetingYear(month, day);
+        const maxDay = daysInMonth(year, Number(month));
+        const safeDay = Math.min(Number(day), maxDay);
+        const dayStr = String(safeDay).padStart(2, '0');
+        if (dayStr !== day) {
+            setMeetingSelectValue('day', dayStr, String(safeDay));
+            return els.meetingFormDate.value;
+        }
+        const iso = `${year}-${month}-${dayStr}`;
+        els.meetingFormDate.value = iso;
+        return iso;
+    }
+
+    function setMeetingDateSelects(isoDate) {
+        fillMeetingDayOptions();
+        if (!isoDate || !els.meetingFormDay || !els.meetingFormMonth) return;
+        const parts = String(isoDate).split('-');
+        if (parts.length < 3) return;
+        const month = parts[1];
+        const day = parts[2];
+        setMeetingSelectValue('month', month, MEETING_MONTHS[month] || month);
+        setMeetingSelectValue('day', day, String(Number(day)));
+    }
+
+    function initMeetingSelect(kind) {
+        const root = document.querySelector(`[data-meeting-select="${kind}"]`);
+        const trigger = kind === 'day' ? els.meetingFormDayTrigger : els.meetingFormMonthTrigger;
+        const menu = kind === 'day' ? els.meetingFormDayMenu : els.meetingFormMonthMenu;
+        if (!root || !trigger || !menu) return;
+
+        trigger.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            const willOpen = menu.hidden;
+            closeMeetingSelectMenus(willOpen ? root : null);
+            if (!willOpen) return;
+            if (kind === 'day') fillMeetingDayOptions();
+            menu.hidden = false;
+            root.classList.add('is-open');
+            trigger.setAttribute('aria-expanded', 'true');
+        });
+
+        menu.addEventListener('click', (evt) => {
+            const opt = evt.target.closest('[role="option"]');
+            if (!opt) return;
+            const value = opt.dataset.value || '';
+            setMeetingSelectValue(kind, value, opt.textContent.trim());
+            closeMeetingSelectMenus();
+        });
+    }
+
+    function clearMeetingPhotoPreview() {
+        if (els.meetingFormPhoto) els.meetingFormPhoto.value = '';
+        if (els.meetingFormPhotoPreview) {
+            els.meetingFormPhotoPreview.classList.remove('has-preview');
+            els.meetingFormPhotoPreview.style.backgroundImage = '';
+        }
+    }
+
+    function openMeetingForm(meeting) {
+        closeMeetingOverlays();
+        fillMeetingDayOptions();
+        const editing = Boolean(meeting);
+        if (els.meetingFormTitle) {
+            els.meetingFormTitle.textContent = editing ? 'Редагування зустрічі' : 'Створення зустрічі';
+        }
+        if (els.meetingFormSubmit) {
+            els.meetingFormSubmit.textContent = editing
+                ? 'Зберегти та запустити у стрічку оновлені дані'
+                : 'Зберегти та запустити у стрічку';
+        }
+        if (els.meetingFormIntro) {
+            els.meetingFormIntro.hidden = false;
+        }
+        clearMeetingPhotoPreview();
+        if (els.meetingForm) {
+            els.meetingForm.dataset.meetingId = editing ? String(meeting.id) : '';
+            els.meetingFormName.value = editing ? meeting.title : '';
+            els.meetingFormLocation.value = editing
+                ? (meeting.location || 'Уточнюється в чаті')
+                : 'Уточнюється в чаті';
+            els.meetingFormTime.value = editing ? (meeting.time || '18:00') : '18:00';
+            els.meetingFormDescription.value = editing ? meeting.description : '';
+            if (editing && meeting.date) {
+                setMeetingDateSelects(meeting.date);
+            } else {
+                setMeetingSelectValue('day', '', '');
+                setMeetingSelectValue('month', '', '');
+                if (els.meetingFormDate) els.meetingFormDate.value = '';
+            }
+        }
+        if (els.meetingFormOverlay) {
+            els.meetingFormOverlay.hidden = false;
+            syncMeetingOpenClass();
+        }
+    }
+
+    function formatMeetingDateLabel(meeting) {
+        if (!meeting.starts_at) return meeting.date || '';
+        const date = new Date(meeting.starts_at);
+        if (Number.isNaN(date.getTime())) return meeting.date || '';
+        return date.toLocaleDateString('uk-UA', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+    }
+
+    function renderMeetingView(meeting) {
+        if (!els.meetingViewOverlay) return;
+        els.meetingViewTitle.textContent = meeting.title || '';
+        els.meetingViewLocation.textContent = meeting.location || '';
+        els.meetingViewDate.textContent = formatMeetingDateLabel(meeting);
+        els.meetingViewTime.textContent = meeting.time || '';
+        els.meetingViewDescription.textContent = meeting.description || '';
+        els.meetingViewActions.innerHTML = '';
+
+        if (meeting.can_join) {
+            const joinBtn = document.createElement('button');
+            joinBtn.type = 'button';
+            joinBtn.className = 'create-meeting-btn';
+            joinBtn.textContent = 'Приєднатися';
+            joinBtn.addEventListener('click', () => joinMeetingAndOpen(meeting.id));
+            els.meetingViewActions.appendChild(joinBtn);
+        } else if (meeting.can_open_chat) {
+            const openBtn = document.createElement('button');
+            openBtn.type = 'button';
+            openBtn.className = 'create-meeting-btn';
+            openBtn.textContent = 'Відкрити чат';
+            openBtn.addEventListener('click', () => openMeetingChat(meeting));
+            els.meetingViewActions.appendChild(openBtn);
+        }
+
+        els.meetingViewOverlay.hidden = false;
+        syncMeetingOpenClass();
+    }
+
+    async function openMeetingById(meetingId) {
+        try {
+            const data = await apiFetch(API.meetingDetail(meetingId));
+            renderMeetingView(data.meeting);
+        } catch (err) {
+            window.alert(err.message || 'Не вдалося відкрити зустріч.');
+        }
+    }
+
+    async function joinMeetingAndOpen(meetingId) {
+        try {
+            const data = await apiFetch(API.meetingJoin(meetingId), { method: 'POST' });
+            closeMeetingOverlays();
+            await openMeetingChat(data.meeting);
+            loadDialogs();
+        } catch (err) {
+            window.alert(err.message || 'Не вдалося приєднатися.');
+        }
+    }
+
+    async function openMeetingChat(meeting) {
+        let conversationId = meeting.conversation_id;
+        if (!conversationId) {
+            const data = await apiFetch(API.meetingChat(meeting.id));
+            conversationId = data.conversation_id;
+        }
+        closeMeetingOverlays();
+        state.activeMatchId = null;
+        state.activeMeetingId = meeting.id;
+        openChat(conversationId, {
+            displayName: meeting.title,
+            kind: 'meeting',
+            meetingId: meeting.id,
+        });
+    }
+
+    async function submitMeetingForm(evt) {
+        evt.preventDefault();
+        if (!els.meetingForm) return;
+        const meetingId = els.meetingForm.dataset.meetingId;
+        const date = syncMeetingDateFromSelects();
+        const payload = {
+            title: els.meetingFormName.value.trim(),
+            location: (els.meetingFormLocation.value || 'Уточнюється в чаті').trim(),
+            description: els.meetingFormDescription.value.trim(),
+            date,
+            time: els.meetingFormTime.value || '18:00',
+        };
+        if (els.meetingFormError) {
+            els.meetingFormError.hidden = true;
+            els.meetingFormError.textContent = '';
+        }
+        if (!date) {
+            if (els.meetingFormError) {
+                els.meetingFormError.textContent = 'Вкажіть дату зустрічі.';
+                els.meetingFormError.hidden = false;
+            }
+            return;
+        }
+        try {
+            const url = meetingId ? API.meetingEdit(meetingId) : API.meetingCreate;
+            const data = await apiFetch(url, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
+            state.myMeeting = data.meeting;
+            updateMeetingSidebarButtons();
+            closeMeetingOverlays();
+            loadDialogs();
+        } catch (err) {
+            if (els.meetingFormError) {
+                els.meetingFormError.textContent = err.message || 'Помилка збереження.';
+                els.meetingFormError.hidden = false;
+            }
+        }
+    }
+
+    async function confirmCancelMeeting() {
+        if (!state.myMeeting) return;
+        try {
+            await apiFetch(API.meetingCancel(state.myMeeting.id), { method: 'POST' });
+            if (Number(state.activeMeetingId) === Number(state.myMeeting.id)) {
+                closeChat();
+            }
+            state.myMeeting = null;
+            updateMeetingSidebarButtons();
+            closeMeetingOverlays();
+            loadDialogs();
+        } catch (err) {
+            window.alert(err.message || 'Не вдалося скасувати зустріч.');
+        }
+    }
+
+    async function leaveActiveMeeting() {
+        if (!state.activeMeetingId) return;
+        try {
+            await apiFetch(API.meetingLeave(state.activeMeetingId), { method: 'POST' });
+            closeChat();
+            loadDialogs();
+        } catch (err) {
+            window.alert(err.message || 'Не вдалося вийти із зустрічі.');
         }
     }
 
@@ -186,10 +604,66 @@
     });
 
     if (els.createMeetingBtn) {
-        els.createMeetingBtn.addEventListener('click', () => {
-            window.alert('Створення мітінгу з’явиться незабаром.');
+        els.createMeetingBtn.addEventListener('click', () => openMeetingForm(null));
+    }
+    if (els.editMeetingBtn) {
+        els.editMeetingBtn.addEventListener('click', () => {
+            if (state.myMeeting) openMeetingForm(state.myMeeting);
         });
     }
+    if (els.cancelMeetingBtn) {
+        els.cancelMeetingBtn.addEventListener('click', () => {
+            closeMeetingOverlays();
+            if (els.meetingConfirmOverlay) {
+                els.meetingConfirmOverlay.hidden = false;
+                syncMeetingOpenClass();
+            }
+        });
+    }
+    if (els.meetingForm) {
+        els.meetingForm.addEventListener('submit', submitMeetingForm);
+    }
+    if (els.meetingFormDayTrigger && els.meetingFormMonthTrigger) {
+        initMeetingSelect('day');
+        initMeetingSelect('month');
+        document.addEventListener('click', (evt) => {
+            if (!evt.target.closest('.meeting-form__select')) {
+                closeMeetingSelectMenus();
+            }
+        });
+    }
+    if (els.meetingFormPhoto && els.meetingFormPhotoPreview) {
+        els.meetingFormPhoto.addEventListener('change', () => {
+            const file = els.meetingFormPhoto.files && els.meetingFormPhoto.files[0];
+            if (!file) {
+                clearMeetingPhotoPreview();
+                return;
+            }
+            const url = URL.createObjectURL(file);
+            els.meetingFormPhotoPreview.style.backgroundImage = `url("${url}")`;
+            els.meetingFormPhotoPreview.classList.add('has-preview');
+        });
+    }
+    if (els.meetingConfirmYes) {
+        els.meetingConfirmYes.addEventListener('click', confirmCancelMeeting);
+    }
+    document.querySelectorAll('[data-meeting-close]').forEach((el) => {
+        el.addEventListener('click', closeMeetingOverlays);
+    });
+    document.addEventListener('keydown', (evt) => {
+        if (evt.key !== 'Escape') return;
+        if (document.querySelector('.meeting-form__select.is-open')) {
+            closeMeetingSelectMenus();
+            return;
+        }
+        if (
+            (els.meetingFormOverlay && !els.meetingFormOverlay.hidden)
+            || (els.meetingViewOverlay && !els.meetingViewOverlay.hidden)
+            || (els.meetingConfirmOverlay && !els.meetingConfirmOverlay.hidden)
+        ) {
+            closeMeetingOverlays();
+        }
+    });
 
     async function loadMatches() {
         try {
@@ -326,11 +800,14 @@
                 <span class="dialog-item__preview">${escapeHtml(dialog.last_message_preview) || 'Скажіть привіт!'}</span>
             `;
             item.addEventListener('click', () => {
-                state.activeMatchId = dialog.match_id;
+                state.activeMatchId = dialog.match_id || null;
+                state.activeMeetingId = dialog.meeting_id || null;
                 openChat(dialog.conversation_id, {
                     displayName: dialog.other_display_name,
                     age: dialog.other_age,
                     avatarUrl: dialog.avatar_url,
+                    kind: dialog.kind || 'match',
+                    meetingId: dialog.meeting_id || null,
                 });
             });
             list.appendChild(item);
@@ -508,6 +985,7 @@
                 </div>
                 ${renderCandidateTags(candidate.tags, 3)}
             </div>
+            ${candidate.active_meeting_id ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>' : ''}
         `;
 
         if (photos.length > 1) {
@@ -526,6 +1004,14 @@
                     : (current - 1 + photos.length) % photos.length;
                 img.src = photos[current];
                 dotEls.forEach((dot, idx) => dot.classList.toggle('is-active', idx === current));
+            });
+        }
+
+        const meetingBtn = els.swipeCard.querySelector('#candidate-meeting-btn');
+        if (meetingBtn) {
+            meetingBtn.addEventListener('click', (evt) => {
+                evt.stopPropagation();
+                openMeetingById(candidate.active_meeting_id);
             });
         }
 
@@ -651,6 +1137,10 @@
     async function openChat(conversationId, hint) {
         closeWebSocket();
         state.conversationId = conversationId;
+        state.chatKind = (hint && hint.kind) || 'match';
+        if (hint && hint.meetingId) {
+            state.activeMeetingId = hint.meetingId;
+        }
         highlightActiveDialog(conversationId);
 
         body.classList.add('is-chat-open');
@@ -662,14 +1152,30 @@
             if (hint.avatarUrl) {
                 els.chatPartnerAvatar.src = hint.avatarUrl;
                 els.chatPartnerAvatar.hidden = false;
+            } else if (hint.kind === 'meeting') {
+                els.chatPartnerAvatar.hidden = true;
             }
         }
         try {
             const data = await apiFetch(API.conversationMessages(conversationId));
+            state.chatKind = data.kind || state.chatKind;
+            state.activeMeetingId = data.meeting_id || state.activeMeetingId;
+            state.activeMatchId = data.match_id || state.activeMatchId;
             els.chatPartnerName.textContent = `${data.other_user.display_name}${data.other_user.age ? ' ' + data.other_user.age : ''}`;
-            els.chatPartnerAvatar.src = data.other_user.avatar_url || avatarPlaceholder();
-            els.chatPartnerAvatar.hidden = false;
-            els.chatPartnerStatus.textContent = state.mode === 'dating' ? 'Романтика' : 'Дружба';
+            if (data.kind === 'meeting') {
+                els.chatPartnerAvatar.hidden = true;
+                els.chatPartnerStatus.textContent = data.is_chat_open ? 'Груповий чат зустрічі' : 'Чат закрито';
+            } else {
+                els.chatPartnerAvatar.src = data.other_user.avatar_url || avatarPlaceholder();
+                els.chatPartnerAvatar.hidden = false;
+                els.chatPartnerStatus.textContent = state.mode === 'dating' ? 'Романтика' : 'Дружба';
+            }
+            if (els.chatUnmatchBtn) {
+                els.chatUnmatchBtn.hidden = data.kind === 'meeting';
+            }
+            if (els.chatLeaveMeetingBtn) {
+                els.chatLeaveMeetingBtn.hidden = !(data.kind === 'meeting' && !data.is_creator);
+            }
             renderMessages(data.messages || []);
             connectWebSocket(conversationId);
             apiFetch(API.conversationRead(conversationId), { method: 'POST' }).then(loadDialogs).catch(() => {});
@@ -688,11 +1194,15 @@
         clearPendingPhoto();
         state.conversationId = null;
         state.activeMatchId = null;
+        state.activeMeetingId = null;
+        state.chatKind = 'match';
         body.classList.remove('is-chat-open');
         els.chatView.hidden = true;
         els.discoverView.hidden = false;
         els.chatMessages.innerHTML = '';
         highlightActiveDialog(null);
+        if (els.chatUnmatchBtn) els.chatUnmatchBtn.hidden = false;
+        if (els.chatLeaveMeetingBtn) els.chatLeaveMeetingBtn.hidden = true;
     }
 
     els.chatBackBtn.addEventListener('click', closeChat);
@@ -1361,6 +1871,13 @@
                 match_id: state.activeMatchId,
                 conversation_id: state.conversationId,
             });
+        });
+    }
+
+    if (els.chatLeaveMeetingBtn) {
+        els.chatLeaveMeetingBtn.addEventListener('click', () => {
+            hideChatMoreMenu();
+            leaveActiveMeeting();
         });
     }
 

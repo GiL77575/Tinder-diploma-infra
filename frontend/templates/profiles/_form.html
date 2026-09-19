@@ -27,10 +27,10 @@
 </section>
 {% endif %}
 
-{% if not form_part or form_part == 'fields' %}
+{% if not form_part or form_part == 'fields' or form_part == 'about' %}
 <section class="panel" data-step="2">
     <h2>Про себе</h2>
-    <p class="hint">Спільні дані для обох режимів. Ім’я в профілі може відрізнятися від логіна.</p>
+    <p class="hint">Спільні дані для обох режимів. Ім’я в профілі може відрізнятися від логіна</p>
 
     <label class="field">
         <span>Ім’я в профілі</span>
@@ -166,11 +166,14 @@
         </label>
     </div>
 </section>
+{% endif %}
 
+{% if not form_part or form_part == 'fields' or form_part == 'dating' %}
 <section class="panel panel--dating" data-step="3">
     <h2>Профіль для знайомств</h2>
     <p class="hint">Романтичний режим — це простір для пошуку другої половинки, де ви вказуєте свої інтереси та критерії партнера. Цей режим працює автономно та повністю ізольований від пошуку друзів, щоб ваші наміри завжди залишались чіткими.</p>
 
+    {% if form_part != 'dating' %}
     <fieldset class="field">
         <legend>Основний режим зараз:</legend>
         <div class="mode-cards">
@@ -188,6 +191,7 @@
             </label>
         </div>
     </fieldset>
+    {% endif %}
 
     <fieldset class="field">
         <legend>Кого шукаєш</legend>
@@ -289,10 +293,12 @@
         {{ form.dating_interests.errors }}
     </fieldset>
 </section>
+{% endif %}
 
+{% if not form_part or form_part == 'fields' or form_part == 'bff' %}
 <section class="panel panel--bff" data-step="4">
     <h2>Пошук друзів</h2>
-    <p class="hint">Окремий опис профілю, твої захоплення та мови, які ти зараз вивчаєш або практикуєш (наприклад, шведська B1).</p>
+    <p class="hint">Окремий опис профілю, твої захоплення та мови, які ти зараз вивчаєш або практикуєш (наприклад, шведська B1). Можеш пропустити цей крок і заповнити анкету пізніше в профілі — без неї ти не з’являтимешся в пошуку друзів.</p>
 
     <fieldset class="field">
         <legend>Що шукаєш</legend>
@@ -371,7 +377,7 @@
         <input type="checkbox" name="is_discoverable" {% if form.is_discoverable.value != False %}checked{% endif %}>
         <span>
             Показувати мене в пошуку
-            <small>Можна вимкнути, якщо поки не хочеш з’являтися у пошуку.<br>(Можна буде змінити в профілі)</small>
+            <small>Можна вимкнути, якщо поки не хочеш з’являтися у пошуку. (Можна буде змінити в профілі)</small>
         </span>
     </label>
 </section>

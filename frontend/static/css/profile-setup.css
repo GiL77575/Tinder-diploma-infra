@@ -68,32 +68,17 @@ body.page-setup .setup-page-backdrop {
     pointer-events: none;
 }
 
-/* Логотип / вийти — той самий масштаб, що профіль */
-.page-setup .setup-logo {
-    position: absolute;
-    left: calc(190 * var(--crush-u));
-    top: calc(11 * var(--crush-u));
-    width: auto;
-    height: calc(50 * var(--crush-u));
-    font-family: var(--font-brand);
-    font-style: normal;
-    font-weight: 400;
-    font-size: calc(40 * var(--crush-u));
-    line-height: calc(50 * var(--crush-u));
-    color: var(--crush-purple);
-    z-index: 5;
-}
-
+/* Логотип / вийти — логотип через .setup-logo у crush.css (синхрон з кадром) */
 .page-setup .setup-logout {
     position: absolute;
-    top: calc(25 * var(--crush-u));
-    right: calc(190 * var(--crush-u));
+    top: calc(var(--crush-frame-y, 0px) + 25px * var(--crush-frame-scale, 1));
+    right: calc(var(--crush-frame-x, 0px) + 190px * var(--crush-frame-scale, 1));
     left: auto;
     z-index: 5;
     font-family: var(--font-body);
-    font-size: calc(16 * var(--crush-u));
+    font-size: calc(16px * var(--crush-frame-scale, 1));
     font-weight: 700;
-    line-height: calc(20 * var(--crush-u));
+    line-height: calc(20px * var(--crush-frame-scale, 1));
     color: var(--crush-muted);
 }
 

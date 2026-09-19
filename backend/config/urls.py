@@ -20,6 +20,7 @@ urlpatterns = [
     path('profile/', include('profiles.urls')),
     path('app/', include('matching.urls')),
     path('app/', include('messaging.urls')),
+    path('app/', include('meetings.urls')),
     path('', include('accounts.urls')),
 ]
 

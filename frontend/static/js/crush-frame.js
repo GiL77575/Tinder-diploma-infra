@@ -68,6 +68,9 @@
         var t = "translate(" + x + "px," + y + "px) scale(" + s + ")";
         frame.style.webkitTransform = t;
         frame.style.transform = t;
+        document.documentElement.style.setProperty("--crush-frame-scale", String(s));
+        document.documentElement.style.setProperty("--crush-frame-x", x + "px");
+        document.documentElement.style.setProperty("--crush-frame-y", y + "px");
     }
 
     function scheduleFit() {

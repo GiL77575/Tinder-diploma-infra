@@ -7,10 +7,12 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from messaging.models import Conversation
 from messaging.services import (
+    can_access_conversation,
     create_message,
     is_participant,
     mark_conversation_read,
     message_preview,
+    participant_user_ids,
     serialize_message,
 )
 
@@ -27,7 +29,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         conversation = await self._get_conversation()
-        if conversation is None or not await self._user_is_participant(user, conversation):
+        if conversation is None or not await self._user_can_access(user, conversation):
             await self.close(code=4003)
             return
 
@@ -60,7 +62,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def _handle_send_message(self, text):
         try:
-            message_data, other_user_id, conversation_meta = await self._create_message(text)
+            message_data, recipient_ids, conversation_meta = await self._create_message(text)
         except ValueError as exc:
             await self._send_error(str(exc))
             return
@@ -78,8 +80,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': message_data['sender_id'],
             'mode': conversation_meta['mode'],
         }
-        await self.channel_layer.group_send(f'user_{other_user_id}', dialog_event)
-        await self.channel_layer.group_send(f'user_{self.user.id}', dialog_event)
+        for user_id in recipient_ids:
+            await self.channel_layer.group_send(f'user_{user_id}', dialog_event)
 
     async def _handle_mark_read(self):
         updated = await self._mark_read()
@@ -130,27 +132,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _get_conversation(self):
         return (
             Conversation.objects
-            .select_related('match', 'match__user_a', 'match__user_b')
+            .select_related(
+                'match', 'match__user_a', 'match__user_b',
+                'meeting',
+            )
             .filter(pk=self.conversation_id)
             .first()
         )
 
     @database_sync_to_async
-    def _user_is_participant(self, user, conversation):
-        return is_participant(user, conversation)
+    def _user_can_access(self, user, conversation):
+        return can_access_conversation(user, conversation)
 
     @database_sync_to_async
     def _create_message(self, text):
         conversation = (
             Conversation.objects
-            .select_related('match', 'match__user_a', 'match__user_b')
+            .select_related(
+                'match', 'match__user_a', 'match__user_b',
+                'meeting',
+            )
             .get(pk=self.conversation_id)
         )
+        if not is_participant(self.user, conversation):
+            raise ValueError('Немає доступу до чату.')
         message = create_message(conversation, self.user, text)
-        other_user = conversation.match.other_user(self.user)
         return (
             serialize_message(message, self.user),
-            other_user.id,
+            participant_user_ids(conversation),
             {'mode': conversation.mode},
         )
 

@@ -1,32 +1,62 @@
-"""Чат за матчем і підписки на push-сповіщення."""
+"""Чат за матчем або за зустріччю, і підписки на push-сповіщення."""
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 from matching.models import Match
+from profiles.models import SearchMode
 
 
 class Conversation(models.Model):
-    """Один чат на один матч (Dating і BFF ізольовані)."""
+    """Чат 1-to-1 за матчем або груповий чат зустрічі (BFF)."""
 
     match = models.OneToOneField(
         Match,
         on_delete=models.CASCADE,
         related_name='conversation',
+        null=True,
+        blank=True,
+    )
+    meeting = models.OneToOneField(
+        'meetings.Meeting',
+        on_delete=models.CASCADE,
+        related_name='conversation',
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    (Q(match__isnull=False) & Q(meeting__isnull=True))
+                    | (Q(match__isnull=True) & Q(meeting__isnull=False))
+                ),
+                name='conversation_exactly_one_owner',
+            ),
+        ]
+
     def __str__(self):
-        return f'Conversation for match {self.match_id}'
+        if self.match_id:
+            return f'Conversation for match {self.match_id}'
+        return f'Conversation for meeting {self.meeting_id}'
 
     @property
     def mode(self):
-        """Режим чату: знайомства або пошук друзів."""
+        """Режим чату: знайомства/друзі для матчу; завжди BFF для зустрічі."""
+        if self.meeting_id:
+            return SearchMode.BFF
         return self.match.mode
+
+    @property
+    def is_meeting_chat(self):
+        return self.meeting_id is not None
 
 
 class Message(models.Model):
-    """Повідомлення в чаті матчу: текст і/або фото."""
+    """Повідомлення в чаті: текст і/або фото."""
 
     conversation = models.ForeignKey(
         Conversation,

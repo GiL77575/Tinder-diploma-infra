@@ -144,7 +144,10 @@ def serialize_candidate(profile, mode, shared_tags=None):
             {'id': item.tag_id, 'name': item.tag.name, 'is_shared': item.tag_id in shared_ids}
             for item in profile.tags_for(SearchMode.DATING, TagCategory.INTEREST)
         ]
+        active_meeting_id = None
     else:
+        from meetings.services import active_meeting_id_for_user
+
         shared_hobby_ids = set(shared_tags.get('hobbies') or [])
         shared_language_ids = set(shared_tags.get('languages') or [])
         tags = [
@@ -164,6 +167,7 @@ def serialize_candidate(profile, mode, shared_tags=None):
             }
             for item in profile.tags_for(SearchMode.BFF, TagCategory.LANGUAGE)
         ]
+        active_meeting_id = active_meeting_id_for_user(profile.user)
 
     return {
         'user_id': profile.user_id,
@@ -173,6 +177,7 @@ def serialize_candidate(profile, mode, shared_tags=None):
         'bio': profile_mode.bio if profile_mode else '',
         'photos': [photo.url for photo in photos] if photos else ([_avatar_url(profile)] if _avatar_url(profile) else []),
         'tags': tags,
+        'active_meeting_id': active_meeting_id,
     }
 
 

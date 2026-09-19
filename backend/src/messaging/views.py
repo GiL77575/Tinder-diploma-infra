@@ -11,11 +11,12 @@ from messaging.services import (
     broadcast_message_deleted,
     broadcast_message_edited,
     broadcast_new_message,
+    can_access_conversation,
     conversations_for_user,
+    conversation_header_payload,
     create_message,
     delete_own_message,
     edit_own_message,
-    is_participant,
     mark_conversation_read,
     messages_for_conversation,
     open_conversation_for_match,
@@ -63,14 +64,15 @@ def open_conversation_view(request):
 
 
 def _get_owned_conversation(request, conversation_id):
-    """Чат за id, лише якщо запитувач — його учасник; інакше None."""
+    """Чат за id, лише якщо запитувач має доступ; інакше None."""
     try:
         conversation = Conversation.objects.select_related(
             'match', 'match__user_a', 'match__user_b',
+            'meeting',
         ).get(pk=conversation_id)
     except Conversation.DoesNotExist:
         return None
-    if not is_participant(request.user, conversation):
+    if not can_access_conversation(request.user, conversation):
         return None
     return conversation
 
@@ -83,19 +85,9 @@ def conversation_messages_view(request, conversation_id):
     if conversation is None:
         return JsonResponse({'error': 'Чат не знайдено або немає доступу.'}, status=404)
 
-    other = conversation.match.other_user(request.user)
-    profile = getattr(other, 'profile', None)
-    return JsonResponse({
-        'conversation_id': conversation.id,
-        'mode': conversation.mode,
-        'other_user': {
-            'id': other.id,
-            'display_name': profile.display_name if profile else other.username,
-            'age': profile.age if profile else None,
-            'avatar_url': profile.photos.first().url if profile and profile.photos.first() else None,
-        },
-        'messages': messages_for_conversation(conversation, request.user),
-    })
+    payload = conversation_header_payload(conversation, request.user)
+    payload['messages'] = messages_for_conversation(conversation, request.user)
+    return JsonResponse(payload)
 
 
 @login_required

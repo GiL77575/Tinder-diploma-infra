@@ -8,7 +8,7 @@
     <title>Чат — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,700;1,700&family=Rubik+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Rubik+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% vstatic 'css/crush.css' %}">
     <link rel="stylesheet" href="{% vstatic 'css/chat.css' %}">
 </head>
@@ -19,32 +19,6 @@
 
 <div class="crush-viewport">
     <div class="chat-page-backdrop" aria-hidden="true"></div>
-    <header class="chat-header">
-        <a href="{% url 'home' %}" class="chat-logo">crush</a>
-
-        <div class="mode-switch" role="tablist" aria-label="Режим пошуку" id="mode-switch" data-active="{{ initial_mode }}">
-            <span class="mode-switch__pill" id="mode-switch-pill" aria-hidden="true"></span>
-            <button type="button" class="mode-switch__btn" data-mode="dating" role="tab" aria-selected="{% if initial_mode != 'bff' %}true{% else %}false{% endif %}">
-                <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/mode-romance.svg' %}" width="18" height="18" alt="" aria-hidden="true">
-                Романтика
-            </button>
-            <button type="button" class="mode-switch__btn" data-mode="bff" role="tab" aria-selected="{% if initial_mode == 'bff' %}true{% else %}false{% endif %}">
-                <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="18" height="18" alt="" aria-hidden="true">
-                Дружба
-            </button>
-        </div>
-
-        <div class="chat-profile">
-            <span class="chat-profile__name">{{ my_display_name }}</span>
-            <a href="{% url 'profile_me' %}" class="chat-profile__avatar" title="Мій профіль">
-                {% if my_avatar_url %}
-                    <img src="{{ my_avatar_url }}" alt="{{ my_display_name }}">
-                {% else %}
-                    <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="" aria-hidden="true">
-                {% endif %}
-            </a>
-        </div>
-    </header>
     <div class="crush-frame">
         <svg xmlns="http://www.w3.org/2000/svg" class="chat-deco-symbols" aria-hidden="true">
             <symbol id="chat-heart-outline" viewBox="0 0 48 48">
@@ -80,7 +54,32 @@
             {% endfor %}
         </div>
         <div class="chat-shell">
-            <div class="chat-header-spacer" aria-hidden="true"></div>
+            <header class="chat-header">
+                <a href="{% url 'home' %}" class="chat-logo">crush</a>
+
+                <div class="mode-switch" role="tablist" aria-label="Режим пошуку" id="mode-switch" data-active="{{ initial_mode }}">
+                    <span class="mode-switch__pill" id="mode-switch-pill" aria-hidden="true"></span>
+                    <button type="button" class="mode-switch__btn" data-mode="dating" role="tab" aria-selected="{% if initial_mode != 'bff' %}true{% else %}false{% endif %}">
+                        <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/mode-romance.svg' %}" width="18" height="18" alt="" aria-hidden="true">
+                        Романтика
+                    </button>
+                    <button type="button" class="mode-switch__btn" data-mode="bff" role="tab" aria-selected="{% if initial_mode == 'bff' %}true{% else %}false{% endif %}">
+                        <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="18" height="18" alt="" aria-hidden="true">
+                        Дружба
+                    </button>
+                </div>
+
+                <div class="chat-profile">
+                    <span class="chat-profile__name">{{ my_display_name }}</span>
+                    <a href="{% url 'profile_me' %}" class="chat-profile__avatar" title="Мій профіль">
+                        {% if my_avatar_url %}
+                            <img src="{{ my_avatar_url }}" alt="{{ my_display_name }}">
+                        {% else %}
+                            <img src="{% static 'img/brand/user.png' %}" width="42" height="42" alt="" aria-hidden="true">
+                        {% endif %}
+                    </a>
+                </div>
+            </header>
 
             <div class="chat-body">
                 <aside class="chat-sidebar" id="chat-sidebar">
@@ -111,9 +110,17 @@
                         </div>
                     </section>
 
-                    <button type="button" class="create-meeting-btn" id="create-meeting-btn"{% if initial_mode != 'bff' %} hidden{% endif %}>
-                        Створити мітінг
-                    </button>
+                    <div class="meeting-actions" id="meeting-actions"{% if initial_mode != 'bff' %} hidden{% endif %}>
+                        <button type="button" class="create-meeting-btn" id="create-meeting-btn">
+                            Створити зустріч
+                        </button>
+                        <button type="button" class="create-meeting-btn create-meeting-btn--edit" id="edit-meeting-btn" hidden>
+                            Редагувати зустріч
+                        </button>
+                        <button type="button" class="create-meeting-btn create-meeting-btn--cancel" id="cancel-meeting-btn" hidden>
+                            Скасувати
+                        </button>
+                    </div>
                 </aside>
 
                 <main class="chat-main">
@@ -149,25 +156,8 @@
 
                     <section class="chat-view" id="chat-view" hidden>
                         <div class="chat-view__deco" aria-hidden="true">
-                            <svg class="chat-view__deco-item chat-view__deco--coffee-1" viewBox="0 0 48 48"><use href="#chat-coffee-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--coffee-2" viewBox="0 0 48 48"><use href="#chat-coffee-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-1" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-2" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-3" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-4" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-5" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-6" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-7" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-8" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--heart-9" viewBox="0 0 48 48"><use href="#chat-heart-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--bubble-1" viewBox="0 0 48 48"><use href="#chat-bubble-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--bubble-2" viewBox="0 0 48 48"><use href="#chat-bubble-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--camera-1" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--camera-2" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--camera-3" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--camera-4" viewBox="0 0 48 48"><use href="#chat-camera-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--star-1" viewBox="0 0 48 48"><use href="#chat-star-outline"></use></svg>
-                            <svg class="chat-view__deco-item chat-view__deco--star-2" viewBox="0 0 48 48"><use href="#chat-star-outline"></use></svg>
+                            <img class="chat-view__deco-img chat-view__deco-img--dating" src="{% static 'img/chat/chat-deco-dating.png' %}" alt="" width="1015" height="726" decoding="async">
+                            <img class="chat-view__deco-img chat-view__deco-img--bff" src="{% static 'img/chat/chat-deco-bff.png' %}" alt="" width="1031" height="719" decoding="async">
                         </div>
                         <header class="chat-view__header">
                             <button type="button" class="chat-view__back" id="chat-back-btn" aria-label="Назад до анкет">
@@ -190,6 +180,7 @@
                                 </button>
                                 <div class="msg-menu chat-more-menu" id="chat-more-menu" hidden role="menu">
                                     <button type="button" class="msg-menu__item msg-menu__item--danger" id="chat-unmatch-btn" role="menuitem">Анметч</button>
+                                    <button type="button" class="msg-menu__item msg-menu__item--danger" id="chat-leave-meeting-btn" role="menuitem" hidden>Вийти із зустрічі</button>
                                 </div>
                             </div>
                         </header>
@@ -258,6 +249,158 @@
         </div>
     </div>
 
+    <div class="meeting-overlay" id="meeting-form-overlay" hidden>
+        <div class="meeting-overlay__backdrop" data-meeting-close="form"></div>
+        <div class="meeting-modal meeting-modal--create" role="dialog" aria-modal="true" aria-labelledby="meeting-form-title">
+            <button type="button" class="meeting-modal__close" data-meeting-close="form" aria-label="Закрити">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <h2 class="meeting-modal__title meeting-modal__title--create" id="meeting-form-title">Створення зустрічі</h2>
+            <p class="meeting-form__intro">
+                Збирай компанію на настілки, коворкінг чи каву. Твоє оголошення з’явиться у стрічці міста, а чат для обговорення планів створиться автоматично!
+            </p>
+            <form class="meeting-form meeting-form--create" id="meeting-form" autocomplete="off">
+                <label class="meeting-form__field meeting-form__field--desc">
+                    <span>Напиши коротко про зустріч, щоб користувачі розуміли ціль зустрічі</span>
+                    <textarea
+                        name="description"
+                        id="meeting-form-description"
+                        maxlength="1000"
+                        rows="3"
+                        placeholder="Це буде видно при пергляді профіля в стрічці."
+                        required
+                    ></textarea>
+                </label>
+
+                <div class="meeting-form__date-block">
+                    <span class="meeting-form__label">Дата зустрічі</span>
+                    <div class="meeting-form__date-row">
+                        <div class="meeting-form__select" data-meeting-select="day">
+                            <button
+                                type="button"
+                                class="meeting-form__select-trigger"
+                                id="meeting-form-day-trigger"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                                aria-controls="meeting-form-day-menu"
+                            >
+                                <span class="meeting-form__select-label is-placeholder" id="meeting-form-day-label">Число</span>
+                            </button>
+                            <ul class="meeting-form__select-menu" id="meeting-form-day-menu" role="listbox" hidden></ul>
+                            <input type="hidden" name="day" id="meeting-form-day" value="">
+                        </div>
+                        <div class="meeting-form__select" data-meeting-select="month">
+                            <button
+                                type="button"
+                                class="meeting-form__select-trigger"
+                                id="meeting-form-month-trigger"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                                aria-controls="meeting-form-month-menu"
+                            >
+                                <span class="meeting-form__select-label is-placeholder" id="meeting-form-month-label">Місяць</span>
+                            </button>
+                            <ul class="meeting-form__select-menu" id="meeting-form-month-menu" role="listbox" hidden>
+                                <li role="option" data-value="01" tabindex="-1">Січень</li>
+                                <li role="option" data-value="02" tabindex="-1">Лютий</li>
+                                <li role="option" data-value="03" tabindex="-1">Березень</li>
+                                <li role="option" data-value="04" tabindex="-1">Квітень</li>
+                                <li role="option" data-value="05" tabindex="-1">Травень</li>
+                                <li role="option" data-value="06" tabindex="-1">Червень</li>
+                                <li role="option" data-value="07" tabindex="-1">Липень</li>
+                                <li role="option" data-value="08" tabindex="-1">Серпень</li>
+                                <li role="option" data-value="09" tabindex="-1">Вересень</li>
+                                <li role="option" data-value="10" tabindex="-1">Жовтень</li>
+                                <li role="option" data-value="11" tabindex="-1">Листопад</li>
+                                <li role="option" data-value="12" tabindex="-1">Грудень</li>
+                            </ul>
+                            <input type="hidden" name="month" id="meeting-form-month" value="">
+                        </div>
+                    </div>
+                    <input type="hidden" name="date" id="meeting-form-date" value="">
+                    <input type="hidden" name="time" id="meeting-form-time" value="18:00">
+                    <input type="hidden" name="location" id="meeting-form-location" value="Уточнюється в чаті">
+                </div>
+
+                <div class="meeting-form__group-settings">
+                    <h3 class="meeting-form__section-title">Налаштування групи</h3>
+                    <div class="meeting-form__group-row">
+                        <label class="meeting-form__photo" for="meeting-form-photo">
+                            <input type="file" id="meeting-form-photo" name="photo" accept="image/*" hidden>
+                            <span class="meeting-form__photo-circle" id="meeting-form-photo-preview" aria-hidden="true">
+                                <svg class="meeting-form__photo-plus" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 5v14M5 12h14" stroke="#FFFDFE" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </span>
+                        </label>
+                        <div class="meeting-form__group-fields">
+                            <label class="meeting-form__photo-label" for="meeting-form-photo">Додай фото групи</label>
+                            <label class="meeting-form__field meeting-form__field--group-name">
+                                <span>Назва групи</span>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    id="meeting-form-name"
+                                    maxlength="120"
+                                    placeholder="Назва групи"
+                                    required
+                                >
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="meeting-form__error" id="meeting-form-error" hidden></p>
+                <button type="submit" class="meeting-form__submit" id="meeting-form-submit">
+                    Зберегти та запустити у стрічку
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="meeting-overlay" id="meeting-view-overlay" hidden>
+        <div class="meeting-overlay__backdrop" data-meeting-close="view"></div>
+        <div class="meeting-modal meeting-modal--view" role="dialog" aria-modal="true" aria-labelledby="meeting-view-title">
+            <button type="button" class="meeting-modal__close" data-meeting-close="view" aria-label="Закрити">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <p class="meeting-view__eyebrow">Активна зустріч</p>
+            <h2 class="meeting-modal__title" id="meeting-view-title"></h2>
+            <dl class="meeting-view__details">
+                <div>
+                    <dt>Місце</dt>
+                    <dd id="meeting-view-location"></dd>
+                </div>
+                <div>
+                    <dt>Дата</dt>
+                    <dd id="meeting-view-date"></dd>
+                </div>
+                <div>
+                    <dt>Час</dt>
+                    <dd id="meeting-view-time"></dd>
+                </div>
+            </dl>
+            <p class="meeting-view__description" id="meeting-view-description"></p>
+            <div class="meeting-view__actions" id="meeting-view-actions"></div>
+        </div>
+    </div>
+
+    <div class="meeting-overlay" id="meeting-confirm-overlay" hidden>
+        <div class="meeting-overlay__backdrop" data-meeting-close="confirm"></div>
+        <div class="meeting-modal meeting-modal--confirm" role="dialog" aria-modal="true" aria-labelledby="meeting-confirm-title">
+            <h2 class="meeting-modal__title" id="meeting-confirm-title">Скасувати зустріч?</h2>
+            <p class="meeting-confirm__text">Після скасування чат закриється і нові учасники не зможуть приєднатися.</p>
+            <div class="meeting-confirm__actions">
+                <button type="button" class="meeting-confirm__btn" data-meeting-close="confirm">Залишити</button>
+                <button type="button" class="meeting-confirm__btn meeting-confirm__btn--danger" id="meeting-confirm-yes">Скасувати зустріч</button>
+            </div>
+        </div>
+    </div>
+
     <div class="full-profile-overlay" id="full-profile-overlay" hidden>
         <div class="full-profile-overlay__backdrop" id="full-profile-backdrop"></div>
         <div class="full-profile" role="dialog" aria-modal="true" aria-labelledby="full-profile-name">
@@ -280,6 +423,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 <script src="{% vstatic 'js/crush-frame.js' %}" defer></script>
