@@ -32,7 +32,9 @@ services:
 
   # 3. Django Бэкенд + Шаблоны (HTMX / JS / CSS)
   web:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: tinder_django
     restart: always
     command: python manage.py runserver 0.0.0.0:8000
