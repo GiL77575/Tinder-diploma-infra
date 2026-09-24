@@ -147,8 +147,12 @@ else:
     }
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
+    o.strip()
+    for o in os.environ.get(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://127.0.0.1:8000,http://localhost:8000,https://crush.pp.ua',
+    ).split(',')
+    if o.strip()
 ]
 
 LOGIN_URL = '/login/'
