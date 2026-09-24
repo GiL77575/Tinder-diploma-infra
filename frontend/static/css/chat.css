@@ -11,80 +11,102 @@
     --chat-gap: 279px;
     --chat-sidebar-w: 414px;
     --chat-card-w: 587px;
-    --chat-bg-base: #ebe2f8;
     --crush-frame-scale: 1;
     --crush-frame-x: 0px;
     --crush-frame-y: 0px;
-    --chat-backdrop:
-        linear-gradient(
-            285.56deg,
-            rgba(249, 130, 207, 0.01) -14.06%,
-            #f6f6f6 25.77%,
-            rgba(231, 213, 255, 0.5) 62.02%,
-            #f6f6f6 92.15%
-        ),
-        linear-gradient(rgba(193, 165, 230, 0.26), rgba(193, 165, 230, 0.26));
 }
 
 .page-chat [hidden] {
     display: none !important;
 }
 
-/* Фон на html/body + fixed backdrop — letterbox при scale без білих смуг */
+/*
+ * Empty romance: растеризований фон з шарів Figma (white + Rect 117 + Rect 115
+ * @ 285.56deg). CSS multi-layer gradient у браузері давав плоский лавандовий;
+ * PNG гарантує рожевий низ-справа (~#f2d1ed), як у макеті.
+ */
 html:has(body.page-chat),
 body.page-chat {
-    background-color: var(--chat-bg-base);
-    background-image: var(--chat-backdrop);
+    background-color: #f6f6f6;
+    background-image: none;
+}
+
+body.page-chat .crush-viewport::before {
+    background: none;
+}
+
+.chat-page-backdrop--empty {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    object-fit: fill;
+    pointer-events: none;
+    display: block;
+}
+
+/* Відкритий чат / Дружба — ховаємо empty PNG, ставимо CSS-фон режиму */
+body.page-chat.is-chat-open .chat-page-backdrop--empty,
+body.page-chat[data-mode="bff"] .chat-page-backdrop--empty {
+    display: none;
+}
+
+body.page-chat.is-chat-open {
+    background-color: #ffffff;
+    background-image: linear-gradient(
+        285.56deg,
+        rgba(249, 130, 207, 0.01) -14.06%,
+        #f6f6f6 25.77%,
+        rgba(231, 213, 255, 0.5) 62.02%,
+        #f6f6f6 92.15%
+    );
     background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
+    background-size: 100% 100%;
 }
 
 body.page-chat[data-mode="bff"] {
     --chat-accent: #ffee00;
-    --chat-bg-base: #f3f0e4;
-    --chat-backdrop: linear-gradient(
-        285.56deg,
-        rgba(224, 218, 140, 0.5) -14.06%,
-        rgba(231, 213, 255, 0.5) 29.85%,
-        rgba(151, 71, 255, 0.01) 67.13%,
-        rgba(255, 249, 158, 0.1) 90.11%
-    );
+    background-color: #ffffff;
+    background-image:
+        linear-gradient(
+            285.56deg,
+            rgba(224, 218, 140, 0.5) -14.06%,
+            rgba(231, 213, 255, 0.5) 29.85%,
+            rgba(151, 71, 255, 0.01) 67.13%,
+            rgba(255, 249, 158, 0.1) 90.11%
+        ),
+        linear-gradient(rgba(224, 218, 140, 0.2), rgba(224, 218, 140, 0.2));
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
 }
 
 html:has(body.page-chat[data-mode="bff"]) {
-    --chat-bg-base: #f3f0e4;
-    --chat-backdrop: linear-gradient(
+    background-color: #ffffff;
+    background-image:
+        linear-gradient(
+            285.56deg,
+            rgba(224, 218, 140, 0.5) -14.06%,
+            rgba(231, 213, 255, 0.5) 29.85%,
+            rgba(151, 71, 255, 0.01) 67.13%,
+            rgba(255, 249, 158, 0.1) 90.11%
+        ),
+        linear-gradient(rgba(224, 218, 140, 0.2), rgba(224, 218, 140, 0.2));
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+body.page-chat.is-chat-open[data-mode="bff"] {
+    background-image: linear-gradient(
         285.56deg,
         rgba(224, 218, 140, 0.5) -14.06%,
         rgba(231, 213, 255, 0.5) 29.85%,
         rgba(151, 71, 255, 0.01) 67.13%,
         rgba(255, 249, 158, 0.1) 90.11%
     );
-    background-color: var(--chat-bg-base);
-    background-image: var(--chat-backdrop);
-}
-
-/* Fixed backdrop — дублює фон на весь viewport (кросбраузерно з scale) */
-.chat-page-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background-color: var(--chat-bg-base);
-    background-image: var(--chat-backdrop);
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
-}
-
-/* Не показуємо landing-градієнт з crush.css — інакше білі смуги по боках */
-body.page-chat .crush-viewport::before {
-    background-color: var(--chat-bg-base);
-    background-image: var(--chat-backdrop);
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
 }
 
 body.page-chat .crush-viewport {
@@ -98,7 +120,7 @@ body.page-chat .crush-frame {
     background: transparent;
 }
 
-/* ---------- Декор: серця (романтика) / зірки (дружба) ---------- */
+/* ---------- Декор сердець — Figma «Декор» empty state, stroke #FFFDFE ---------- */
 
 .chat-deco-symbols {
     position: absolute;
@@ -119,7 +141,6 @@ body.page-chat .crush-frame {
     position: absolute;
     fill: none;
     overflow: visible;
-    filter: drop-shadow(0 0 2px rgba(151, 71, 255, 0.35));
 }
 
 .chat-deco--stars {
@@ -134,20 +155,23 @@ body.page-chat[data-mode="bff"] .chat-deco--stars {
     display: block;
 }
 
-/* Позиції сердечок — Figma «Декор», border #FFFDFE */
-.chat-heart--1  { top: 110.6px;  left: 1580.6px; width: 46px; height: 46px; opacity: 0.72; transform: rotate(-2.16deg); }
-.chat-heart--2  { top: 143px;    left: 761px;    width: 46px; height: 46px; opacity: 0.68; transform: rotate(-41.05deg); }
-.chat-heart--3  { top: 315px;    left: 690px;    width: 46px; height: 46px; opacity: 0.65; transform: matrix(-1, -0.05, -0.05, 1, 0, 0); }
-.chat-heart--4  { top: 359.39px; left: 1519.39px;width: 53px; height: 53px; opacity: 0.68; transform: rotate(-10.88deg); }
-.chat-heart--5  { top: 520px;    left: 740px;    width: 57px; height: 57px; opacity: 0.65; transform: matrix(-0.94, -0.33, -0.33, 0.94, 0, 0); }
-.chat-heart--6  { top: 523.53px; left: 1636.53px;width: 46px; height: 46px; opacity: 0.72; transform: rotate(19.96deg); }
-.chat-heart--7  { top: 650px;    left: 1561px;   width: 46px; height: 46px; opacity: 0.65; transform: rotate(-2.16deg); }
-.chat-heart--8  { top: 734px;    left: 685px;    width: 53px; height: 53px; opacity: 0.62; transform: rotate(4.3deg); }
-.chat-heart--9  { top: 869px;    left: 1585px;   width: 53px; height: 53px; opacity: 0.65; transform: rotate(-10.88deg); }
-.chat-heart--10 { top: 931px;    left: 700px;    width: 46px; height: 46px; opacity: 0.62; transform: rotate(-18.04deg); }
-.chat-heart--11 { top: 989px;    left: 1519px;   width: 46px; height: 46px; opacity: 0.65; transform: rotate(19.96deg); }
+/* У відкритому чаті декор сторінки ховаємо (іконки лише в .chat-view) */
+body.page-chat.is-chat-open .chat-deco {
+    display: none;
+}
 
-/* Позиції зірок — Figma «Головна сторінка дружба» */
+.chat-heart--1  { top: 110.6px;  left: 1580.6px; width: 46px; height: 46px; opacity: 0.85; transform: rotate(-2.16deg); }
+.chat-heart--2  { top: 143px;    left: 761px;    width: 46px; height: 46px; opacity: 0.8;  transform: rotate(-41.05deg); }
+.chat-heart--3  { top: 315px;    left: 690px;    width: 46px; height: 46px; opacity: 0.8;  transform: matrix(-1, -0.05, -0.05, 1, 0, 0); }
+.chat-heart--4  { top: 359.39px; left: 1519.39px;width: 53px; height: 53px; opacity: 0.8;  transform: rotate(-10.88deg); }
+.chat-heart--5  { top: 520px;    left: 740px;    width: 57px; height: 57px; opacity: 0.8;  transform: matrix(-0.94, -0.33, -0.33, 0.94, 0, 0); }
+.chat-heart--6  { top: 523.53px; left: 1636.53px;width: 46px; height: 46px; opacity: 0.85; transform: rotate(19.96deg); }
+.chat-heart--7  { top: 650px;    left: 1561px;   width: 46px; height: 46px; opacity: 0.8;  transform: rotate(-2.16deg); }
+.chat-heart--8  { top: 734px;    left: 685px;    width: 53px; height: 53px; opacity: 0.75; transform: rotate(4.3deg); }
+.chat-heart--9  { top: 869px;    left: 1585px;   width: 53px; height: 53px; opacity: 0.8;  transform: rotate(-10.88deg); }
+.chat-heart--10 { top: 931px;    left: 700px;    width: 46px; height: 46px; opacity: 0.75; transform: rotate(-18.04deg); }
+.chat-heart--11 { top: 989px;    left: 1519px;   width: 46px; height: 46px; opacity: 0.8;  transform: rotate(19.96deg); }
+
 .chat-star--1  { top: 40px;   left: 1435px; width: 38px; height: 38px; opacity: 0.7;  transform: rotate(-1.99deg); }
 .chat-star--2  { top: 172px;  left: 693px;  width: 38px; height: 38px; opacity: 0.65; transform: rotate(-16.66deg); }
 .chat-star--3  { top: 172px;  left: 1497px; width: 50px; height: 50px; opacity: 0.72; transform: rotate(35.18deg); }
@@ -369,10 +393,6 @@ body.page-chat[data-mode="bff"] .chat-sidebar {
 
 body.page-chat.is-chat-open .chat-body {
     column-gap: 19px;
-}
-
-body.page-chat.is-chat-open .chat-deco {
-    display: none;
 }
 
 .panel {
@@ -1393,7 +1413,8 @@ body.page-chat[data-mode="bff"] .dialog-item.is-active {
     flex-direction: column;
     align-items: center;
     gap: 24px;
-    padding-top: 56px;
+    /* Figma картка top 179; chat-body починається з 102 → 77 */
+    padding-top: 77px;
 }
 
 .discover-stage {

@@ -14,9 +14,16 @@ DEBUG = os.environ.get('DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    for h in os.environ.get(
+        'ALLOWED_HOSTS',
+        'localhost,127.0.0.1,crush.pp.ua',
+    ).split(',')
     if h.strip()
 ]
+
+# За reverse proxy (nginx): брати Host / схему з X-Forwarded-*
+USE_X_FORWARDED_HOST = os.environ.get('USE_X_FORWARDED_HOST', '1') == '1'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     # daphne має йти першим, щоб manage.py runserver піднімав ASGI/WebSocket

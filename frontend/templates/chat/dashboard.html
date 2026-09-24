@@ -17,8 +17,14 @@
       data-initial-mode="{{ initial_mode }}"
       data-my-user-id="{{ request.user.id }}">
 
-<div class="crush-viewport">
-    <div class="chat-page-backdrop" aria-hidden="true"></div>
+    <div class="crush-viewport">
+    <img class="chat-page-backdrop chat-page-backdrop--empty"
+         src="{% vstatic 'img/brand/chat-empty-bg.png' %}"
+         width="1920"
+         height="1080"
+         alt=""
+         aria-hidden="true"
+         decoding="async">
     <div class="crush-frame">
         <svg xmlns="http://www.w3.org/2000/svg" class="chat-deco-symbols" aria-hidden="true">
             <symbol id="chat-heart-outline" viewBox="0 0 48 48">

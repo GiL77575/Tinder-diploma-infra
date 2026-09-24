@@ -208,7 +208,6 @@ body.page-auth .crush-viewport::before {
     box-sizing: border-box;
 }
 
-.crush-frame .chat-logo,
 .crush-frame .profile-logo,
 .crush-frame .edit-logo,
 .crush-frame .crush-brand {
@@ -242,8 +241,26 @@ body.page-auth .crush-viewport::before {
 }
 
 .crush-frame .chat-logo {
+    /* Figma empty: Rubik One 40/50 @ left 190, top 11 — у хедері вже left/top */
+    position: relative;
+    left: auto;
+    top: auto;
     display: block;
     flex-shrink: 0;
+    width: var(--crush-brand-w);
+    height: var(--crush-brand-lh);
+    margin-top: 0;
+    font-family: var(--font-brand);
+    font-style: normal;
+    font-weight: 400;
+    font-size: var(--crush-brand-size);
+    line-height: var(--crush-brand-lh);
+    color: var(--crush-purple);
+    z-index: auto;
+}
+
+.crush-frame .chat-logo img {
+    display: none;
 }
 
 .landing-nav {
