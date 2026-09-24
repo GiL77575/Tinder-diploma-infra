@@ -16,7 +16,7 @@ ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get(
         'ALLOWED_HOSTS',
-        'localhost,127.0.0.1,crush.pp.ua',
+        'localhost,127.0.0.1,crush.pp.ua,10.239.88.223',
     ).split(',')
     if h.strip()
 ]

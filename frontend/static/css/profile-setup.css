@@ -1170,6 +1170,18 @@ body.page-setup .setup-page-backdrop {
 
 .page-setup .setup-actions .btn-primary {
     box-shadow: none;
+    filter: var(--crush-drop-shadow-sm);
+    background: var(--crush-purple);
+}
+
+.page-setup .setup-actions .btn-primary:hover {
+    background: #b37cfd;
+    filter: var(--crush-drop-shadow-sm);
+}
+
+.page-setup .setup-actions .btn-primary:active {
+    background: var(--crush-purple);
+    filter: var(--crush-drop-shadow-sm);
 }
 
 /* «Назад»: біла кнопка, чорна рамка. «Пропустити»: сіра рамка/текст. */
@@ -1178,6 +1190,15 @@ body.page-setup .setup-page-backdrop {
     color: #161616;
     border: 1px solid #161616;
     box-shadow: none;
+    filter: none;
+}
+
+.page-setup .setup-actions .btn-secondary:hover {
+    background: #d7d7d7;
+}
+
+.page-setup .setup-actions .btn-secondary:active {
+    background: #fffdfe;
 }
 
 .page-setup .setup-actions #btn-skip {

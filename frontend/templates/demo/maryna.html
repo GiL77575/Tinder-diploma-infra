@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    {% include 'includes/favicon.html' %}
     <title>Марина — backend · crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +15,9 @@
 <body class="page-info page-demo">
     <div class="crush-viewport">
         <header class="demo-header">
-            <a href="{% url 'home' %}" class="landing-logo">crush</a>
+            <a href="{% url 'home' %}" class="landing-logo" aria-label="crush — на головну">
+                {% include 'includes/brand_logo_img.html' %}
+            </a>
             <nav class="demo-slides" aria-label="Слайди команди">
                 <a class="demo-slides__link" href="{% url 'demo_anna' %}">Анна</a>
                 <a class="demo-slides__link is-active" href="{% url 'demo_maryna' %}" aria-current="page">Марина</a>

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    {% include 'includes/favicon.html' %}
     <title>Заповнення профілю — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +15,9 @@
 <body class="page-setup" data-setup-step="1">
     <div class="crush-viewport">
         <div class="setup-page-backdrop" aria-hidden="true"></div>
-        <p class="setup-logo">crush</p>
+        <p class="setup-logo" aria-label="crush">
+            {% include 'includes/brand_logo_img.html' %}
+        </p>
         <a href="{% url 'logout' %}" class="setup-logout">Вийти</a>
         <div class="crush-frame" data-frame-w="1920" data-frame-h="1080" data-frame-fit="contain">
 

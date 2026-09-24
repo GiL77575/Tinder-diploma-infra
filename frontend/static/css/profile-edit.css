@@ -538,23 +538,35 @@ body.page-edit .setup-page-backdrop {
 
 .edit-actions__btn--cancel {
     width: 415px;
-    background: var(--edit-surface);
-    border: 1px solid var(--edit-line);
+    background: #fffdfe;
+    border: 1px solid #161616;
     color: var(--edit-ink);
 }
 
 .edit-actions__btn--save {
     width: 500px;
-    background: var(--edit-purple);
-    color: #fffdfe;
+    background: #fffde4;
+    color: #161616;
+    border: 1px solid #161616;
+    filter: var(--crush-drop-shadow-sm);
+    font-style: italic;
+    font-weight: 400;
 }
 
 .edit-actions__btn--cancel:hover {
-    background: #f4f0f4;
+    background: #d7d7d7;
+}
+
+.edit-actions__btn--cancel:active {
+    background: #fffdfe;
 }
 
 .edit-actions__btn--save:hover {
-    background: #8535ef;
+    background: #fff68b;
+}
+
+.edit-actions__btn--save:active {
+    background: #ffee00;
 }
 
 .edit-form__error,

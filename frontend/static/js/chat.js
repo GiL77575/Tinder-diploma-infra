@@ -81,8 +81,14 @@
         fullProfileThumbs: document.getElementById('full-profile-thumbs'),
         fullProfileName: document.getElementById('full-profile-name'),
         fullProfileCity: document.getElementById('full-profile-city'),
+        fullProfileMeta: document.getElementById('full-profile-meta'),
         fullProfileBio: document.getElementById('full-profile-bio'),
         fullProfileTags: document.getElementById('full-profile-tags'),
+        fullProfileSkills: document.getElementById('full-profile-skills'),
+        fullProfileMeeting: document.getElementById('full-profile-meeting'),
+        fullProfileMeetingDate: document.getElementById('full-profile-meeting-date'),
+        fullProfileMeetingDesc: document.getElementById('full-profile-meeting-desc'),
+        fullProfileJoinBtn: document.getElementById('full-profile-join-btn'),
         chatView: document.getElementById('chat-view'),
         chatBackBtn: document.getElementById('chat-back-btn'),
         chatMessages: document.getElementById('chat-messages'),
@@ -1029,6 +1035,83 @@
         if (els.fullProfileOverlay) els.fullProfileOverlay.hidden = true;
     }
 
+    function renderFullProfileChips(tags) {
+        if (!tags || !tags.length) return '';
+        return tags.map((tag) => {
+            const wide = (tag.name || '').length > 14 ? ' full-profile__chip--wide' : '';
+            const shared = tag.is_shared ? ' full-profile__chip--shared' : '';
+            return `<span class="full-profile__chip${wide}${shared}">${escapeHtml(tag.name)}</span>`;
+        }).join('');
+    }
+
+    function renderFullProfileSkills(tags) {
+        if (!tags || !tags.length) return '';
+        const withLevel = tags.filter((tag) => tag.level);
+        if (!withLevel.length) return '';
+        return withLevel.map((tag) => {
+            const label = `${tag.name} — Рівень: ${tag.level}`;
+            return `<span class="full-profile__skill">${escapeHtml(label)}</span>`;
+        }).join('');
+    }
+
+    function formatMeetingDateLong(meeting) {
+        if (!meeting || !meeting.starts_at) return meeting?.date || '';
+        const date = new Date(meeting.starts_at);
+        if (Number.isNaN(date.getTime())) return meeting.date || '';
+        return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+    }
+
+    function hideFullProfileMeeting() {
+        if (!els.fullProfileMeeting) return;
+        els.fullProfileMeeting.hidden = true;
+        if (els.fullProfileJoinBtn) {
+            els.fullProfileJoinBtn.onclick = null;
+            els.fullProfileJoinBtn.disabled = false;
+            els.fullProfileJoinBtn.textContent = 'Приєднатися до групи та взяти участь у зустрічі';
+        }
+    }
+
+    async function renderFullProfileMeeting(candidate) {
+        hideFullProfileMeeting();
+        if (state.mode !== 'bff' || !candidate.active_meeting_id || !els.fullProfileMeeting) return;
+        try {
+            const data = await apiFetch(API.meetingDetail(candidate.active_meeting_id));
+            const meeting = data.meeting;
+            if (!meeting) return;
+            els.fullProfileMeeting.hidden = false;
+            if (els.fullProfileMeetingDate) {
+                els.fullProfileMeetingDate.textContent = formatMeetingDateLong(meeting);
+            }
+            if (els.fullProfileMeetingDesc) {
+                els.fullProfileMeetingDesc.textContent = meeting.description || '';
+            }
+            if (els.fullProfileJoinBtn) {
+                if (meeting.can_join) {
+                    els.fullProfileJoinBtn.disabled = false;
+                    els.fullProfileJoinBtn.textContent = 'Приєднатися до групи та взяти участь у зустрічі';
+                    els.fullProfileJoinBtn.onclick = () => {
+                        closeFullProfile();
+                        joinMeetingAndOpen(meeting.id);
+                    };
+                } else if (meeting.can_open_chat) {
+                    els.fullProfileJoinBtn.disabled = false;
+                    els.fullProfileJoinBtn.textContent = 'Відкрити чат зустрічі';
+                    els.fullProfileJoinBtn.onclick = () => {
+                        closeFullProfile();
+                        openMeetingChat(meeting);
+                    };
+                } else {
+                    els.fullProfileJoinBtn.disabled = true;
+                    els.fullProfileJoinBtn.textContent = 'Зустріч недоступна';
+                    els.fullProfileJoinBtn.onclick = null;
+                }
+            }
+        } catch (err) {
+            console.error('Не вдалося завантажити зустріч профілю', err);
+            hideFullProfileMeeting();
+        }
+    }
+
     function renderFullProfile(candidate) {
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
 
@@ -1041,7 +1124,7 @@
                 const thumb = document.createElement('button');
                 thumb.type = 'button';
                 thumb.className = `full-profile__thumb${idx === 0 ? ' is-active' : ''}`;
-                thumb.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+                thumb.innerHTML = `<img src="${src}" alt="">`;
                 thumb.addEventListener('click', () => {
                     els.fullProfileMainPhoto.src = src;
                     els.fullProfileThumbs.querySelectorAll('.full-profile__thumb').forEach((el, i) => {
@@ -1052,10 +1135,34 @@
             });
         }
 
-        els.fullProfileName.textContent = `${candidate.display_name || ''}${candidate.age ? ', ' + candidate.age : ''}`;
+        const nameParts = ['Профіль', candidate.display_name || '', candidate.age || '']
+            .filter((part) => part !== '' && part !== null && part !== undefined);
+        els.fullProfileName.textContent = nameParts.join(' ');
         els.fullProfileCity.textContent = candidate.city || '';
+
+        if (els.fullProfileMeta) {
+            const meta = [];
+            if (candidate.city) meta.push(candidate.city);
+            els.fullProfileMeta.innerHTML = meta
+                .map((label) => `<span class="full-profile__meta-chip">${escapeHtml(label)}</span>`)
+                .join('');
+        }
+
         els.fullProfileBio.textContent = candidate.bio || 'Користувач ще не додав опис профілю.';
-        els.fullProfileTags.innerHTML = renderCandidateTags(candidate.tags);
+        els.fullProfileTags.innerHTML = renderFullProfileChips(candidate.tags);
+
+        if (els.fullProfileSkills) {
+            if (state.mode === 'bff') {
+                const skillsHtml = renderFullProfileSkills(candidate.tags);
+                els.fullProfileSkills.innerHTML = skillsHtml;
+                els.fullProfileSkills.hidden = !skillsHtml;
+            } else {
+                els.fullProfileSkills.innerHTML = '';
+                els.fullProfileSkills.hidden = true;
+            }
+        }
+
+        renderFullProfileMeeting(candidate);
     }
 
     if (els.expandProfileBtn) {

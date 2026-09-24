@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    {% include 'includes/favicon.html' %}
     <title>Редагування профілю — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +19,9 @@
         <div class="crush-frame" data-frame-w="1920" data-frame-h="5766" data-frame-fit="width">
             <div class="edit-shell">
                 <header class="edit-top">
-                    <a href="{% url 'home' %}" class="edit-logo">crush</a>
+                    <a href="{% url 'home' %}" class="edit-logo" aria-label="crush — на головну">
+                        {% include 'includes/brand_logo_img.html' %}
+                    </a>
                 </header>
 
                 <form id="setup-form" class="edit-form" method="post" enctype="multipart/form-data" novalidate data-mode="edit" data-error-step="{{ error_step|default:0 }}">

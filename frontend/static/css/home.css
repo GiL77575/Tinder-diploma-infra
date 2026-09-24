@@ -97,12 +97,18 @@
     background: var(--crush-purple);
     color: var(--crush-white);
     border: none;
-    filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.35));
-    box-shadow: 0 0 7px 2px rgba(0, 0, 0, 0.25);
+    filter: var(--crush-drop-shadow-btn);
+    box-shadow: var(--crush-shadow-btn);
 }
 
 .landing-btn--primary:hover {
-    filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.35)) brightness(1.05);
+    background: var(--crush-purple-hover);
+    filter: var(--crush-drop-shadow-btn);
+}
+
+.landing-btn--primary:active {
+    background: var(--crush-purple-active);
+    filter: var(--crush-drop-shadow-btn);
 }
 
 .landing-btn--secondary {
@@ -114,6 +120,10 @@
 
 .landing-btn--secondary:hover {
     background: var(--crush-secondary-hover);
+}
+
+.landing-btn--secondary:active {
+    background: var(--crush-secondary-active);
 }
 
 .landing-hero {

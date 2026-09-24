@@ -2,15 +2,21 @@
 
 :root {
     --crush-purple: #9747ff;
+    --crush-purple-hover: #b37ff5;
+    --crush-purple-active: #8c33ff;
     --crush-ink: #161616;
     --crush-muted: #8a8a8a;
     --crush-line: #8c8c8c;
     --crush-input-line: #e5e5e5;
     --crush-white: #fffdfe;
     --crush-secondary: #f8f2ff;
-    --crush-secondary-hover: #f0e8ff;
+    --crush-secondary-hover: #ede0fe;
+    --crush-secondary-active: #e7d5ff;
     --crush-bg: #f6f6f6;
-    --crush-shadow-btn: 0 0 12px rgba(0, 0, 0, 0.35);
+    /* Figma primary: drop-shadow + box-shadow */
+    --crush-shadow-btn: 0 0 7px 2px rgba(0, 0, 0, 0.25);
+    --crush-drop-shadow-btn: drop-shadow(0px 0px 12px rgba(0, 0, 0, 0.35));
+    --crush-drop-shadow-sm: drop-shadow(0px 2px 10px rgba(0, 0, 0, 0.25));
     --crush-radius-btn: 12px;
     --font-brand: "Rubik One", sans-serif;
     --font-body: "Plus Jakarta Sans", sans-serif;
@@ -20,12 +26,11 @@
     --crush-frame-scale: 1;
     --crush-frame-x: 0px;
     --crush-frame-y: 0px;
-    /* Логотип crush — Figma: Rubik One 40/50 @ left 190, top 11 */
+    /* Логотип crush — Figma «Романтика Чат» / Лого: 96.92×30 @ left 190, top 19 */
     --crush-brand-left: 190px;
-    --crush-brand-top: 11px;
-    --crush-brand-size: 40px;
-    --crush-brand-lh: 50px;
-    --crush-brand-w: 127px;
+    --crush-brand-top: 19px;
+    --crush-brand-w: 96.92px;
+    --crush-brand-h: 30px;
     --landing-gradient: radial-gradient(
         112.49% 213.77% at 48.02% 50%,
         rgba(246, 246, 246, 0.5) 0%,
@@ -184,7 +189,7 @@ body.page-auth .crush-viewport::before {
 }
 
 /*
- * Слово «crush» — одне місце і розмір на всіх сторінках.
+ * Wordmark «crush» (SVG) — одне місце і розмір на всіх сторінках.
  * Поза кадром: координати через --crush-frame-* (як контент у contain).
  * Усередині .crush-frame: design-px (transform кадру масштабує сам).
  */
@@ -195,19 +200,27 @@ body.page-auth .crush-viewport::before {
     left: calc(var(--crush-frame-x, 0px) + var(--crush-brand-left) * var(--crush-frame-scale, 1));
     top: calc(var(--crush-frame-y, 0px) + var(--crush-brand-top) * var(--crush-frame-scale, 1));
     width: calc(var(--crush-brand-w) * var(--crush-frame-scale, 1));
-    height: calc(var(--crush-brand-lh) * var(--crush-frame-scale, 1));
+    height: calc(var(--crush-brand-h) * var(--crush-frame-scale, 1));
     margin: 0;
-    font-family: var(--font-brand);
-    font-style: normal;
-    font-weight: 400;
-    font-size: calc(var(--crush-brand-size) * var(--crush-frame-scale, 1));
-    line-height: calc(var(--crush-brand-lh) * var(--crush-frame-scale, 1));
-    color: var(--crush-purple);
+    padding: 0;
     z-index: 5;
     pointer-events: auto;
     box-sizing: border-box;
+    display: block;
+    line-height: 0;
+    font-size: 0;
+    color: transparent;
 }
 
+.crush-logo__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: left center;
+}
+
+.crush-frame .chat-logo,
 .crush-frame .profile-logo,
 .crush-frame .edit-logo,
 .crush-frame .crush-brand {
@@ -215,15 +228,13 @@ body.page-auth .crush-viewport::before {
     left: auto;
     top: auto;
     width: var(--crush-brand-w);
-    height: var(--crush-brand-lh);
-    font-family: var(--font-brand);
-    font-style: normal;
-    font-weight: 400;
-    font-size: var(--crush-brand-size);
-    line-height: var(--crush-brand-lh);
-    color: var(--crush-purple);
+    height: var(--crush-brand-h);
     flex-shrink: 0;
     z-index: auto;
+    display: block;
+    line-height: 0;
+    font-size: 0;
+    color: transparent;
 }
 
 .crush-frame .edit-top {
@@ -238,29 +249,6 @@ body.page-auth .crush-viewport::before {
     position: relative;
     left: auto;
     top: auto;
-}
-
-.crush-frame .chat-logo {
-    /* Figma empty: Rubik One 40/50 @ left 190, top 11 — у хедері вже left/top */
-    position: relative;
-    left: auto;
-    top: auto;
-    display: block;
-    flex-shrink: 0;
-    width: var(--crush-brand-w);
-    height: var(--crush-brand-lh);
-    margin-top: 0;
-    font-family: var(--font-brand);
-    font-style: normal;
-    font-weight: 400;
-    font-size: var(--crush-brand-size);
-    line-height: var(--crush-brand-lh);
-    color: var(--crush-purple);
-    z-index: auto;
-}
-
-.crush-frame .chat-logo img {
-    display: none;
 }
 
 .landing-nav {
@@ -286,6 +274,10 @@ body.page-auth .crush-viewport::before {
 
 .landing-nav a:hover {
     color: var(--crush-purple);
+}
+
+.landing-nav a:active {
+    color: #ae72ff;
 }
 
 /* Brand mark (профіль / дрібні місця) */
@@ -320,11 +312,19 @@ body.page-auth .crush-viewport::before {
     color: var(--crush-white);
     border: none;
     box-shadow: var(--crush-shadow-btn);
+    filter: var(--crush-drop-shadow-btn);
 }
 
 .btn-primary:hover,
 .btn-submit:hover {
-    filter: brightness(1.05);
+    background: var(--crush-purple-hover);
+    filter: var(--crush-drop-shadow-btn);
+}
+
+.btn-primary:active,
+.btn-submit:active {
+    background: var(--crush-purple-active);
+    filter: var(--crush-drop-shadow-btn);
 }
 
 .btn-secondary {
@@ -335,6 +335,10 @@ body.page-auth .crush-viewport::before {
 
 .btn-secondary:hover {
     background: var(--crush-secondary-hover);
+}
+
+.btn-secondary:active {
+    background: var(--crush-secondary-active);
 }
 
 .btn-ghost {

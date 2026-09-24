@@ -1,5 +1,7 @@
 <header class="landing-header">
-    <a href="{% url 'home' %}" class="landing-logo">crush</a>
+    <a href="{% url 'home' %}" class="landing-logo" aria-label="crush — на головну">
+        {% include 'includes/brand_logo_img.html' %}
+    </a>
     <nav class="landing-nav" aria-label="Основна навігація">
         <a href="{% url 'about' %}">Про нас</a>
         <a href="{% url 'safety' %}">Безпека</a>

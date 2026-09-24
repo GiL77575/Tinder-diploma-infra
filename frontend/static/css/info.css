@@ -421,10 +421,27 @@
     color: var(--crush-white);
     border: none;
     box-shadow: var(--crush-shadow-btn);
+    filter: var(--crush-drop-shadow-btn);
+}
+
+.info-actions .landing-btn--primary:hover {
+    background: var(--crush-purple-hover);
+}
+
+.info-actions .landing-btn--primary:active {
+    background: var(--crush-purple-active);
 }
 
 .info-actions .landing-btn--secondary {
     background: var(--crush-secondary);
     color: var(--crush-ink);
     border: 1px solid var(--crush-line);
+}
+
+.info-actions .landing-btn--secondary:hover {
+    background: var(--crush-secondary-hover);
+}
+
+.info-actions .landing-btn--secondary:active {
+    background: var(--crush-secondary-active);
 }

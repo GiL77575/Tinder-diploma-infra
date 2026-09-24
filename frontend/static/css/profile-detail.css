@@ -67,7 +67,7 @@ body.page-profile .crush-viewport::before {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: var(--crush-brand-lh);
+    height: 42px;
 }
 
 .profile-header__user {
@@ -150,11 +150,11 @@ body.page-profile .crush-viewport::before {
 }
 
 .profile-actions__btn--edit:hover {
-    background: #8535ef;
+    background: var(--crush-purple-hover);
 }
 
 .profile-actions__btn--edit:active {
-    background: #7a2de0;
+    background: var(--crush-purple-active);
 }
 
 .profile-actions__btn--search {
@@ -167,28 +167,27 @@ body.page-profile .crush-viewport::before {
 }
 
 .profile-actions__btn--search:hover {
-    background: #e8dbf8;
-    border-color: #7a7a7a;
+    background: #e7d5ff;
 }
 
 .profile-actions__btn--search:active {
-    background: #ddd0f0;
+    background: #e7d5ff;
 }
 
 .profile-actions__btn--logout {
     width: 143px;
-    background: var(--profile-surface);
+    background: #fffdfe;
     border: 1px solid #161616;
     color: var(--crush-ink);
     font-weight: 700;
 }
 
 .profile-actions__btn--logout:hover {
-    background: #f0ecef;
+    background: #e5e5e5;
 }
 
 .profile-actions__btn--logout:active {
-    background: #e6e1e5;
+    background: #e5e5e5;
 }
 
 .profile-gallery {

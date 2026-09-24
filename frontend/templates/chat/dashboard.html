@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    {% include 'includes/favicon.html' %}
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Чат — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,8 +19,15 @@
       data-my-user-id="{{ request.user.id }}">
 
     <div class="crush-viewport">
-    <img class="chat-page-backdrop chat-page-backdrop--empty"
+    <img class="chat-page-backdrop chat-page-backdrop--dating"
          src="{% vstatic 'img/brand/chat-empty-bg.png' %}"
+         width="1920"
+         height="1080"
+         alt=""
+         aria-hidden="true"
+         decoding="async">
+    <img class="chat-page-backdrop chat-page-backdrop--bff"
+         src="{% vstatic 'img/brand/chat-bff-bg.png' %}"
          width="1920"
          height="1080"
          alt=""
@@ -61,17 +69,19 @@
         </div>
         <div class="chat-shell">
             <header class="chat-header">
-                <a href="{% url 'home' %}" class="chat-logo">crush</a>
+                <a href="{% url 'home' %}" class="chat-logo" aria-label="crush — на головну">
+                    {% include 'includes/brand_logo_img.html' %}
+                </a>
 
                 <div class="mode-switch" role="tablist" aria-label="Режим пошуку" id="mode-switch" data-active="{{ initial_mode }}">
                     <span class="mode-switch__pill" id="mode-switch-pill" aria-hidden="true"></span>
                     <button type="button" class="mode-switch__btn" data-mode="dating" role="tab" aria-selected="{% if initial_mode != 'bff' %}true{% else %}false{% endif %}">
-                        <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/mode-romance.svg' %}" width="18" height="18" alt="" aria-hidden="true">
                         Романтика
+                        <img class="mode-switch__icon mode-switch__icon--heart" src="{% static 'img/brand/mode-romance.svg' %}" width="26" height="19" alt="" aria-hidden="true">
                     </button>
                     <button type="button" class="mode-switch__btn" data-mode="bff" role="tab" aria-selected="{% if initial_mode == 'bff' %}true{% else %}false{% endif %}">
-                        <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="18" height="18" alt="" aria-hidden="true">
                         Дружба
+                        <img class="mode-switch__icon mode-switch__icon--friends" src="{% static 'img/brand/mode-friendship.svg' %}" width="21" height="19" alt="" aria-hidden="true">
                     </button>
                 </div>
 
@@ -118,7 +128,7 @@
 
                     <div class="meeting-actions" id="meeting-actions"{% if initial_mode != 'bff' %} hidden{% endif %}>
                         <button type="button" class="create-meeting-btn" id="create-meeting-btn">
-                            Створити зустріч
+                            Створити мітінг
                         </button>
                         <button type="button" class="create-meeting-btn create-meeting-btn--edit" id="edit-meeting-btn" hidden>
                             Редагувати зустріч
@@ -412,20 +422,40 @@
         <div class="full-profile" role="dialog" aria-modal="true" aria-labelledby="full-profile-name">
             <button type="button" class="full-profile__close" id="full-profile-close" aria-label="Закрити">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="M5 5L19 19M19 5L5 19" stroke="#161616" stroke-width="2.2" stroke-linecap="round"/>
+                    <path d="M6 6L18 18M18 6L6 18" stroke="#161616" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </button>
-            <div class="full-profile__gallery">
+            <div class="full-profile__layout">
                 <img class="full-profile__main-photo" id="full-profile-main-photo" src="" alt="">
                 <div class="full-profile__thumbs" id="full-profile-thumbs"></div>
-            </div>
-            <div class="full-profile__content">
-                <div class="full-profile__header">
-                    <h2 class="full-profile__name" id="full-profile-name"></h2>
-                    <p class="full-profile__city" id="full-profile-city"></p>
-                    <p class="full-profile__bio" id="full-profile-bio"></p>
+                <div class="full-profile__content">
+                    <div class="full-profile__head">
+                        <h2 class="full-profile__name" id="full-profile-name"></h2>
+                        <p class="full-profile__city" id="full-profile-city"></p>
+                    </div>
+                    <div class="full-profile__details">
+                        <div class="full-profile__meta" id="full-profile-meta"></div>
+                        <p class="full-profile__bio" id="full-profile-bio"></p>
+                        <div class="full-profile__tags" id="full-profile-tags"></div>
+                        <div class="full-profile__skills" id="full-profile-skills" hidden></div>
+                        <div class="full-profile__meeting" id="full-profile-meeting" hidden>
+                            <div class="full-profile__meeting-head">
+                                <h3 class="full-profile__meeting-title">Зустріч</h3>
+                                <div class="full-profile__meeting-date">
+                                    <svg class="full-profile__meeting-cal" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <rect x="4" y="5" width="16" height="15" rx="2" stroke="#161616" stroke-width="2"/>
+                                        <path d="M4 9h16M8 3v4M16 3v4" stroke="#161616" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                    <span id="full-profile-meeting-date"></span>
+                                </div>
+                            </div>
+                            <p class="full-profile__meeting-desc" id="full-profile-meeting-desc"></p>
+                            <button type="button" class="full-profile__join-btn" id="full-profile-join-btn">
+                                Приєднатися до групи та взяти участь у зустрічі
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="full-profile__tags" id="full-profile-tags"></div>
             </div>
         </div>
     </div>

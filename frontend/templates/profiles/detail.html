@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    {% include 'includes/favicon.html' %}
     <title>{{ profile.display_name }} — crush</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +18,9 @@
         <div class="crush-frame" data-frame-w="1920" data-frame-h="1860" data-frame-fit="width">
             <div class="profile-shell">
                 <header class="profile-header">
-                    <a href="{% url 'home' %}" class="profile-logo">crush</a>
+                    <a href="{% url 'home' %}" class="profile-logo" aria-label="crush — на головну">
+                        {% include 'includes/brand_logo_img.html' %}
+                    </a>
                     <div class="profile-header__user">
                         <span class="profile-header__name">{{ profile.display_name }}</span>
                         <span class="profile-header__avatar" aria-hidden="true">
