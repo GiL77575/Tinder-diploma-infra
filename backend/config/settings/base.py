@@ -24,6 +24,9 @@ ALLOWED_HOSTS = [
 # За reverse proxy (nginx): брати Host / схему з X-Forwarded-*
 USE_X_FORWARDED_HOST = os.environ.get('USE_X_FORWARDED_HOST', '1') == '1'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Публічний домен для absolute URL (OAuth callback). Без цього proxy може
+# підставити приватний IP (10.x) → Google Error 400 invalid_request.
+PUBLIC_HOST = os.environ.get('PUBLIC_HOST', '').strip()
 
 INSTALLED_APPS = [
     # daphne має йти першим, щоб manage.py runserver піднімав ASGI/WebSocket
@@ -57,6 +60,7 @@ SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.middleware.PublicHostMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -166,6 +170,10 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/app/'
 LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = os.environ.get(
+    'ACCOUNT_DEFAULT_HTTP_PROTOCOL',
+    'https' if PUBLIC_HOST else 'http',
+)
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # allauth лише для Google; email/пароль — accounts.views
