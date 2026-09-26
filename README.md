@@ -2,7 +2,22 @@
 
 Веб-сервіс знайомств з режимом Friend Finder (BFF).
 
-## Швидкий запуск
+## Хостинг
+
+Прод працює на **VPS** через Docker Compose (`crush.pp.ua`).  
+Render / інші PaaS **не використовуються**.
+
+Деплой на сервері:
+
+```bash
+git pull
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+```
+
+CI (GitHub Actions) лише валідує `docker compose` і збірку образів — автоматичний деплой на VPS з Actions поки не налаштований.
+
+## Швидкий запуск (локально)
 
 1. Скопіюйте файл оточення:
    `cp .env.example .env`

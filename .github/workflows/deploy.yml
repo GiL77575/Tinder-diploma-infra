@@ -1,4 +1,4 @@
-name: CI/CD Pipeline & Security Checks
+name: CI Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-deploy:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,8 @@ jobs:
         run: |
           docker compose build
 
-      - name: Trigger Deploy on Render
+      - name: CI OK (prod is VPS)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          echo "CI/CD Pipeline validated successfully! Render deploy trigger will be active once Webhook URL is set."
+          echo "CI passed. Production runs on VPS (Docker Compose), not Render."
+          echo "Deploy on the server: git pull && docker compose up -d --build"
