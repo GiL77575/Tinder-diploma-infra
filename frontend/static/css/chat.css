@@ -1673,19 +1673,23 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
 .swipe-btn__icon {
     width: 46px;
     height: 46px;
+    flex-shrink: 0;
+}
+
+.swipe-btn .swipe-btn__icon--heart {
     display: block;
 }
 
-.swipe-btn__icon--star {
+.swipe-btn .swipe-btn__icon--star {
     display: none;
     transform: scaleX(-1);
 }
 
-body.page-chat[data-mode="bff"] .swipe-btn__icon--heart {
+body.page-chat[data-mode="bff"] .swipe-btn .swipe-btn__icon--heart {
     display: none;
 }
 
-body.page-chat[data-mode="bff"] .swipe-btn__icon--star {
+body.page-chat[data-mode="bff"] .swipe-btn .swipe-btn__icon--star {
     display: block;
 }
 
@@ -1699,11 +1703,6 @@ body.page-chat[data-mode="bff"] .swipe-btn__icon--star {
 }
 
 .swipe-btn--like {
-    background: var(--crush-purple);
-    border: none;
-}
-
-body.page-chat[data-mode="bff"] .swipe-btn--like {
     background: #9747ff;
     border: none;
 }

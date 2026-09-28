@@ -1045,7 +1045,11 @@
         els.swipeCard.classList.remove('is-empty');
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
         const dots = photos.map((_, idx) => `<span class="swipe-card__dot ${idx === 0 ? 'is-active' : ''}"></span>`).join('');
-        const sharedCount = (candidate.tags || []).filter((tag) => tag.is_shared).length;
+        const sharedFromTags = (candidate.tags || []).filter((tag) => tag.is_shared).length;
+        const sharedFromSkills = (candidate.skills || []).filter((tag) => tag.is_shared).length;
+        const sharedCount = state.mode === 'bff'
+            ? sharedFromTags + sharedFromSkills
+            : sharedFromTags;
         const meetingBtnHtml = candidate.active_meeting_id
             ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>'
             : '';
