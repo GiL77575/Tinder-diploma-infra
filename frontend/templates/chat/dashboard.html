@@ -69,7 +69,7 @@
         </div>
         <div class="chat-shell">
             <header class="chat-header">
-                <a href="{% url 'home' %}" class="chat-logo" aria-label="crush — на головну">
+                <a href="{% url 'home' %}" class="chat-logo" aria-label="crush — Create Real Unique Stories Here" aria-describedby="crush-logo-tooltip">
                     {% include 'includes/brand_logo_img.html' %}
                 </a>
 
@@ -285,7 +285,7 @@
                         id="meeting-form-description"
                         maxlength="1000"
                         rows="3"
-                        placeholder="Це буде видно при пергляді профіля в стрічці."
+                        placeholder="Збираю компанію пограти в настілки або просто посидіти за кавою та лампово поспілкуватися. Приєднуйтесь, буде весело! 🎲"
                         required
                     ></textarea>
                 </label>
@@ -319,18 +319,18 @@
                                 <span class="meeting-form__select-label is-placeholder" id="meeting-form-month-label">Місяць</span>
                             </button>
                             <ul class="meeting-form__select-menu" id="meeting-form-month-menu" role="listbox" hidden>
-                                <li role="option" data-value="01" tabindex="-1">Січень</li>
-                                <li role="option" data-value="02" tabindex="-1">Лютий</li>
-                                <li role="option" data-value="03" tabindex="-1">Березень</li>
-                                <li role="option" data-value="04" tabindex="-1">Квітень</li>
-                                <li role="option" data-value="05" tabindex="-1">Травень</li>
-                                <li role="option" data-value="06" tabindex="-1">Червень</li>
-                                <li role="option" data-value="07" tabindex="-1">Липень</li>
-                                <li role="option" data-value="08" tabindex="-1">Серпень</li>
-                                <li role="option" data-value="09" tabindex="-1">Вересень</li>
-                                <li role="option" data-value="10" tabindex="-1">Жовтень</li>
-                                <li role="option" data-value="11" tabindex="-1">Листопад</li>
-                                <li role="option" data-value="12" tabindex="-1">Грудень</li>
+                                <li role="option" data-value="01" tabindex="-1">Січня</li>
+                                <li role="option" data-value="02" tabindex="-1">Лютого</li>
+                                <li role="option" data-value="03" tabindex="-1">Березня</li>
+                                <li role="option" data-value="04" tabindex="-1">Квітня</li>
+                                <li role="option" data-value="05" tabindex="-1">Травня</li>
+                                <li role="option" data-value="06" tabindex="-1">Червня</li>
+                                <li role="option" data-value="07" tabindex="-1">Липня</li>
+                                <li role="option" data-value="08" tabindex="-1">Серпня</li>
+                                <li role="option" data-value="09" tabindex="-1">Вересня</li>
+                                <li role="option" data-value="10" tabindex="-1">Жовтня</li>
+                                <li role="option" data-value="11" tabindex="-1">Листопада</li>
+                                <li role="option" data-value="12" tabindex="-1">Грудня</li>
                             </ul>
                             <input type="hidden" name="month" id="meeting-form-month" value="">
                         </div>
@@ -352,7 +352,7 @@
                             </span>
                         </label>
                         <div class="meeting-form__group-fields">
-                            <label class="meeting-form__photo-label" for="meeting-form-photo">Додай фото групи</label>
+                            <label class="meeting-form__photo-label" id="meeting-form-photo-label" for="meeting-form-photo">Додай фото групи</label>
                             <label class="meeting-form__field meeting-form__field--group-name">
                                 <span>Назва групи</span>
                                 <input
@@ -360,7 +360,7 @@
                                     name="title"
                                     id="meeting-form-name"
                                     maxlength="120"
-                                    placeholder="Назва групи"
+                                    placeholder="Настілка у понеділок"
                                     required
                                 >
                             </label>
@@ -431,7 +431,10 @@
                 <div class="full-profile__content">
                     <div class="full-profile__head">
                         <h2 class="full-profile__name" id="full-profile-name"></h2>
-                        <p class="full-profile__city" id="full-profile-city"></p>
+                        <div class="full-profile__head-row">
+                            <p class="full-profile__city" id="full-profile-city"></p>
+                            <span class="full-profile__zodiac" id="full-profile-zodiac" hidden></span>
+                        </div>
                     </div>
                     <div class="full-profile__details">
                         <div class="full-profile__meta" id="full-profile-meta"></div>

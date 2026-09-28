@@ -87,7 +87,8 @@ def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     - хоча б одне спільне хобі з тим самим рівнем;
     - хоча б одна спільна мова з тим самим рівнем.
     Місто не враховується — BFF-анкети можуть бути з різних міст.
-    Повертає {'hobbies': [...], 'languages': [...]} спільних id або None.
+    Повертає {'hobbies': [...], 'languages': [...], 'interests': [...]}
+    спільних id або None.
     """
     viewer_mode = viewer_profile.get_mode(SearchMode.BFF)
     candidate_mode = candidate_profile.get_mode(SearchMode.BFF)
@@ -111,7 +112,16 @@ def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     if not shared_languages:
         return None
 
-    return {'hobbies': shared_hobbies, 'languages': shared_languages}
+    # Спільні інтереси лише для підсвітки в UI — на відбір анкет не впливають.
+    viewer_interests = viewer_tags.get((SearchMode.BFF, TagCategory.INTEREST), {})
+    candidate_interests = candidate_tags.get((SearchMode.BFF, TagCategory.INTEREST), {})
+    shared_interests = _shared_tag_ids(viewer_interests, candidate_interests)
+
+    return {
+        'hobbies': shared_hobbies,
+        'languages': shared_languages,
+        'interests': shared_interests,
+    }
 
 
 def _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode):
@@ -128,6 +138,65 @@ def _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode):
     return None
 
 
+def _candidate_meta_chips(profile):
+    """Чіпи «про себе» для повного перегляду анкети (Figma: мета-рядки)."""
+    chips = []
+    if profile.gender:
+        chips.append(profile.get_gender_display())
+    if profile.orientation:
+        chips.append(profile.get_orientation_display())
+    if profile.city:
+        chips.append(profile.city)
+
+    if profile.height_cm:
+        chips.append(f'{profile.height_cm} см')
+
+    smoking_labels = {
+        'no': 'Не курю',
+        'sometimes': 'Інколи курю',
+        'yes': 'Курю',
+    }
+    if profile.smoking in smoking_labels:
+        chips.append(smoking_labels[profile.smoking])
+
+    alcohol_labels = {
+        'no': "Не п'ю",
+        'sometimes': "Інколи п'ю",
+        'yes': "П'ю",
+    }
+    if profile.alcohol in alcohol_labels:
+        chips.append(alcohol_labels[profile.alcohol])
+
+    children_labels = {
+        'no': 'Дітей немає',
+        'have': 'Є діти',
+        'want': 'Хочу дітей',
+        'unsure': 'Поки не знаю',
+    }
+    if profile.children in children_labels:
+        chips.append(children_labels[profile.children])
+
+    if profile.job:
+        chips.append(profile.job)
+
+    sport_labels = {
+        'no': 'Не займаюся спортом',
+        'sometimes': 'Займаюся спортом інколи',
+        'yes': 'Займаюся спортом часто',
+    }
+    if profile.sport in sport_labels:
+        chips.append(sport_labels[profile.sport])
+
+    pets_labels = {
+        'have': 'Маю тварину',
+        'no': 'Тварин немає',
+    }
+    if profile.pets in pets_labels:
+        chips.append(pets_labels[profile.pets])
+
+    return chips
+
+
 def serialize_candidate(profile, mode, shared_tags=None):
     """
     Картка кандидата для свайпу: фото, ім'я, вік, біо цього режиму та
@@ -137,6 +206,7 @@ def serialize_candidate(profile, mode, shared_tags=None):
     shared_tags = shared_tags or {}
     profile_mode = profile.get_mode(mode)
     photos = list(profile.photos.all())
+    skills = []
 
     if mode == SearchMode.DATING:
         shared_ids = set(shared_tags.get('interests') or [])
@@ -148,9 +218,18 @@ def serialize_candidate(profile, mode, shared_tags=None):
     else:
         from meetings.services import active_meeting_id_for_user
 
+        shared_interest_ids = set(shared_tags.get('interests') or [])
         shared_hobby_ids = set(shared_tags.get('hobbies') or [])
         shared_language_ids = set(shared_tags.get('languages') or [])
         tags = [
+            {
+                'id': item.tag_id,
+                'name': item.tag.name,
+                'is_shared': item.tag_id in shared_interest_ids,
+            }
+            for item in profile.tags_for(SearchMode.BFF, TagCategory.INTEREST)
+        ]
+        skills = [
             {
                 'id': item.tag_id,
                 'name': item.tag.name,
@@ -174,9 +253,12 @@ def serialize_candidate(profile, mode, shared_tags=None):
         'display_name': profile.display_name,
         'age': profile.age,
         'city': profile.city,
+        'zodiac': profile.get_zodiac_sign_display() if profile.zodiac_sign else '',
         'bio': profile_mode.bio if profile_mode else '',
         'photos': [photo.url for photo in photos] if photos else ([_avatar_url(profile)] if _avatar_url(profile) else []),
         'tags': tags,
+        'skills': skills,
+        'meta': _candidate_meta_chips(profile),
         'active_meeting_id': active_meeting_id,
     }
 

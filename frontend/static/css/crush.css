@@ -220,6 +220,73 @@ body.page-auth .crush-viewport::before {
     object-position: left center;
 }
 
+/* Підказка: повна розшифровка CRUSH */
+.crush-logo__tooltip {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 10px);
+    z-index: 40;
+    box-sizing: border-box;
+    width: max-content;
+    max-width: min(280px, 70vw);
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--crush-ink);
+    color: var(--crush-white);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    font-style: normal;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    white-space: normal;
+    text-align: left;
+    box-shadow: 0 8px 24px rgba(22, 22, 22, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+
+.crush-logo__tooltip::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    bottom: 100%;
+    border: 6px solid transparent;
+    border-bottom-color: var(--crush-ink);
+}
+
+.landing-logo .crush-logo__tooltip,
+.page-setup .setup-logo .crush-logo__tooltip {
+    top: calc(100% + 10px * var(--crush-frame-scale, 1));
+    padding: calc(8px * var(--crush-frame-scale, 1)) calc(12px * var(--crush-frame-scale, 1));
+    border-radius: calc(10px * var(--crush-frame-scale, 1));
+    font-size: calc(13px * var(--crush-frame-scale, 1));
+}
+
+.landing-logo .crush-logo__tooltip::before,
+.page-setup .setup-logo .crush-logo__tooltip::before {
+    left: calc(18px * var(--crush-frame-scale, 1));
+    border-width: calc(6px * var(--crush-frame-scale, 1));
+}
+
+:is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo, .crush-brand):hover .crush-logo__tooltip,
+:is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo, .crush-brand):focus-visible .crush-logo__tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+@media (hover: none) {
+    :is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo, .crush-brand):focus-visible .crush-logo__tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+}
+
 .crush-frame .chat-logo,
 .crush-frame .profile-logo,
 .crush-frame .edit-logo,

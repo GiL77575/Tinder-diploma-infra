@@ -17,15 +17,45 @@ from profiles.models import (
 )
 
 ALLOWED_PHOTO_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+CONTENT_TYPE_ALIASES = {
+    'image/jpg': 'image/jpeg',
+    'image/pjpeg': 'image/jpeg',
+    'image/x-png': 'image/png',
+}
+EXT_TO_CONTENT_TYPE = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+}
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
 DRAFT_PHOTOS_SESSION_KEY = 'profile_draft_photos'
 
 
+def resolve_image_content_type(uploaded_file):
+    """
+    Нормалізує MIME фото: alias (image/jpg), порожній/octet-stream → з розширення.
+    Повертає canonical content_type або кидає ValueError.
+    """
+    raw = (getattr(uploaded_file, 'content_type', '') or '').lower().strip()
+    if raw in CONTENT_TYPE_ALIASES:
+        raw = CONTENT_TYPE_ALIASES[raw]
+    if raw in ALLOWED_PHOTO_TYPES:
+        return raw
+
+    ext = Path(getattr(uploaded_file, 'name', '') or '').suffix.lower()
+    guessed = EXT_TO_CONTENT_TYPE.get(ext)
+    if guessed and raw in ('', 'application/octet-stream', 'binary/octet-stream'):
+        return guessed
+    if guessed and raw not in ALLOWED_PHOTO_TYPES:
+        # Деякі клієнти шлють дивний MIME при валідному розширенні.
+        return guessed
+    raise ValueError('Фото має бути JPEG, PNG або WebP.')
+
+
 def save_profile_photo(user_id, uploaded_file, order):
     """Завантажує фото в Cloudinary або локально; повертає (public_id, url)."""
-    content_type = getattr(uploaded_file, 'content_type', '') or ''
-    if content_type not in ALLOWED_PHOTO_TYPES:
-        raise ValueError('Фото має бути JPEG, PNG або WebP.')
+    resolve_image_content_type(uploaded_file)
     if uploaded_file.size > MAX_PHOTO_BYTES:
         raise ValueError('Кожне фото має бути не більше 5 МБ.')
 
@@ -40,7 +70,7 @@ def save_profile_photo(user_id, uploaded_file, order):
         return result['public_id'], result['secure_url']
 
     ext = Path(uploaded_file.name or '').suffix.lower()
-    if ext not in {'.jpg', '.jpeg', '.png', '.webp'}:
+    if ext not in EXT_TO_CONTENT_TYPE:
         ext = '.jpg'
     filename = f'{order}_{uuid.uuid4().hex}{ext}'
     rel_dir = Path('profiles') / str(user_id)

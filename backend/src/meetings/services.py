@@ -12,7 +12,7 @@ from django.utils.dateparse import parse_datetime
 
 from meetings.models import Meeting, MeetingParticipant, MeetingStatus
 from messaging.models import Conversation
-from profiles.services import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES
+from profiles.services import MAX_PHOTO_BYTES, resolve_image_content_type
 
 
 class MeetingError(Exception):
@@ -138,9 +138,10 @@ def serialize_meeting(meeting, viewer):
 
 def save_meeting_photo(meeting_id, uploaded_file):
     """Завантажує обкладинку зустрічі в Cloudinary або локально; (public_id, url)."""
-    content_type = getattr(uploaded_file, 'content_type', '') or ''
-    if content_type not in ALLOWED_PHOTO_TYPES:
-        raise MeetingError('Фото має бути JPEG, PNG або WebP.')
+    try:
+        resolve_image_content_type(uploaded_file)
+    except ValueError as exc:
+        raise MeetingError(str(exc)) from exc
     if uploaded_file.size > MAX_PHOTO_BYTES:
         raise MeetingError('Фото має бути не більше 5 МБ.')
 

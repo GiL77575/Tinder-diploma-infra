@@ -1,10 +1,10 @@
 """Кореневі URL: адмінка, Google OAuth, профіль, акаунт."""
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.generic import RedirectView
+from django.views.static import serve as media_serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,5 +24,13 @@ urlpatterns = [
     path('', include('accounts.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Локальні фото (профіль/зустріч), коли CLOUDINARY_URL порожній.
+# django.conf.urls.static.static() у DEBUG=False нічого не додає — тому явно.
+# У проді краще віддавати nginx'ом (deploy/nginx-crushme.conf).
+urlpatterns += [
+    re_path(
+        r'^media/(?P<path>.*)$',
+        media_serve,
+        {'document_root': settings.MEDIA_ROOT},
+    ),
+]

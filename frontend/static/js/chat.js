@@ -86,6 +86,7 @@
         fullProfileThumbs: document.getElementById('full-profile-thumbs'),
         fullProfileName: document.getElementById('full-profile-name'),
         fullProfileCity: document.getElementById('full-profile-city'),
+        fullProfileZodiac: document.getElementById('full-profile-zodiac'),
         fullProfileMeta: document.getElementById('full-profile-meta'),
         fullProfileBio: document.getElementById('full-profile-bio'),
         fullProfileTags: document.getElementById('full-profile-tags'),
@@ -136,6 +137,7 @@
         meetingFormDescription: document.getElementById('meeting-form-description'),
         meetingFormPhoto: document.getElementById('meeting-form-photo'),
         meetingFormPhotoPreview: document.getElementById('meeting-form-photo-preview'),
+        meetingFormPhotoLabel: document.getElementById('meeting-form-photo-label'),
         meetingFormIntro: document.querySelector('.meeting-form__intro'),
         meetingViewOverlay: document.getElementById('meeting-view-overlay'),
         meetingViewTitle: document.getElementById('meeting-view-title'),
@@ -269,18 +271,18 @@
     }
 
     const MEETING_MONTHS = {
-        '01': 'Січень',
-        '02': 'Лютий',
-        '03': 'Березень',
-        '04': 'Квітень',
-        '05': 'Травень',
-        '06': 'Червень',
-        '07': 'Липень',
-        '08': 'Серпень',
-        '09': 'Вересень',
-        '10': 'Жовтень',
-        '11': 'Листопад',
-        '12': 'Грудень',
+        '01': 'Січня',
+        '02': 'Лютого',
+        '03': 'Березня',
+        '04': 'Квітня',
+        '05': 'Травня',
+        '06': 'Червня',
+        '07': 'Липня',
+        '08': 'Серпня',
+        '09': 'Вересня',
+        '10': 'Жовтня',
+        '11': 'Листопада',
+        '12': 'Грудня',
     };
 
     function closeMeetingSelectMenus(exceptRoot) {
@@ -323,7 +325,7 @@
             li.setAttribute('role', 'option');
             li.dataset.value = value;
             li.tabIndex = -1;
-            li.textContent = String(day);
+            li.textContent = value;
             els.meetingFormDayMenu.appendChild(li);
         }
         els.meetingFormDayMenu.dataset.filled = '1';
@@ -356,7 +358,7 @@
         const safeDay = Math.min(Number(day), maxDay);
         const dayStr = String(safeDay).padStart(2, '0');
         if (dayStr !== day) {
-            setMeetingSelectValue('day', dayStr, String(safeDay));
+            setMeetingSelectValue('day', dayStr, dayStr);
             return els.meetingFormDate.value;
         }
         const iso = `${year}-${month}-${dayStr}`;
@@ -372,7 +374,7 @@
         const month = parts[1];
         const day = parts[2];
         setMeetingSelectValue('month', month, MEETING_MONTHS[month] || month);
-        setMeetingSelectValue('day', day, String(Number(day)));
+        setMeetingSelectValue('day', day, day);
     }
 
     function initMeetingSelect(kind) {
@@ -401,11 +403,23 @@
         });
     }
 
+    function setMeetingPhotoPreview(url) {
+        if (!els.meetingFormPhotoPreview || !url) return;
+        els.meetingFormPhotoPreview.style.backgroundImage = `url("${url}")`;
+        els.meetingFormPhotoPreview.style.backgroundSize = 'cover';
+        els.meetingFormPhotoPreview.style.backgroundPosition = 'center';
+        els.meetingFormPhotoPreview.style.backgroundRepeat = 'no-repeat';
+        els.meetingFormPhotoPreview.classList.add('has-preview');
+    }
+
     function clearMeetingPhotoPreview() {
         if (els.meetingFormPhoto) els.meetingFormPhoto.value = '';
         if (els.meetingFormPhotoPreview) {
             els.meetingFormPhotoPreview.classList.remove('has-preview');
             els.meetingFormPhotoPreview.style.backgroundImage = '';
+            els.meetingFormPhotoPreview.style.backgroundSize = '';
+            els.meetingFormPhotoPreview.style.backgroundPosition = '';
+            els.meetingFormPhotoPreview.style.backgroundRepeat = '';
         }
     }
 
@@ -420,6 +434,9 @@
             els.meetingFormSubmit.textContent = editing
                 ? 'Зберегти та запустити у стрічку оновлені дані'
                 : 'Зберегти та запустити у стрічку';
+        }
+        if (els.meetingFormPhotoLabel) {
+            els.meetingFormPhotoLabel.textContent = editing ? 'Зміни фото групи' : 'Додай фото групи';
         }
         if (els.meetingFormIntro) {
             els.meetingFormIntro.hidden = false;
@@ -441,8 +458,7 @@
                 if (els.meetingFormDate) els.meetingFormDate.value = '';
             }
             if (editing && meeting.photo_url && els.meetingFormPhotoPreview) {
-                els.meetingFormPhotoPreview.style.backgroundImage = `url("${meeting.photo_url}")`;
-                els.meetingFormPhotoPreview.classList.add('has-preview');
+                setMeetingPhotoPreview(meeting.photo_url);
             }
         }
         if (els.meetingFormOverlay) {
@@ -668,8 +684,7 @@
                 return;
             }
             const url = URL.createObjectURL(file);
-            els.meetingFormPhotoPreview.style.backgroundImage = `url("${url}")`;
-            els.meetingFormPhotoPreview.classList.add('has-preview');
+            setMeetingPhotoPreview(url);
         });
     }
     if (els.meetingConfirmYes) {
@@ -834,7 +849,7 @@
             }
 
             item.innerHTML = `
-                <img class="dialog-item__avatar" src="${dialog.avatar_url || avatarPlaceholder()}" alt="">
+                <img class="dialog-item__avatar" src="${dialog.avatar_url || avatarPlaceholder()}" alt="" onerror="this.onerror=null;this.src='${avatarPlaceholder()}'">
                 <span class="dialog-item__name">${escapeHtml(dialog.other_display_name)}${dialog.other_age ? ' ' + dialog.other_age : ''}</span>
                 ${metaRight}
                 <span class="dialog-item__preview">${escapeHtml(dialog.last_message_preview) || 'Скажіть привіт!'}</span>
@@ -998,6 +1013,12 @@
         return `<div class="swipe-card__tags">${chips}</div>`;
     }
 
+    function candidateSwipeTags(candidate) {
+        if (candidate.tags && candidate.tags.length) return candidate.tags;
+        if (candidate.skills && candidate.skills.length) return candidate.skills;
+        return [];
+    }
+
     function renderCandidate(candidate) {
         closeFullProfile();
         if (!candidate) {
@@ -1020,12 +1041,14 @@
             ${photos.length > 1 ? `<div class="swipe-card__dots">${dots}</div>` : ''}
             <div class="swipe-card__gradient"></div>
             <div class="swipe-card__info">
-                <div class="swipe-card__header">
-                    <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
-                    <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
+                <div class="swipe-card__top">
+                    <div class="swipe-card__header">
+                        <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
+                        <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
+                    </div>
+                    ${candidate.active_meeting_id ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>' : ''}
                 </div>
-                ${candidate.active_meeting_id ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>' : ''}
-                ${renderCandidateTags(candidate.tags, 3)}
+                ${renderCandidateTags(candidateSwipeTags(candidate), 3)}
             </div>
         `;
 
@@ -1089,13 +1112,22 @@
         }).join('');
     }
 
-    function renderFullProfileSkills(tags) {
-        if (!tags || !tags.length) return '';
-        const withLevel = tags.filter((tag) => tag.level);
-        if (!withLevel.length) return '';
-        return withLevel.map((tag) => {
-            const label = `${tag.name} — Рівень: ${tag.level}`;
+    function renderFullProfileSkills(skills) {
+        if (!skills || !skills.length) return '';
+        return skills.map((tag) => {
+            const label = tag.level ? `${tag.name} — Рівень: ${tag.level}` : tag.name;
             return `<span class="full-profile__skill">${escapeHtml(label)}</span>`;
+        }).join('');
+    }
+
+    function renderFullProfileMeta(meta) {
+        if (!meta || !meta.length) return '';
+        return meta.map((label) => {
+            const text = String(label || '');
+            let wide = '';
+            if (text.length > 22) wide = ' full-profile__meta-chip--xwide';
+            else if (text.length > 12) wide = ' full-profile__meta-chip--wide';
+            return `<span class="full-profile__meta-chip${wide}">${escapeHtml(text)}</span>`;
         }).join('');
     }
 
@@ -1157,40 +1189,62 @@
         }
     }
 
+    function renderFullProfileThumbs(photos) {
+        els.fullProfileThumbs.innerHTML = '';
+        // Figma: сітка 2×3 (романтика) / 3×2 (дружба) — завжди 6 слотів
+        for (let idx = 0; idx < 6; idx += 1) {
+            const src = photos[idx];
+            if (!src) {
+                const empty = document.createElement('div');
+                empty.className = 'full-profile__thumb is-empty';
+                empty.setAttribute('aria-hidden', 'true');
+                els.fullProfileThumbs.appendChild(empty);
+                continue;
+            }
+            const thumb = document.createElement('button');
+            thumb.type = 'button';
+            thumb.className = `full-profile__thumb is-filled${idx === 0 ? ' is-active' : ''}`;
+            thumb.innerHTML = `<img src="${src}" alt="">`;
+            thumb.addEventListener('click', () => {
+                els.fullProfileMainPhoto.src = src;
+                els.fullProfileThumbs.querySelectorAll('.full-profile__thumb.is-filled').forEach((el) => {
+                    el.classList.toggle('is-active', el === thumb);
+                });
+            });
+            els.fullProfileThumbs.appendChild(thumb);
+        }
+    }
+
     function renderFullProfile(candidate) {
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
 
         els.fullProfileMainPhoto.src = photos[0];
         els.fullProfileMainPhoto.alt = candidate.display_name || '';
-
-        els.fullProfileThumbs.innerHTML = '';
-        if (photos.length > 1) {
-            photos.forEach((src, idx) => {
-                const thumb = document.createElement('button');
-                thumb.type = 'button';
-                thumb.className = `full-profile__thumb${idx === 0 ? ' is-active' : ''}`;
-                thumb.innerHTML = `<img src="${src}" alt="">`;
-                thumb.addEventListener('click', () => {
-                    els.fullProfileMainPhoto.src = src;
-                    els.fullProfileThumbs.querySelectorAll('.full-profile__thumb').forEach((el, i) => {
-                        el.classList.toggle('is-active', i === idx);
-                    });
-                });
-                els.fullProfileThumbs.appendChild(thumb);
-            });
-        }
+        renderFullProfileThumbs(photos);
 
         const nameParts = ['Профіль', candidate.display_name || '', candidate.age || '']
             .filter((part) => part !== '' && part !== null && part !== undefined);
         els.fullProfileName.textContent = nameParts.join(' ');
         els.fullProfileCity.textContent = candidate.city || '';
 
+        if (els.fullProfileZodiac) {
+            if (state.mode === 'dating' && candidate.zodiac) {
+                els.fullProfileZodiac.textContent = candidate.zodiac;
+                els.fullProfileZodiac.hidden = false;
+            } else {
+                els.fullProfileZodiac.textContent = '';
+                els.fullProfileZodiac.hidden = true;
+            }
+        }
+
         if (els.fullProfileMeta) {
-            const meta = [];
-            if (candidate.city) meta.push(candidate.city);
-            els.fullProfileMeta.innerHTML = meta
-                .map((label) => `<span class="full-profile__meta-chip">${escapeHtml(label)}</span>`)
-                .join('');
+            let meta = Array.isArray(candidate.meta) ? [...candidate.meta] : [];
+            if (state.mode === 'bff' && candidate.zodiac) {
+                const cityIdx = candidate.city ? meta.indexOf(candidate.city) : -1;
+                if (cityIdx >= 0) meta.splice(cityIdx + 1, 0, candidate.zodiac);
+                else meta.unshift(candidate.zodiac);
+            }
+            els.fullProfileMeta.innerHTML = renderFullProfileMeta(meta);
         }
 
         els.fullProfileBio.textContent = candidate.bio || 'Користувач ще не додав опис профілю.';
@@ -1198,7 +1252,7 @@
 
         if (els.fullProfileSkills) {
             if (state.mode === 'bff') {
-                const skillsHtml = renderFullProfileSkills(candidate.tags);
+                const skillsHtml = renderFullProfileSkills(candidate.skills);
                 els.fullProfileSkills.innerHTML = skillsHtml;
                 els.fullProfileSkills.hidden = !skillsHtml;
             } else {

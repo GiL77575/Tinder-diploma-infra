@@ -10,7 +10,7 @@ from django.utils import timezone
 from matching.models import Match
 from messaging.models import Conversation, Message
 from profiles.models import SearchMode
-from profiles.services import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES
+from profiles.services import MAX_PHOTO_BYTES, resolve_image_content_type
 
 PHOTO_PREVIEW = '📷 Фото'
 
@@ -218,9 +218,7 @@ def mark_conversation_read(conversation, viewer):
 
 def save_chat_image(conversation_id, user_id, uploaded_file):
     """Завантажує фото чату в Cloudinary або локально; повертає (public_id, url)."""
-    content_type = getattr(uploaded_file, 'content_type', '') or ''
-    if content_type not in ALLOWED_PHOTO_TYPES:
-        raise ValueError('Фото має бути JPEG, PNG або WebP.')
+    resolve_image_content_type(uploaded_file)
     if uploaded_file.size > MAX_PHOTO_BYTES:
         raise ValueError('Фото має бути не більше 5 МБ.')
 
