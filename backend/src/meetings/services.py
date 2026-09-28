@@ -1,7 +1,10 @@
 """Бізнес-логіка зустрічей: CRUD, join/leave, серіалізація."""
 
+import uuid
 from datetime import datetime
+from pathlib import Path
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -9,6 +12,7 @@ from django.utils.dateparse import parse_datetime
 
 from meetings.models import Meeting, MeetingParticipant, MeetingStatus
 from messaging.models import Conversation
+from profiles.services import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES
 
 
 class MeetingError(Exception):
@@ -128,11 +132,57 @@ def serialize_meeting(meeting, viewer):
         'chat_closes_at': meeting.chat_closes_at.isoformat(),
         'is_chat_open': meeting.is_chat_open,
         'participant_count': meeting.participants.count(),
+        'photo_url': meeting.photo_url or '',
     }
 
 
+def save_meeting_photo(meeting_id, uploaded_file):
+    """Завантажує обкладинку зустрічі в Cloudinary або локально; (public_id, url)."""
+    content_type = getattr(uploaded_file, 'content_type', '') or ''
+    if content_type not in ALLOWED_PHOTO_TYPES:
+        raise MeetingError('Фото має бути JPEG, PNG або WebP.')
+    if uploaded_file.size > MAX_PHOTO_BYTES:
+        raise MeetingError('Фото має бути не більше 5 МБ.')
+
+    if settings.CLOUDINARY_URL:
+        import cloudinary.uploader
+
+        result = cloudinary.uploader.upload(
+            uploaded_file,
+            folder=f'crushme/meetings/{meeting_id}',
+            resource_type='image',
+        )
+        return result['public_id'], result['secure_url']
+
+    ext = Path(uploaded_file.name or '').suffix.lower()
+    if ext not in {'.jpg', '.jpeg', '.png', '.webp'}:
+        ext = '.jpg'
+    filename = f'{uuid.uuid4().hex}{ext}'
+    rel_dir = Path('meetings') / str(meeting_id)
+    dest_dir = Path(settings.MEDIA_ROOT) / rel_dir
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / filename
+    uploaded_file.seek(0)
+    with dest.open('wb+') as out:
+        for chunk in uploaded_file.chunks():
+            out.write(chunk)
+    public_id = f'local:{rel_dir.as_posix()}/{filename}'
+    url = f'{settings.MEDIA_URL}{rel_dir.as_posix()}/{filename}'
+    return public_id, url
+
+
+def _attach_meeting_photo(meeting, uploaded):
+    if not uploaded:
+        return meeting
+    public_id, url = save_meeting_photo(meeting.id, uploaded)
+    meeting.photo_public_id = public_id
+    meeting.photo_url = url
+    meeting.save(update_fields=['photo_public_id', 'photo_url', 'updated_at'])
+    return meeting
+
+
 @transaction.atomic
-def create_meeting(user, *, title, location, description, starts_at):
+def create_meeting(user, *, title, location, description, starts_at, photo=None):
     starts_at = _parse_starts_at(starts_at)
     title, location, description, starts_at = _validate_meeting_fields(
         title, location, description, starts_at,
@@ -154,11 +204,11 @@ def create_meeting(user, *, title, location, description, starts_at):
 
     MeetingParticipant.objects.create(meeting=meeting, user=user)
     Conversation.objects.create(meeting=meeting, match=None)
-    return meeting
+    return _attach_meeting_photo(meeting, photo)
 
 
 @transaction.atomic
-def update_meeting(user, meeting, *, title, location, description, starts_at):
+def update_meeting(user, meeting, *, title, location, description, starts_at, photo=None):
     meeting.ensure_completed_if_due()
     if meeting.creator_id != user.id:
         raise MeetingError('Редагувати зустріч може лише автор.', status=403)
@@ -174,7 +224,7 @@ def update_meeting(user, meeting, *, title, location, description, starts_at):
     meeting.description = description
     meeting.starts_at = starts_at
     meeting.save(update_fields=['title', 'location', 'description', 'starts_at', 'updated_at'])
-    return meeting
+    return _attach_meeting_photo(meeting, photo)
 
 
 @transaction.atomic

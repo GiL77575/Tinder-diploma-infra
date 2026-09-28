@@ -32,6 +32,8 @@ class Meeting(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    photo_url = models.CharField(max_length=500, blank=True, default='')
+    photo_public_id = models.CharField(max_length=255, blank=True, default='')
 
     class Meta:
         ordering = ['-created_at']

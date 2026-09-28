@@ -29,6 +29,8 @@
 
     const SWIPE_DRAG_THRESHOLD = 110;
     const SWIPE_MOVE_DEADZONE = 6;
+    const HTTP_SYNC_MS = 2500;
+    const WS_MAX_RECONNECT = 8;
 
     const body = document.body;
     const urlMode = new URLSearchParams(window.location.search).get('mode');
@@ -42,6 +44,9 @@
         wsReconnectAttempts: 0,
         inboxWs: null,
         inboxReconnectAttempts: 0,
+        httpSyncTimer: null,
+        httpSyncBusy: false,
+        dialogsFingerprint: '',
         activeMatchId: null,
         activeMeetingId: null,
         myMeeting: null,
@@ -167,7 +172,9 @@
         );
         if (options.method && options.method !== 'GET') {
             opts.headers['X-CSRFToken'] = csrfToken();
-            opts.headers['Content-Type'] = 'application/json';
+            if (!(options.body instanceof FormData)) {
+                opts.headers['Content-Type'] = 'application/json';
+            }
         }
         let response;
         try {
@@ -433,6 +440,10 @@
                 setMeetingSelectValue('month', '', '');
                 if (els.meetingFormDate) els.meetingFormDate.value = '';
             }
+            if (editing && meeting.photo_url && els.meetingFormPhotoPreview) {
+                els.meetingFormPhotoPreview.style.backgroundImage = `url("${meeting.photo_url}")`;
+                els.meetingFormPhotoPreview.classList.add('has-preview');
+            }
         }
         if (els.meetingFormOverlay) {
             els.meetingFormOverlay.hidden = false;
@@ -541,9 +552,19 @@
         }
         try {
             const url = meetingId ? API.meetingEdit(meetingId) : API.meetingCreate;
+            const form = new FormData();
+            form.append('title', payload.title);
+            form.append('location', payload.location);
+            form.append('description', payload.description);
+            form.append('date', date);
+            form.append('time', payload.time);
+            const photoFile = els.meetingFormPhoto && els.meetingFormPhoto.files && els.meetingFormPhoto.files[0];
+            if (photoFile) {
+                form.append('photo', photoFile, photoFile.name || 'photo.jpg');
+            }
             const data = await apiFetch(url, {
                 method: 'POST',
-                body: JSON.stringify(payload),
+                body: form,
             });
             state.myMeeting = data.meeting;
             updateMeetingSidebarButtons();
@@ -593,6 +614,7 @@
         });
         applyModeChrome(mode);
         closeChat();
+        state.dialogsFingerprint = '';
         loadMatches();
         loadDialogs();
         loadNextCandidate();
@@ -760,7 +782,19 @@
     async function loadDialogs() {
         try {
             const data = await apiFetch(API.conversations(state.mode));
-            renderDialogs(data.conversations || []);
+            const dialogs = data.conversations || [];
+            const fingerprint = dialogs.map((dialog) => [
+                dialog.conversation_id,
+                dialog.last_message_preview,
+                dialog.last_message_time,
+                dialog.unread_count,
+                dialog.last_message_is_mine,
+                dialog.last_message_is_read,
+                dialog.avatar_url || '',
+            ].join(':')).join('|');
+            if (fingerprint === state.dialogsFingerprint) return;
+            state.dialogsFingerprint = fingerprint;
+            renderDialogs(dialogs);
         } catch (err) {
             console.error('Не вдалося завантажити діалоги', err);
         }
@@ -883,6 +917,7 @@
 
     function onCardPointerDown(event) {
         if (!event.isPrimary || !state.activeCandidateUserId || state.animating || state.swipeLocked) return;
+        if (event.target.closest('button, a, .swipe-card__meeting-btn, .swipe-card__info')) return;
         cardDrag.dragging = true;
         cardDrag.moved = false;
         cardDrag.pointerId = event.pointerId;
@@ -989,9 +1024,9 @@
                     <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
                     <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
                 </div>
+                ${candidate.active_meeting_id ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>' : ''}
                 ${renderCandidateTags(candidate.tags, 3)}
             </div>
-            ${candidate.active_meeting_id ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>' : ''}
         `;
 
         if (photos.length > 1) {
@@ -1015,10 +1050,20 @@
 
         const meetingBtn = els.swipeCard.querySelector('#candidate-meeting-btn');
         if (meetingBtn) {
-            meetingBtn.addEventListener('click', (evt) => {
+            const stopCardSwipe = (evt) => {
                 evt.stopPropagation();
+                if (typeof evt.stopImmediatePropagation === 'function') evt.stopImmediatePropagation();
+            };
+            meetingBtn.addEventListener('pointerdown', (evt) => {
+                stopCardSwipe(evt);
+                evt.preventDefault();
+            }, true);
+            meetingBtn.addEventListener('pointerup', stopCardSwipe, true);
+            meetingBtn.addEventListener('click', (evt) => {
+                stopCardSwipe(evt);
+                evt.preventDefault();
                 openMeetingById(candidate.active_meeting_id);
-            });
+            }, true);
         }
 
         els.swipeActions.hidden = false;
@@ -1270,7 +1315,12 @@
             state.activeMatchId = data.match_id || state.activeMatchId;
             els.chatPartnerName.textContent = `${data.other_user.display_name}${data.other_user.age ? ' ' + data.other_user.age : ''}`;
             if (data.kind === 'meeting') {
-                els.chatPartnerAvatar.hidden = true;
+                if (data.other_user.avatar_url) {
+                    els.chatPartnerAvatar.src = data.other_user.avatar_url;
+                    els.chatPartnerAvatar.hidden = false;
+                } else {
+                    els.chatPartnerAvatar.hidden = true;
+                }
                 els.chatPartnerStatus.textContent = data.is_chat_open ? 'Груповий чат зустрічі' : 'Чат закрито';
             } else {
                 els.chatPartnerAvatar.src = data.other_user.avatar_url || avatarPlaceholder();
@@ -1307,6 +1357,7 @@
         els.chatView.hidden = true;
         els.discoverView.hidden = false;
         els.chatMessages.innerHTML = '';
+        pauseRealtimeIfNeeded();
         highlightActiveDialog(null);
         if (els.chatUnmatchBtn) els.chatUnmatchBtn.hidden = false;
         if (els.chatLeaveMeetingBtn) els.chatLeaveMeetingBtn.hidden = true;
@@ -1634,13 +1685,98 @@
         els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
     }
 
-    function connectWebSocket(conversationId) {
+    function mergeMessagesFromHttp(messages) {
+        const seen = new Set();
+        messages.forEach((message) => {
+            if (!message.id) return;
+            seen.add(String(message.id));
+            const existing = els.chatMessages.querySelector(`[data-message-id="${message.id}"]`);
+            if (!existing) {
+                appendMessage(message);
+                return;
+            }
+            const sameText = (message.text || '') === (existing.dataset.text || '');
+            const wasEdited = Boolean(existing.querySelector('.msg__edited'));
+            if (!sameText || Boolean(message.is_edited) !== wasEdited) {
+                updateMessageBubble(message);
+            }
+        });
+        els.chatMessages.querySelectorAll('[data-message-id]').forEach((el) => {
+            const id = el.dataset.messageId;
+            if (seen.has(id)) return;
+            if (String(state.pendingDeleteMessageId) === id) return;
+            removeMessageBubble(id);
+        });
+    }
+
+    function websocketIsOpen(socket) {
+        return Boolean(socket && socket.readyState === WebSocket.OPEN);
+    }
+
+    function realtimeOk() {
+        const inboxOk = websocketIsOpen(state.inboxWs);
+        const chatOk = !state.conversationId || websocketIsOpen(state.ws);
+        return inboxOk && chatOk;
+    }
+
+    function wsUrl(path) {
         const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const ws = new WebSocket(`${proto}://${window.location.host}/ws/chat/${conversationId}/`);
+        return `${proto}://${window.location.host}${path}`;
+    }
+
+    function startHttpSync() {
+        if (state.httpSyncTimer) return;
+        state.httpSyncTimer = setInterval(syncChatOverHttp, HTTP_SYNC_MS);
+        syncChatOverHttp();
+    }
+
+    function stopHttpSync() {
+        if (!state.httpSyncTimer) return;
+        clearInterval(state.httpSyncTimer);
+        state.httpSyncTimer = null;
+    }
+
+    function pauseRealtimeIfNeeded() {
+        if (realtimeOk()) {
+            stopHttpSync();
+            return;
+        }
+        startHttpSync();
+    }
+
+    async function syncChatOverHttp() {
+        if (realtimeOk()) {
+            stopHttpSync();
+            return;
+        }
+        if (state.httpSyncBusy || document.hidden) return;
+        state.httpSyncBusy = true;
+        try {
+            await loadDialogs();
+            if (!state.conversationId) return;
+            const conversationId = state.conversationId;
+            const data = await apiFetch(API.conversationMessages(conversationId));
+            if (state.conversationId !== conversationId) return;
+            mergeMessagesFromHttp(data.messages || []);
+        } catch (err) {
+            /* WS уже впав; наступний тік спробує знову */
+        } finally {
+            state.httpSyncBusy = false;
+        }
+    }
+
+    function connectWebSocket(conversationId) {
+        const ws = new WebSocket(wsUrl(`/ws/chat/${conversationId}/`));
         state.ws = ws;
 
         ws.onopen = () => {
             state.wsReconnectAttempts = 0;
+            if (els.chatPartnerStatus && els.chatPartnerStatus.textContent === "Проблема зі з'єднанням…") {
+                els.chatPartnerStatus.textContent = state.chatKind === 'meeting'
+                    ? 'Груповий чат зустрічі'
+                    : (state.mode === 'dating' ? 'Романтика' : 'Дружба');
+            }
+            pauseRealtimeIfNeeded();
         };
 
         ws.onmessage = (event) => {
@@ -1660,7 +1796,8 @@
                 els.chatPartnerStatus.textContent = 'Немає доступу до чату';
                 return;
             }
-            if (state.conversationId === conversationId && state.wsReconnectAttempts < 5) {
+            pauseRealtimeIfNeeded();
+            if (state.conversationId === conversationId && state.wsReconnectAttempts < WS_MAX_RECONNECT) {
                 state.wsReconnectAttempts += 1;
                 setTimeout(() => {
                     if (state.conversationId === conversationId) connectWebSocket(conversationId);
@@ -1669,7 +1806,9 @@
         };
 
         ws.onerror = () => {
-            els.chatPartnerStatus.textContent = "Проблема зі з'єднанням…";
+            if (websocketIsOpen(ws)) {
+                els.chatPartnerStatus.textContent = "Проблема зі з'єднанням…";
+            }
         };
     }
 
@@ -1682,12 +1821,12 @@
     }
 
     function connectInboxSocket() {
-        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const ws = new WebSocket(`${proto}://${window.location.host}/ws/inbox/`);
+        const ws = new WebSocket(wsUrl('/ws/inbox/'));
         state.inboxWs = ws;
 
         ws.onopen = () => {
             state.inboxReconnectAttempts = 0;
+            pauseRealtimeIfNeeded();
         };
 
         ws.onmessage = (event) => {
@@ -1704,8 +1843,11 @@
             if (state.inboxWs !== ws) return;
             state.inboxWs = null;
             if (event.code === 4001) return;
+            pauseRealtimeIfNeeded();
+            const delay = state.inboxReconnectAttempts >= WS_MAX_RECONNECT
+                ? 15000
+                : Math.min(1000 * (state.inboxReconnectAttempts + 1), 10000);
             state.inboxReconnectAttempts += 1;
-            const delay = Math.min(1000 * state.inboxReconnectAttempts, 10000);
             setTimeout(connectInboxSocket, delay);
         };
 
@@ -2064,4 +2206,8 @@
 
     setMode(state.mode, { silent: true });
     connectInboxSocket();
+    startHttpSync();
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) pauseRealtimeIfNeeded();
+    });
 })();

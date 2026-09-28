@@ -46,6 +46,21 @@ def _starts_at_from_payload(payload):
     raise MeetingError('Вкажіть дату і час зустрічі.')
 
 
+def _meeting_payload(request):
+    """JSON або multipart (коли додають фото зустрічі)."""
+    content_type = request.content_type or ''
+    if request.FILES or content_type.startswith('multipart/'):
+        return {
+            'title': request.POST.get('title'),
+            'location': request.POST.get('location'),
+            'description': request.POST.get('description'),
+            'date': request.POST.get('date'),
+            'time': request.POST.get('time'),
+            'starts_at': request.POST.get('starts_at'),
+        }
+    return _json_body(request)
+
+
 @login_required
 @require_GET
 def meeting_mine_view(request):
@@ -60,13 +75,14 @@ def meeting_mine_view(request):
 @require_POST
 def meeting_create_view(request):
     try:
-        payload = _json_body(request)
+        payload = _meeting_payload(request)
         meeting = create_meeting(
             request.user,
             title=payload.get('title'),
             location=payload.get('location'),
             description=payload.get('description'),
             starts_at=_starts_at_from_payload(payload),
+            photo=request.FILES.get('photo'),
         )
     except MeetingError as exc:
         return _error_response(exc)
@@ -89,7 +105,7 @@ def meeting_edit_view(request, meeting_id):
     if meeting is None:
         return JsonResponse({'error': 'Зустріч не знайдено.'}, status=404)
     try:
-        payload = _json_body(request)
+        payload = _meeting_payload(request)
         meeting = update_meeting(
             request.user,
             meeting,
@@ -97,6 +113,7 @@ def meeting_edit_view(request, meeting_id):
             location=payload.get('location'),
             description=payload.get('description'),
             starts_at=_starts_at_from_payload(payload),
+            photo=request.FILES.get('photo'),
         )
     except MeetingError as exc:
         return _error_response(exc)

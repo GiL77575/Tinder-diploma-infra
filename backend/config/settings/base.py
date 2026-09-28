@@ -157,13 +157,14 @@ else:
         },
     }
 
+# За nginx HTTPS Origin = https://crush.pp.ua; список лише розширює дозволені джерела.
 CSRF_TRUSTED_ORIGINS = [
-    o.strip()
-    for o in os.environ.get(
+    origin.strip()
+    for origin in os.environ.get(
         'CSRF_TRUSTED_ORIGINS',
-        'http://127.0.0.1:8000,http://localhost:8000,https://crush.pp.ua,https://10.239.88.223',
+        'http://127.0.0.1:8000,http://localhost:8000,https://crush.pp.ua,http://crush.pp.ua,https://10.239.88.223',
     ).split(',')
-    if o.strip()
+    if origin.strip()
 ]
 
 LOGIN_URL = '/login/'

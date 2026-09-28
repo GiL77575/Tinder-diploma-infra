@@ -150,7 +150,7 @@ def _meeting_dialog_item(conversation, user, messages):
         'other_user_id': None,
         'other_display_name': meeting.title,
         'other_age': None,
-        'avatar_url': None,
+        'avatar_url': meeting.photo_url or None,
         'last_message_preview': (
             message_preview(last_message.text, last_message.image_url)
             if last_message else ''
@@ -428,7 +428,7 @@ def conversation_header_payload(conversation, viewer):
                 'id': None,
                 'display_name': meeting.title,
                 'age': None,
-                'avatar_url': None,
+                'avatar_url': meeting.photo_url or None,
             },
             'meeting': {
                 'id': meeting.id,

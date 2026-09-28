@@ -477,34 +477,6 @@ body.page-chat[data-mode="bff"] .dialogs-panel {
     background: #fef3f2;
 }
 
-.swipe-card__meeting-btn {
-    position: absolute;
-    right: 10px;
-    top: 588px;
-    z-index: 3;
-    box-sizing: border-box;
-    width: 143px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    border-radius: 11px;
-    background: #FFFDE4;
-    font-family: var(--font-body);
-    font-weight: 400;
-    font-size: 16px;
-    line-height: 20px;
-    color: #161616;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    cursor: pointer;
-}
-
-.swipe-card__meeting-btn:hover {
-    filter: brightness(0.97);
-}
-
 .meeting-overlay {
     position: fixed;
     inset: 0;
@@ -1487,6 +1459,7 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
 .swipe-card__photo {
     position: absolute;
     inset: 0;
+    z-index: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1533,10 +1506,14 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
 
 .swipe-card__info {
     position: relative;
-    z-index: 1;
-    padding: 0 80px 48px 89px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 36px 40px 89px;
     width: 100%;
     box-sizing: border-box;
+    pointer-events: auto;
 }
 
 /* Вертикальна риска зліва тепер на спільному враппері імені й опису,
@@ -1568,13 +1545,53 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-width: 460px;
+    width: 100%;
+    max-width: 420px;
     padding-left: 15px;
-    margin-top: 14px;
+    margin-top: 0;
+    pointer-events: none;
 }
 
 .swipe-card .swipe-card__tags .swipe-card__tag:nth-child(n+4) {
     display: none;
+}
+
+.swipe-card__meeting-btn {
+    position: relative;
+    z-index: 5;
+    align-self: flex-end;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 132px;
+    height: 34px;
+    margin: 8px 8px 12px 0;
+    padding: 0 14px;
+    border: 1px solid #161616;
+    border-radius: 11px;
+    background: #ffee00;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 20px;
+    color: #161616;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(22, 22, 22, 0.12);
+}
+
+.swipe-card__meeting-btn:hover,
+.swipe-card__meeting-btn:focus-visible {
+    filter: none;
+    background: #ffe44d;
+    outline: none;
+}
+
+.swipe-card__meeting-btn:active {
+    transform: scale(0.98);
 }
 
 .swipe-card__tag {

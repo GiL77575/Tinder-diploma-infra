@@ -3,6 +3,7 @@
 import json
 from datetime import timedelta
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -18,7 +19,13 @@ from meetings.services import (
     update_meeting,
 )
 from messaging.models import Conversation
-from messaging.services import create_message, is_participant
+from messaging.services import conversations_for_user, create_message, is_participant
+from profiles.models import SearchMode
+
+TINY_PNG = bytes.fromhex(
+    '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489'
+    '0000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082'
+)
 
 
 def _future_starts_at(hours=24):
@@ -213,6 +220,29 @@ class MeetingApiTests(TestCase):
         mine = self.client.get(reverse('meeting_mine'))
         self.assertEqual(mine.status_code, 200)
         self.assertEqual(mine.json()['meeting']['id'], meeting_id)
+
+    def test_create_with_photo_appears_in_chat_list(self):
+        starts = (_future_starts_at()).astimezone(timezone.get_current_timezone())
+        photo = SimpleUploadedFile('cover.png', TINY_PNG, content_type='image/png')
+        response = self.client.post(
+            reverse('meeting_create'),
+            data={
+                'title': 'На каву',
+                'location': 'Київ, центр',
+                'description': 'Зустрінемось на каву',
+                'date': starts.strftime('%Y-%m-%d'),
+                'time': starts.strftime('%H:%M'),
+                'photo': photo,
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        photo_url = response.json()['meeting']['photo_url']
+        self.assertTrue(photo_url)
+        self.assertTrue(photo_url.startswith('/media/meetings/'))
+        dialogs = conversations_for_user(self.alice, SearchMode.BFF)
+        self.assertEqual(len(dialogs), 1)
+        self.assertEqual(dialogs[0]['avatar_url'], photo_url)
+        self.assertEqual(dialogs[0]['kind'], 'meeting')
 
     def test_join_chat_endpoint(self):
         meeting = _create_meeting(self.alice)

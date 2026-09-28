@@ -3,7 +3,7 @@
 import asyncio
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, TransactionTestCase
+from django.test import SimpleTestCase, TestCase, TransactionTestCase
 from django.urls import reverse
 
 from matching.services import record_swipe
@@ -330,6 +330,16 @@ class InboxConsumerTests(TransactionTestCase):
             await alice_chat.disconnect()
 
         asyncio.run(scenario())
+
+
+class AsgiWebsocketRoutingTests(SimpleTestCase):
+    """Прод чатиться лише якщо ASGI знає протокол websocket — не WSGI/gunicorn."""
+
+    def test_asgi_app_routes_websocket_protocol(self):
+        from config.asgi import application
+
+        self.assertIn('websocket', application.application_mapping)
+        self.assertIn('http', application.application_mapping)
 
 
 class MessageEditDeleteTests(TestCase):
