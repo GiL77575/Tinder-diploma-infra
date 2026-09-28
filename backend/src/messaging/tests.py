@@ -173,6 +173,50 @@ class DialogListOrderingTests(TestCase):
         bff_items = conversations_for_user(self.alice, SearchMode.BFF)
         self.assertEqual(len(bff_items), 1)
         self.assertEqual(len(dating_items), 2)
+        self.assertTrue(all(item['mode'] == SearchMode.DATING for item in dating_items))
+        self.assertTrue(all(item['mode'] == SearchMode.BFF for item in bff_items))
+        self.assertEqual(bff_items[0]['match_id'], friend_match.id)
+        dating_match_ids = {item['match_id'] for item in dating_items}
+        self.assertIn(self.match_bob.id, dating_match_ids)
+        self.assertNotIn(friend_match.id, dating_match_ids)
+
+    def test_meeting_chats_never_appear_in_dating_dialogs(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from meetings.services import create_meeting
+
+        meeting = create_meeting(
+            self.alice,
+            title='Виставка в музеї',
+            location='Київ',
+            description='Йдемо на виставку',
+            starts_at=timezone.now() + timedelta(hours=24),
+        )
+        dating_items = conversations_for_user(self.alice, SearchMode.DATING)
+        bff_items = conversations_for_user(self.alice, SearchMode.BFF)
+
+        self.assertFalse(any(item['kind'] == 'meeting' for item in dating_items))
+        self.assertFalse(any(item.get('meeting_id') == meeting.id for item in dating_items))
+        self.assertTrue(any(
+            item['kind'] == 'meeting' and item['meeting_id'] == meeting.id
+            for item in bff_items
+        ))
+        self.assertFalse(any(item['kind'] == 'match' for item in bff_items))
+
+        self.client.force_login(self.alice)
+        dating_resp = self.client.get(reverse('conversations_list'), {'mode': 'dating'})
+        bff_resp = self.client.get(reverse('conversations_list'), {'mode': 'bff'})
+        self.assertEqual(dating_resp.status_code, 200)
+        self.assertEqual(bff_resp.status_code, 200)
+        self.assertFalse(any(
+            item['kind'] == 'meeting' for item in dating_resp.json()['conversations']
+        ))
+        self.assertTrue(any(
+            item['kind'] == 'meeting' and item['other_display_name'] == 'Виставка в музеї'
+            for item in bff_resp.json()['conversations']
+        ))
 
 
 class ChatConsumerTests(TransactionTestCase):

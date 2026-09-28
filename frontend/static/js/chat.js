@@ -47,6 +47,9 @@
         httpSyncTimer: null,
         httpSyncBusy: false,
         dialogsFingerprint: '',
+        dialogsLoadId: 0,
+        matchesLoadId: 0,
+        candidateLoadId: 0,
         activeMatchId: null,
         activeMeetingId: null,
         myMeeting: null,
@@ -252,9 +255,11 @@
         }
         try {
             const data = await apiFetch(API.meetingMine);
+            if (state.mode !== 'bff') return;
             state.myMeeting = data.meeting || null;
         } catch (err) {
             console.error('Не вдалося завантажити зустріч', err);
+            if (state.mode !== 'bff') return;
             state.myMeeting = null;
         }
         updateMeetingSidebarButtons();
@@ -519,6 +524,7 @@
     }
 
     async function openMeetingById(meetingId) {
+        if (state.mode !== 'bff') return;
         try {
             const data = await apiFetch(API.meetingDetail(meetingId));
             renderMeetingView(data.meeting);
@@ -528,6 +534,7 @@
     }
 
     async function joinMeetingAndOpen(meetingId) {
+        if (state.mode !== 'bff') return;
         try {
             const data = await apiFetch(API.meetingJoin(meetingId), { method: 'POST' });
             closeMeetingOverlays();
@@ -539,6 +546,7 @@
     }
 
     async function openMeetingChat(meeting) {
+        if (state.mode !== 'bff') return;
         let conversationId = meeting.conversation_id;
         if (!conversationId) {
             const data = await apiFetch(API.meetingChat(meeting.id));
@@ -725,9 +733,13 @@
     });
 
     async function loadMatches() {
+        const loadId = ++state.matchesLoadId;
+        const mode = state.mode;
         try {
-            const data = await apiFetch(API.matches(state.mode));
-            renderMatches(data.matches || []);
+            const data = await apiFetch(API.matches(mode));
+            if (loadId !== state.matchesLoadId || state.mode !== mode) return;
+            const matches = (data.matches || []).filter((match) => !match.mode || match.mode === mode);
+            renderMatches(matches);
         } catch (err) {
             console.error('Не вдалося завантажити метчі', err);
         }
@@ -810,12 +822,23 @@
         });
     }
 
+    function dialogBelongsToMode(dialog, mode) {
+        if (dialog.mode) return dialog.mode === mode;
+        if (dialog.kind === 'meeting') return mode === 'bff';
+        return true;
+    }
+
     async function loadDialogs() {
+        const loadId = ++state.dialogsLoadId;
+        const mode = state.mode;
         try {
-            const data = await apiFetch(API.conversations(state.mode));
-            const dialogs = data.conversations || [];
+            const data = await apiFetch(API.conversations(mode));
+            if (loadId !== state.dialogsLoadId || state.mode !== mode) return;
+            const dialogs = (data.conversations || []).filter((dialog) => dialogBelongsToMode(dialog, mode));
             const fingerprint = dialogs.map((dialog) => [
                 dialog.conversation_id,
+                dialog.kind || '',
+                dialog.mode || '',
                 dialog.last_message_preview,
                 dialog.last_message_time,
                 dialog.unread_count,
@@ -846,6 +869,8 @@
             item.type = 'button';
             item.className = 'dialog-item';
             item.dataset.conversationId = dialog.conversation_id;
+            item.dataset.kind = dialog.kind || 'match';
+            item.dataset.mode = dialog.mode || (dialog.kind === 'meeting' ? 'bff' : state.mode);
             if (dialog.unread_count > 0) item.classList.add('has-unread');
             if (dialog.conversation_id === state.conversationId) item.classList.add('is-active');
 
@@ -872,6 +897,7 @@
             `;
             bindAvatarFallback(item.querySelector('.dialog-item__avatar'));
             item.addEventListener('click', () => {
+                if (!dialogBelongsToMode(dialog, state.mode)) return;
                 state.activeMatchId = dialog.match_id || null;
                 state.activeMeetingId = dialog.meeting_id || null;
                 openChat(dialog.conversation_id, {
@@ -886,12 +912,18 @@
         });
     }
 
-    function bumpDialogPreview(conversationId, preview, timeLabel, senderId) {
+    function bumpDialogPreview(conversationId, preview, timeLabel, senderId, mode) {
+        if (mode && mode !== state.mode) return;
         const cached = Array.from(els.dialogsList.querySelectorAll('.dialog-item'));
         const match = cached.find((el) => Number(el.dataset.conversationId) === Number(conversationId));
         const isMine = senderId === state.myUserId;
         const isOpenChat = state.conversationId === Number(conversationId);
         if (match) {
+            const itemMode = match.dataset.mode;
+            const itemKind = match.dataset.kind;
+            if ((itemMode && itemMode !== state.mode) || (itemKind === 'meeting' && state.mode !== 'bff')) {
+                return;
+            }
             const previewEl = match.querySelector('.dialog-item__preview');
             const timeEl = match.querySelector('.dialog-item__time');
             if (previewEl) previewEl.textContent = preview;
@@ -998,6 +1030,8 @@
     els.swipeCard.addEventListener('pointercancel', onCardPointerUp);
 
     async function loadNextCandidate() {
+        const loadId = ++state.candidateLoadId;
+        const mode = state.mode;
         state.swipeLocked = false;
         resetCardTransform();
         closeFullProfile();
@@ -1006,13 +1040,16 @@
         els.swipeActions.hidden = true;
         if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
         try {
-            const data = await apiFetch(API.discover(state.mode));
+            const data = await apiFetch(API.discover(mode));
+            if (loadId !== state.candidateLoadId || state.mode !== mode) return;
             renderCandidate(data.candidate);
         } catch (err) {
             try {
-                const data = await apiFetch(API.discover(state.mode));
+                const data = await apiFetch(API.discover(mode));
+                if (loadId !== state.candidateLoadId || state.mode !== mode) return;
                 renderCandidate(data.candidate);
             } catch (retryErr) {
+                if (loadId !== state.candidateLoadId || state.mode !== mode) return;
                 els.swipeCard.classList.add('is-empty');
                 els.swipeCard.innerHTML = `<div class="swipe-card__placeholder"><p>${escapeHtml(retryErr.message)}</p></div>`;
             }
@@ -1050,7 +1087,7 @@
         const sharedCount = state.mode === 'bff'
             ? sharedFromTags + sharedFromSkills
             : sharedFromTags;
-        const meetingBtnHtml = candidate.active_meeting_id
+        const meetingBtnHtml = (state.mode === 'bff' && candidate.active_meeting_id)
             ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>'
             : '';
         const matchesHtml = sharedCount
@@ -1337,6 +1374,7 @@
     }
 
     async function openConversationByMatch(match) {
+        if (match.mode && match.mode !== state.mode) return;
         state.activeMatchId = match.match_id;
         if (match.conversation_id) {
             openChat(match.conversation_id, {
@@ -1387,6 +1425,11 @@
         }
         try {
             const data = await apiFetch(API.conversationMessages(conversationId));
+            if (state.conversationId !== conversationId) return;
+            if (data.mode && data.mode !== state.mode) {
+                closeChat();
+                return;
+            }
             state.chatKind = data.kind || state.chatKind;
             state.activeMeetingId = data.meeting_id || state.activeMeetingId;
             state.activeMatchId = data.match_id || state.activeMatchId;
@@ -1942,11 +1985,17 @@
                         state.ws.send(JSON.stringify({ type: 'read' }));
                     }
                 }
-                bumpDialogPreview(payload.message.conversation_id, messagePreviewText(payload.message), payload.message.time_label, payload.message.sender_id);
+                bumpDialogPreview(
+                    payload.message.conversation_id,
+                    messagePreviewText(payload.message),
+                    payload.message.time_label,
+                    payload.message.sender_id,
+                    payload.mode,
+                );
                 break;
             case 'dialog_update':
                 if (payload.mode === state.mode) {
-                    bumpDialogPreview(payload.conversation_id, payload.preview, payload.time_label, payload.sender_id);
+                    bumpDialogPreview(payload.conversation_id, payload.preview, payload.time_label, payload.sender_id, payload.mode);
                 }
                 break;
             case 'message_edited':
@@ -1959,6 +2008,7 @@
                         messagePreviewText(payload.message),
                         payload.message.time_label,
                         payload.message.sender_id,
+                        payload.mode,
                     );
                 }
                 break;

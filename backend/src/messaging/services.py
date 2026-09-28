@@ -125,6 +125,7 @@ def _match_dialog_item(conversation, user, messages):
     return {
         'conversation_id': conversation.id,
         'kind': 'match',
+        'mode': conversation.match.mode,
         'match_id': conversation.match_id,
         'meeting_id': None,
         'other_user_id': other.id,
@@ -157,6 +158,7 @@ def _meeting_dialog_item(conversation, user, messages):
     return {
         'conversation_id': conversation.id,
         'kind': 'meeting',
+        'mode': SearchMode.BFF,
         'match_id': None,
         'meeting_id': meeting.id,
         'other_user_id': None,
@@ -176,12 +178,16 @@ def _meeting_dialog_item(conversation, user, messages):
 
 
 def conversations_for_user(user, mode):
-    """Список діалогів користувача в режимі: непрочитані спершу, потім свіжіші."""
+    """Список діалогів користувача в режимі: непрочитані спершу, потім свіжіші.
+
+    Dating — лише чати романтичних метчів. BFF — чати дружніх метчів і груп зустрічей.
+    Зустрічі ніколи не потрапляють у романтику, метчі одного режиму — в інший.
+    """
     items = []
 
     match_conversations = (
         Conversation.objects
-        .filter(match__mode=mode, match__isnull=False)
+        .filter(meeting__isnull=True, match__isnull=False, match__mode=mode)
         .filter(Q(match__user_a=user) | Q(match__user_b=user))
         .select_related('match', 'match__user_a', 'match__user_b')
         .prefetch_related('messages')
@@ -372,7 +378,11 @@ def broadcast_message_edited(conversation, message, editor):
     message_data = serialize_message(message, editor)
     _group_send(
         f'conversation_{conversation.id}',
-        {'type': 'chat.message_edited', 'message': message_data},
+        {
+            'type': 'chat.message_edited',
+            'message': message_data,
+            'mode': conversation.mode,
+        },
     )
     _notify_dialog_preview(conversation, editor, message)
     return message_data
@@ -397,7 +407,7 @@ def broadcast_new_message(conversation, message, sender):
     message_data = serialize_message(message, sender)
     _group_send(
         f'conversation_{conversation.id}',
-        {'type': 'chat.message', 'message': message_data},
+        {'type': 'chat.message', 'message': message_data, 'mode': conversation.mode},
     )
     dialog_event = _dialog_event(
         conversation,

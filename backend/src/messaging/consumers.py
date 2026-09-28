@@ -69,7 +69,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_send(
             self.conversation_group,
-            {'type': 'chat.message', 'message': message_data},
+            {
+                'type': 'chat.message',
+                'message': message_data,
+                'mode': conversation_meta['mode'],
+            },
         )
 
         dialog_event = {
@@ -104,6 +108,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'message',
             'message': message,
+            'mode': event.get('mode'),
         }))
 
     async def chat_read(self, event):
@@ -119,6 +124,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'message_edited',
             'message': message,
+            'mode': event.get('mode'),
         }))
 
     async def chat_message_deleted(self, event):
