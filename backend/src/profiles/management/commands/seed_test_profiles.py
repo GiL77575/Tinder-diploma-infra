@@ -7,13 +7,13 @@
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
-from profiles.management.commands.seed_demo_profiles import DEFAULT_LIKE_TARGET, PERSONAS
+from profiles.management.commands.seed_demo_profiles import DEFAULT_LIKE_TARGET
 
 
 class Command(BaseCommand):
     help = (
         'Безпечний аліас seed_demo_profiles --reset. '
-        'Стирає лише @crushme.test, Tyrion лишається.'
+        '20 Dating + 20 BFF зі зустрічами. Стирає лише @crushme.test.'
     )
 
     def add_arguments(self, parser):
@@ -29,5 +29,4 @@ class Command(BaseCommand):
             'seed_demo_profiles',
             like_target=options['like_target'],
             reset=True,
-            count=len(PERSONAS),
         )

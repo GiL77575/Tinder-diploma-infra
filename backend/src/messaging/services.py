@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from core.media import public_media_url
 from matching.models import Match
 from messaging.models import Conversation, Message
 from profiles.models import SearchMode
@@ -150,7 +151,7 @@ def _meeting_dialog_item(conversation, user, messages):
         'other_user_id': None,
         'other_display_name': meeting.title,
         'other_age': None,
-        'avatar_url': meeting.photo_url or None,
+        'avatar_url': public_media_url(meeting.photo_url) or None,
         'last_message_preview': (
             message_preview(last_message.text, last_message.image_url)
             if last_message else ''
@@ -426,7 +427,7 @@ def conversation_header_payload(conversation, viewer):
                 'id': None,
                 'display_name': meeting.title,
                 'age': None,
-                'avatar_url': meeting.photo_url or None,
+                'avatar_url': public_media_url(meeting.photo_url) or None,
             },
             'meeting': {
                 'id': meeting.id,

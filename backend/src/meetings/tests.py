@@ -238,11 +238,43 @@ class MeetingApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         photo_url = response.json()['meeting']['photo_url']
         self.assertTrue(photo_url)
-        self.assertTrue(photo_url.startswith('/media/meetings/'))
+        self.assertTrue(
+            photo_url.startswith('/app/media/meetings/')
+            or photo_url.startswith('/media/meetings/')
+            or photo_url.startswith('http'),
+        )
+        photo_resp = self.client.get(photo_url)
+        self.assertEqual(photo_resp.status_code, 200)
         dialogs = conversations_for_user(self.alice, SearchMode.BFF)
         self.assertEqual(len(dialogs), 1)
         self.assertEqual(dialogs[0]['avatar_url'], photo_url)
         self.assertEqual(dialogs[0]['kind'], 'meeting')
+
+    def test_create_with_octet_stream_photo_still_saves(self):
+        starts = (_future_starts_at()).astimezone(timezone.get_current_timezone())
+        photo = SimpleUploadedFile('cover.png', TINY_PNG, content_type='application/octet-stream')
+        response = self.client.post(
+            reverse('meeting_create'),
+            data={
+                'title': 'В кіно',
+                'location': 'Київ, центр',
+                'description': 'Йдемо в кіно',
+                'date': starts.strftime('%Y-%m-%d'),
+                'time': starts.strftime('%H:%M'),
+                'photo': photo,
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        photo_url = response.json()['meeting']['photo_url']
+        self.assertTrue(photo_url)
+        self.assertEqual(self.client.get(photo_url).status_code, 200)
+
+    def test_legacy_media_url_is_rewritten_for_chat(self):
+        meeting = _create_meeting(self.alice, title='В кіно')
+        meeting.photo_url = '/media/meetings/42/cover.jpg'
+        meeting.save(update_fields=['photo_url', 'updated_at'])
+        dialogs = conversations_for_user(self.alice, SearchMode.BFF)
+        self.assertEqual(dialogs[0]['avatar_url'], '/app/media/meetings/42/cover.jpg')
 
     def test_join_chat_endpoint(self):
         meeting = _create_meeting(self.alice)

@@ -1,10 +1,10 @@
 """Кореневі URL: адмінка, Google OAuth, профіль, акаунт."""
 
-from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.generic import RedirectView
-from django.views.static import serve as media_serve
+
+from core.media import serve_user_media
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,19 +18,12 @@ urlpatterns = [
     ),
     path('accounts/', include('allauth.urls')),
     path('profile/', include('profiles.urls')),
+    # Перед include('app/'): nginx на проді часто 403 на /media/, тож файли
+    # віддаємо через Django за шляхом, який уже проксується на бекенд.
+    path('app/media/<path:path>', serve_user_media, name='user_media'),
     path('app/', include('matching.urls')),
     path('app/', include('messaging.urls')),
     path('app/', include('meetings.urls')),
     path('', include('accounts.urls')),
-]
-
-# Локальні фото (профіль/зустріч), коли CLOUDINARY_URL порожній.
-# django.conf.urls.static.static() у DEBUG=False нічого не додає — тому явно.
-# У проді краще віддавати nginx'ом (deploy/nginx-crushme.conf).
-urlpatterns += [
-    re_path(
-        r'^media/(?P<path>.*)$',
-        media_serve,
-        {'document_root': settings.MEDIA_ROOT},
-    ),
+    re_path(r'^media/(?P<path>.*)$', serve_user_media),
 ]

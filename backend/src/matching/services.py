@@ -95,8 +95,16 @@ def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     if viewer_mode is None or candidate_mode is None:
         return None
 
-    viewer_goals = set(filter(None, (viewer_mode.looking_for or '').split(',')))
-    candidate_goals = set(filter(None, (candidate_mode.looking_for or '').split(',')))
+    viewer_goals = {
+        part.strip()
+        for part in (viewer_mode.looking_for or '').split(',')
+        if part.strip()
+    }
+    candidate_goals = {
+        part.strip()
+        for part in (candidate_mode.looking_for or '').split(',')
+        if part.strip()
+    }
     if not viewer_goals or not (viewer_goals & candidate_goals):
         return None
 

@@ -1,4 +1,4 @@
-"""Тестові анкети для демо: портрети, живі описи, лайки Tyrion.
+"""Демо-анкети: 20 Dating + 20 BFF з зустрічами. Усі лайкають Tyrion.
 
 Не чіпає акаунти поза @crushme.test (Tyrion, адміни — цілі).
 
@@ -20,6 +20,7 @@ from profiles.models import (
     BffLookingFor,
     Gender,
     LookingFor,
+    ModerationStatus,
     Orientation,
     Photo,
     PhotoStatus,
@@ -37,6 +38,8 @@ DEMO_EMAIL_SUFFIX = '@crushme.test'
 DEMO_PASSWORD = 'DemoPass!1'
 DEFAULT_LIKE_TARGET = 'tyrion@gmail.com'
 TARGET_CITY = 'Київ'
+DEFAULT_DATING_COUNT = 20
+DEFAULT_BFF_COUNT = 20
 FALLBACK_INTERESTS = ['Кава', 'Кіно', 'Музика', 'Подорожі', 'Спорт']
 FALLBACK_HOBBIES = [('Малювання', 'novice'), ('Біг', 'intermediate')]
 FALLBACK_LANGUAGES = [('Англійська', 'b2')]
@@ -50,14 +53,32 @@ PHOTO_SETS = {
     'dmytro': ['dmytro-1.jpg', 'dmytro-2.jpg', 'dmytro-3.jpg'],
 }
 
-PERSONAS = [
+# 20 унікальних людей; фото циклюються з 6 портретних сетів.
+NAME_POOL = [
+    {'slug': 'sofia', 'display_name': 'Софія', 'gender': Gender.FEMALE, 'age': 24, 'job': 'Дизайнерка', 'photo': 'sofia'},
+    {'slug': 'maria', 'display_name': 'Марія', 'gender': Gender.FEMALE, 'age': 26, 'job': 'Викладачка', 'photo': 'maria'},
+    {'slug': 'anna', 'display_name': 'Анна', 'gender': Gender.FEMALE, 'age': 23, 'job': 'Маркетологиня', 'photo': 'anna'},
+    {'slug': 'olena', 'display_name': 'Олена', 'gender': Gender.FEMALE, 'age': 27, 'job': 'Аналітикиня', 'photo': 'maria'},
+    {'slug': 'iryna', 'display_name': 'Ірина', 'gender': Gender.FEMALE, 'age': 25, 'job': 'HR', 'photo': 'sofia'},
+    {'slug': 'nastya', 'display_name': 'Настя', 'gender': Gender.FEMALE, 'age': 22, 'job': 'Ілюстраторка', 'photo': 'anna'},
+    {'slug': 'katya', 'display_name': 'Катя', 'gender': Gender.FEMALE, 'age': 28, 'job': 'Журналістка', 'photo': 'maria'},
+    {'slug': 'yulia', 'display_name': 'Юля', 'gender': Gender.FEMALE, 'age': 24, 'job': 'Бариста', 'photo': 'sofia'},
+    {'slug': 'vika', 'display_name': 'Віка', 'gender': Gender.FEMALE, 'age': 26, 'job': 'Продюсерка', 'photo': 'anna'},
+    {'slug': 'dasha', 'display_name': 'Даша', 'gender': Gender.FEMALE, 'age': 23, 'job': 'Студентка', 'photo': 'maria'},
+    {'slug': 'maksym', 'display_name': 'Максим', 'gender': Gender.MALE, 'age': 25, 'job': 'Розробник', 'photo': 'maksym'},
+    {'slug': 'artem', 'display_name': 'Артем', 'gender': Gender.MALE, 'age': 27, 'job': 'Архітектор', 'photo': 'artem'},
+    {'slug': 'dmytro', 'display_name': 'Дмитро', 'gender': Gender.MALE, 'age': 24, 'job': 'Фотограф', 'photo': 'dmytro'},
+    {'slug': 'andriy', 'display_name': 'Андрій', 'gender': Gender.MALE, 'age': 26, 'job': 'Інженер', 'photo': 'maksym'},
+    {'slug': 'oleg', 'display_name': 'Олег', 'gender': Gender.MALE, 'age': 29, 'job': 'Менеджер', 'photo': 'artem'},
+    {'slug': 'taras', 'display_name': 'Тарас', 'gender': Gender.MALE, 'age': 23, 'job': 'Музикант', 'photo': 'dmytro'},
+    {'slug': 'bohdan', 'display_name': 'Богдан', 'gender': Gender.MALE, 'age': 28, 'job': 'Тренер', 'photo': 'maksym'},
+    {'slug': 'ivan', 'display_name': 'Іван', 'gender': Gender.MALE, 'age': 25, 'job': 'Юрист', 'photo': 'artem'},
+    {'slug': 'pavlo', 'display_name': 'Павло', 'gender': Gender.MALE, 'age': 22, 'job': 'Дизайнер', 'photo': 'dmytro'},
+    {'slug': 'denys', 'display_name': 'Денис', 'gender': Gender.MALE, 'age': 27, 'job': 'Кухар', 'photo': 'maksym'},
+]
+
+BIO_TEMPLATES = [
     {
-        'username': 'sofia',
-        'display_name': 'Софія',
-        'gender': Gender.FEMALE,
-        'age': 24,
-        'job': 'Дизайнерка',
-        'orientation': Orientation.STRAIGHT,
         'extra_interests': ['Мистецтво', 'Фотографія', 'Кава'],
         'dating_bio': (
             'Малюю інтерфейси вдень і людей у скетчбуку ввечері. '
@@ -70,12 +91,6 @@ PERSONAS = [
         ),
     },
     {
-        'username': 'maria',
-        'display_name': 'Марія',
-        'gender': Gender.FEMALE,
-        'age': 26,
-        'job': 'Викладачка',
-        'orientation': Orientation.STRAIGHT,
         'extra_interests': ['Читання', 'Кулінарія', 'Подорожі'],
         'dating_bio': (
             'Вчу літературу, готую для друзів і збираю квитки в нові міста. '
@@ -88,12 +103,6 @@ PERSONAS = [
         ),
     },
     {
-        'username': 'anna',
-        'display_name': 'Анна',
-        'gender': Gender.FEMALE,
-        'age': 23,
-        'job': 'Маркетологиня',
-        'orientation': Orientation.STRAIGHT,
         'extra_interests': ['Танці', 'Музика', 'Фітнес'],
         'dating_bio': (
             'Спорт зранку, плейлисти ввечері. Шукаю людину, з якою можна '
@@ -105,12 +114,6 @@ PERSONAS = [
         ),
     },
     {
-        'username': 'maksym',
-        'display_name': 'Максим',
-        'gender': Gender.MALE,
-        'age': 25,
-        'job': 'Розробник',
-        'orientation': Orientation.STRAIGHT,
         'extra_interests': ['Ігри', 'Технології', 'Спорт'],
         'dating_bio': (
             'Пишу код, після роботи — спорт або настілки. Ціную чесність, '
@@ -122,12 +125,6 @@ PERSONAS = [
         ),
     },
     {
-        'username': 'artem',
-        'display_name': 'Артем',
-        'gender': Gender.MALE,
-        'age': 27,
-        'job': 'Архітектор',
-        'orientation': Orientation.STRAIGHT,
         'extra_interests': ['Мистецтво', 'Кіно', 'Подорожі'],
         'dating_bio': (
             'Малюю міста й люблю кіно, де нічого не вибухає перші сорок хвилин. '
@@ -139,12 +136,6 @@ PERSONAS = [
         ),
     },
     {
-        'username': 'dmytro',
-        'display_name': 'Дмитро',
-        'gender': Gender.MALE,
-        'age': 24,
-        'job': 'Фотограф',
-        'orientation': Orientation.STRAIGHT,
         'extra_interests': ['Фотографія', 'Подорожі', 'Музика'],
         'dating_bio': (
             'Фотографую місто на світанку, коли ще ніхто не позує. '
@@ -159,33 +150,46 @@ PERSONAS = [
 ]
 
 MEETING_TEMPLATES = [
-    {
-        'title': 'Кава і розмова англійською',
-        'place': 'кав’ярня в центрі',
-        'description': (
-            'Невимушена зустріч: попрактикуємо мову і просто познайомимось. '
-            'Приходь, навіть якщо трохи хвилюєшся — без оцінок і драми.'
-        ),
-        'hour': 18,
-    },
-    {
-        'title': 'Малювання в парку',
-        'place': 'парк',
-        'description': (
-            'Беремо скетчбуки і малюємо все, що бачимо. Можна просто посидіти '
-            'поруч, потеревенити і поділитися порадами.'
-        ),
-        'hour': 16,
-    },
-    {
-        'title': 'Настілки ввечері',
-        'place': 'антикафе',
-        'description': (
-            'Колода ігор уже є. Шукаю 2–4 людей на кооперативну партію '
-            'і теплі розмови допізна.'
-        ),
-        'hour': 19,
-    },
+    {'title': 'Кава і розмова англійською', 'place': 'кав’ярня в центрі', 'hour': 18,
+     'description': 'Невимушена зустріч: попрактикуємо мову і просто познайомимось.'},
+    {'title': 'Малювання в парку', 'place': 'парк', 'hour': 16,
+     'description': 'Беремо скетчбуки і малюємо все, що бачимо. Можна просто посидіти поруч.'},
+    {'title': 'Настілки ввечері', 'place': 'антикафе', 'hour': 19,
+     'description': 'Колода ігор уже є. Шукаю 2–4 людей на кооперативну партію.'},
+    {'title': 'Вечір кіно', 'place': 'кінотеатр', 'hour': 20,
+     'description': 'Йдемо на вечірній сеанс і після — коротко обговорити, що сподобалось.'},
+    {'title': 'Прогулянка набережною', 'place': 'набережна', 'hour': 17,
+     'description': 'Неспішна прогулянка, кава з собою і розмови без порядку денного.'},
+    {'title': 'Ранкова пробіжка', 'place': 'парк', 'hour': 8,
+     'description': 'Легкий темп, можна йти пішки. Головне — вийти з дому.'},
+    {'title': 'Настільний теніс', 'place': 'спортклуб', 'hour': 18,
+     'description': 'Пара партій і чай після. Рівень будь-який.'},
+    {'title': 'Книжковий клуб', 'place': 'книгарня', 'hour': 19,
+     'description': 'Коротко про улюблені книжки. Можна прийти навіть без прочитаного.'},
+    {'title': 'Фотопрогулянка', 'place': 'поділ', 'hour': 16,
+     'description': 'Шукаємо цікаве світло у дворах. Камера чи телефон — як зручно.'},
+    {'title': 'Настілки і чай', 'place': 'антикафе', 'hour': 15,
+     'description': 'Кооператив на денний час. Буде тепло і без поспіху.'},
+    {'title': 'Велопрогулянка', 'place': 'гідропарк', 'hour': 11,
+     'description': 'Кілька кілометрів рівним темпом і пікнік на траві.'},
+    {'title': 'Мовний обмін', 'place': 'кав’ярня', 'hour': 18,
+     'description': 'По 20 хвилин українською та англійською. Без оцінок.'},
+    {'title': 'Настілки: мафія', 'place': 'антикафе', 'hour': 20,
+     'description': 'Класика на вечір. Шукаю 4–8 людей, новачкам теж раді.'},
+    {'title': 'Виставка в музеї', 'place': 'музей', 'hour': 14,
+     'description': 'Дивимось експозицію і після — кава з враженнями.'},
+    {'title': 'Настільний футбол', 'place': 'бар', 'hour': 19,
+     'description': 'Кілька партій і розмови. Можна приходити компанією.'},
+    {'title': 'Йога в парку', 'place': 'парк', 'hour': 9,
+     'description': 'Короткий сет на килимках. Килимок матиму з собою запасний.'},
+    {'title': 'Настілки: квіз', 'place': 'паб', 'hour': 19,
+     'description': 'Командна вікторина. Приходь навіть якщо не все знаєш.'},
+    {'title': 'Вечір настілок', 'place': 'коворкінг', 'hour': 18,
+     'description': 'Після роботи — партія і чай. Місця за столом є.'},
+    {'title': 'Скетч у кав’ярні', 'place': 'кав’ярня', 'hour': 17,
+     'description': 'Малюємо людей і чашки. Можна просто посидіти поруч.'},
+    {'title': 'Нічна прогулянка', 'place': 'центр', 'hour': 21,
+     'description': 'Тихе місто після дощу. Йдемо повільно і багато говоримо.'},
 ]
 
 
@@ -209,13 +213,17 @@ def _unique(names):
     return result
 
 
-def _tag(category, name):
-    return Tag.objects.filter(category=category, name=name).first()
+def _ensure_tag(category, name):
+    name = (name or '').strip()
+    if not name:
+        return None
+    tag, _ = Tag.objects.get_or_create(category=category, name=name)
+    return tag
 
 
 class Command(BaseCommand):
     help = (
-        'Створює 6 показових анкет з портретами й описами. '
+        'Створює 20 анкет Dating і 20 анкет BFF з зустрічами. '
         'Усі лайкають --like-target (за замовчуванням tyrion@gmail.com). '
         'Видаляє лише користувачів @crushme.test.'
     )
@@ -225,13 +233,19 @@ class Command(BaseCommand):
             '--like-target',
             dest='like_target',
             default=DEFAULT_LIKE_TARGET,
-            help='Email, якому ВСІ демо-анкети ставлять лайк у Dating і BFF.',
+            help='Email, якому всі демо-анкети ставлять лайк.',
         )
         parser.add_argument(
-            '--count',
+            '--dating-count',
             type=int,
-            default=len(PERSONAS),
-            help=f'Скільки анкет (за замовчуванням {len(PERSONAS)}).',
+            default=DEFAULT_DATING_COUNT,
+            help=f'Скільки анкет романтики (за замовчуванням {DEFAULT_DATING_COUNT}).',
+        )
+        parser.add_argument(
+            '--bff-count',
+            type=int,
+            default=DEFAULT_BFF_COUNT,
+            help=f'Скільки анкет дружби зі зустрічами (за замовчуванням {DEFAULT_BFF_COUNT}).',
         )
         parser.add_argument(
             '--reset',
@@ -246,7 +260,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         like_target_email = (options['like_target'] or DEFAULT_LIKE_TARGET).strip()
-        count = max(1, options['count'])
+        dating_count = max(0, options['dating_count'])
+        bff_count = max(0, options['bff_count'])
         meetings_only = options['meetings_only']
         target_user = None
 
@@ -272,26 +287,31 @@ class Command(BaseCommand):
 
         created = 0
         liked = 0
+        personas = []
 
         if not meetings_only:
             compat = self._compat_from_target(target_user)
+            personas = (
+                [self._persona_at(index, SearchMode.DATING) for index in range(dating_count)]
+                + [self._persona_at(index, SearchMode.BFF) for index in range(bff_count)]
+            )
             with transaction.atomic():
-                for index in range(count):
-                    persona = self._persona_at(index)
+                for persona in personas:
                     user = self._upsert_user(persona)
                     profile = self._upsert_profile(user, persona, compat)
                     self._upsert_modes(profile, persona, compat)
                     self._upsert_tags(profile, persona, compat)
                     self._set_photos(profile, persona)
                     created += 1
-                    liked += self._like_target(user, target_user)
+                    liked += self._like_target(user, target_user, persona['track'])
 
             self.stdout.write(self.style.SUCCESS(
-                f'Створено/оновлено {created} анкет. Пароль: {DEMO_PASSWORD}',
+                f'Створено/оновлено {created} анкет '
+                f'({dating_count} романтика, {bff_count} дружба). Пароль: {DEMO_PASSWORD}',
             ))
             self.stdout.write(
-                f'Усі поставили лайк {like_target_email} '
-                f'({liked} записів Dating+BFF). Лайкни у відповідь — буде метч.',
+                f'Усі поставили лайк {like_target_email} ({liked} записів). '
+                'Лайкни у відповідь — буде метч.',
             )
             self.stdout.write(
                 f'Сумісність зі стрічкою: місто «{compat["city"]}», '
@@ -306,9 +326,9 @@ class Command(BaseCommand):
                     'ті самі інтереси/хобі/мови (або будь-які 2 інтереси з каталогу '
                     'та хобі+мову з тим самим рівнем).',
                 ))
-            for index in range(count):
-                persona = self._persona_at(index)
-                self.stdout.write(f'  {persona["display_name"]}  {persona["email"]}')
+            for persona in personas:
+                label = 'BFF' if persona['track'] == SearchMode.BFF else 'Dating'
+                self.stdout.write(f'  [{label}] {persona["display_name"]}  {persona["email"]}')
 
         meetings_created = self._ensure_bff_meetings()
         if meetings_created:
@@ -318,17 +338,27 @@ class Command(BaseCommand):
         else:
             self.stdout.write('Нових зустрічей не додано: вони вже є або немає BFF-демо.')
 
-    def _persona_at(self, index):
-        base = PERSONAS[index % len(PERSONAS)]
-        persona = dict(base)
-        cycle = index // len(PERSONAS)
-        if cycle == 0:
-            persona['email'] = f'{base["username"]}{DEMO_EMAIL_SUFFIX}'
-        else:
-            suffix = cycle + 1
-            persona['username'] = f'{base["username"]}{suffix}'
-            persona['email'] = f'{base["username"]}{suffix}{DEMO_EMAIL_SUFFIX}'
-        return persona
+    def _persona_at(self, index, track):
+        person = NAME_POOL[index % len(NAME_POOL)]
+        bio = BIO_TEMPLATES[index % len(BIO_TEMPLATES)]
+        cycle = index // len(NAME_POOL)
+        slug = person['slug'] if cycle == 0 else f'{person["slug"]}{cycle + 1}'
+        prefix = 'bff' if track == SearchMode.BFF else 'dating'
+        display = person['display_name'] if cycle == 0 else f'{person["display_name"]} {cycle + 1}'
+        return {
+            'track': track,
+            'slug': person['photo'],
+            'username': f'{prefix}_{slug}'[:30],
+            'email': f'{prefix}-{slug}{DEMO_EMAIL_SUFFIX}',
+            'display_name': display,
+            'gender': person['gender'],
+            'age': person['age'],
+            'job': person['job'],
+            'orientation': Orientation.STRAIGHT,
+            'extra_interests': bio['extra_interests'],
+            'dating_bio': bio['dating_bio'],
+            'bff_bio': bio['bff_bio'],
+        }
 
     def _compat_from_target(self, target_user):
         profile = getattr(target_user, 'profile', None)
@@ -428,22 +458,27 @@ class Command(BaseCommand):
                 'job': persona.get('job') or '',
                 'city': compat['city'],
                 'is_discoverable': True,
-                'active_mode': SearchMode.DATING,
+                'moderation_status': ModerationStatus.APPROVED,
+                'active_mode': persona['track'],
             },
         )
         return profile
 
     def _upsert_modes(self, profile, persona, compat):
-        ProfileMode.objects.update_or_create(
-            profile=profile,
-            mode=SearchMode.DATING,
-            defaults={
-                'bio': persona['dating_bio'],
-                'looking_for': LookingFor.EVERYONE,
-                'min_age': 18,
-                'max_age': 40,
-            },
-        )
+        if persona['track'] == SearchMode.DATING:
+            ProfileMode.objects.filter(profile=profile, mode=SearchMode.BFF).delete()
+            ProfileMode.objects.update_or_create(
+                profile=profile,
+                mode=SearchMode.DATING,
+                defaults={
+                    'bio': persona['dating_bio'],
+                    'looking_for': LookingFor.EVERYONE,
+                    'min_age': 18,
+                    'max_age': 40,
+                },
+            )
+            return
+        ProfileMode.objects.filter(profile=profile, mode=SearchMode.DATING).delete()
         ProfileMode.objects.update_or_create(
             profile=profile,
             mode=SearchMode.BFF,
@@ -457,20 +492,24 @@ class Command(BaseCommand):
 
     def _upsert_tags(self, profile, persona, compat):
         profile.profile_tags.all().delete()
-        dating_names = _unique(list(compat['dating_interests']) + list(persona.get('extra_interests') or []))
-        for name in dating_names:
-            tag = _tag(TagCategory.INTEREST, name)
-            if tag is None:
-                continue
-            ProfileTag.objects.create(
-                profile=profile, tag=tag, mode=SearchMode.DATING,
+        if persona['track'] == SearchMode.DATING:
+            dating_names = _unique(
+                list(compat['dating_interests']) + list(persona.get('extra_interests') or []),
             )
+            for name in dating_names:
+                tag = _ensure_tag(TagCategory.INTEREST, name)
+                if tag is None:
+                    continue
+                ProfileTag.objects.create(
+                    profile=profile, tag=tag, mode=SearchMode.DATING,
+                )
+            return
         seen_hobbies = set()
         for name, level in compat['bff_hobbies']:
             if name in seen_hobbies:
                 continue
             seen_hobbies.add(name)
-            tag = _tag(TagCategory.HOBBY, name)
+            tag = _ensure_tag(TagCategory.HOBBY, name)
             if tag is None:
                 continue
             ProfileTag.objects.create(
@@ -481,7 +520,7 @@ class Command(BaseCommand):
             if name in seen_langs:
                 continue
             seen_langs.add(name)
-            tag = _tag(TagCategory.LANGUAGE, name)
+            tag = _ensure_tag(TagCategory.LANGUAGE, name)
             if tag is None:
                 continue
             ProfileTag.objects.create(
@@ -489,10 +528,8 @@ class Command(BaseCommand):
             )
 
     def _set_photos(self, profile, persona):
-        slug = persona['username']
-        while slug and slug[-1].isdigit():
-            slug = slug[:-1]
-        filenames = PHOTO_SETS.get(slug) or PHOTO_SETS['sofia']
+        photo_key = persona.get('slug') or 'sofia'
+        filenames = PHOTO_SETS.get(photo_key) or PHOTO_SETS['sofia']
         profile.photos.all().delete()
         for order, filename in enumerate(filenames):
             Photo.objects.create(
@@ -504,47 +541,44 @@ class Command(BaseCommand):
                 status=PhotoStatus.APPROVED,
             )
 
-    def _like_target(self, user, target_user):
+    def _like_target(self, user, target_user, mode):
         if user.id == target_user.id:
             return 0
-        created = 0
-        for mode in (SearchMode.DATING, SearchMode.BFF):
-            Like.objects.update_or_create(
-                from_user=user,
-                to_user=target_user,
-                mode=mode,
-                defaults={'is_positive': True},
-            )
-            created += 1
-        return created
+        Like.objects.update_or_create(
+            from_user=user,
+            to_user=target_user,
+            mode=mode,
+            defaults={'is_positive': True},
+        )
+        return 1
 
     def _ensure_bff_meetings(self):
         candidates = list(
             User.objects
             .filter(email__iendswith=DEMO_EMAIL_SUFFIX)
+            .filter(email__istartswith='bff-')
             .filter(profile__modes__mode=SearchMode.BFF)
             .select_related('profile')
             .distinct()
             .order_by('id')
         )
-        without_meeting = []
-        already = 0
-        for user in candidates:
-            if get_active_meeting(user) is not None:
-                already += 1
-            else:
-                without_meeting.append(user)
-        want = min(len(MEETING_TEMPLATES), max(0, len(candidates)))
-        need = max(0, want - already)
         created = 0
-        for index, user in enumerate(without_meeting[:need]):
+        for index, user in enumerate(candidates):
+            if get_active_meeting(user) is not None:
+                continue
             template = MEETING_TEMPLATES[index % len(MEETING_TEMPLATES)]
             city = (getattr(user.profile, 'city', None) or TARGET_CITY).strip() or TARGET_CITY
-            starts_at = self._future_meeting_start(days_ahead=3 + index, hour=template['hour'])
+            starts_at = self._future_meeting_start(
+                days_ahead=2 + (index % 12),
+                hour=template['hour'],
+            )
+            title = template['title']
+            if index >= len(MEETING_TEMPLATES):
+                title = f'{template["title"]} ({index + 1})'
             try:
                 create_meeting(
                     user,
-                    title=template['title'],
+                    title=title,
                     location=f'{city}, {template["place"]}',
                     description=template['description'],
                     starts_at=starts_at,

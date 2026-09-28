@@ -1385,7 +1385,7 @@ body.page-chat[data-mode="bff"] .dialog-item.is-active {
 .swipe-card {
     position: relative;
     width: 100%;
-    height: 722px;
+    height: 768px;
     border-radius: var(--chat-radius-card);
     background: linear-gradient(160deg, #e7d5ff, #f9f2ff);
     overflow: hidden;
@@ -1485,8 +1485,8 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
     left: 0;
     right: 0;
     bottom: 0;
-    height: 287px;
-    background: linear-gradient(180deg, rgba(217, 217, 217, 0) 0%, #f4f4f4 75.96%);
+    height: 333px;
+    background: linear-gradient(180deg, rgba(217, 217, 217, 0) 0%, #f4f4f4 66.83%);
     border-radius: 0 0 91px 92px;
     border-bottom: 2px solid #8c8c8c;
     pointer-events: none;
@@ -1496,8 +1496,7 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
 .swipe-card__dots {
     position: absolute;
     top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 109px;
     display: flex;
     gap: 20px;
     width: 369px;
@@ -1518,81 +1517,69 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
 }
 
 .swipe-card__info {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 0 36px 40px 89px;
-    width: 100%;
-    box-sizing: border-box;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
-/* Вертикальна риска зліва на спільному враппері імені й опису */
-.swipe-card__top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    width: 100%;
-}
-
-.swipe-card__header {
-    flex: 1;
-    min-width: 0;
-    border-left: 3px solid #161616;
-    padding-left: 14px;
+.swipe-card__text {
+    position: absolute;
+    left: 89px;
+    top: 615px;
+    width: 410px;
 }
 
 .swipe-card__name {
-    display: inline-block;
+    margin: 0 0 10px;
+    border-left: 3px solid #161616;
+    padding-left: 12px;
     font-family: var(--font-body);
     font-style: italic;
     font-weight: 700;
     font-size: 32px;
     line-height: 40px;
-    color: var(--crush-ink);
-    margin-bottom: 6px;
+    color: #161616;
 }
 
 .swipe-card__bio {
-    font-size: 20px;
-    line-height: 25px;
-    color: var(--crush-ink);
-    max-width: 410px;
-}
-
-.swipe-card__tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-    max-width: 100%;
+    margin: 0;
     padding-left: 15px;
-    margin-top: 0;
-    pointer-events: none;
-    box-sizing: border-box;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 30px;
+    color: #161616;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-.swipe-card .swipe-card__tags .swipe-card__tag:nth-child(n+4) {
-    display: none;
+.swipe-card__aside {
+    position: absolute;
+    left: 434px;
+    top: 588px;
+    width: 143px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    pointer-events: auto;
 }
 
 .swipe-card__meeting-btn {
-    position: relative;
-    z-index: 5;
-    flex-shrink: 0;
     box-sizing: border-box;
     width: 143px;
     height: 30px;
     margin: 0;
-    padding: 0 12px;
+    padding: 0;
     border: none;
     border-radius: 11px;
     background: #fffde4;
     font-family: var(--font-body);
+    font-style: normal;
     font-weight: 400;
     font-size: 16px;
     line-height: 20px;
@@ -1602,13 +1589,11 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
     justify-content: center;
     text-align: center;
     cursor: pointer;
-    pointer-events: auto;
 }
 
 .swipe-card__meeting-btn:hover,
 .swipe-card__meeting-btn:focus-visible {
-    filter: none;
-    background: #ffe44d;
+    background: #fff6b8;
     outline: none;
 }
 
@@ -1616,23 +1601,16 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
     transform: scale(0.98);
 }
 
-.swipe-card__tag {
-    padding: 6px 14px;
-    border-radius: 999px;
-    font-size: 14px;
-    line-height: 18px;
-    color: var(--crush-ink);
-    background: rgba(255, 255, 255, 0.55);
-    border: 1px solid rgba(22, 22, 22, 0.15);
-    backdrop-filter: blur(2px);
-}
-
-/* Спільні хобі/інтереси/мови з профілем переглядача — підсвічуються акцентом. */
-.swipe-card__tag--shared {
-    color: #ffffff;
-    background: var(--chat-accent, #e866ff);
-    border-color: transparent;
-    font-weight: 600;
+.swipe-card__matches {
+    margin: 0;
+    width: 143px;
+    font-family: var(--font-body);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 25px;
+    text-align: center;
+    color: #9747ff;
 }
 
 /* Стрілка з правого боку картки — розгортає повний профіль (усі фото + опис) */
@@ -1691,9 +1669,24 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
     padding: 0;
 }
 
-.swipe-btn svg {
+.swipe-btn svg,
+.swipe-btn__icon {
     width: 46px;
     height: 46px;
+    display: block;
+}
+
+.swipe-btn__icon--star {
+    display: none;
+    transform: scaleX(-1);
+}
+
+body.page-chat[data-mode="bff"] .swipe-btn__icon--heart {
+    display: none;
+}
+
+body.page-chat[data-mode="bff"] .swipe-btn__icon--star {
+    display: block;
 }
 
 .swipe-btn:hover {
@@ -1707,6 +1700,11 @@ body.page-chat[data-mode="bff"] .swipe-card.is-empty {
 
 .swipe-btn--like {
     background: var(--crush-purple);
+    border: none;
+}
+
+body.page-chat[data-mode="bff"] .swipe-btn--like {
+    background: #9747ff;
     border: none;
 }
 

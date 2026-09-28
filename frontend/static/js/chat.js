@@ -210,10 +210,21 @@
         );
     }
 
+    function bindAvatarFallback(img) {
+        if (!img || img.dataset.fallbackBound) return;
+        img.dataset.fallbackBound = '1';
+        img.addEventListener('error', () => {
+            img.src = avatarPlaceholder();
+        });
+    }
+
     function applyModeChrome(mode) {
         body.dataset.mode = mode;
         if (els.dialogsTitle) {
             els.dialogsTitle.textContent = mode === 'bff' ? 'Діалоги/Групи' : 'Діалоги';
+        }
+        if (els.likeBtn) {
+            els.likeBtn.setAttribute('aria-label', mode === 'bff' ? 'Додати до друзів' : 'Подобається');
         }
         if (els.meetingActions) {
             els.meetingActions.hidden = mode !== 'bff';
@@ -574,8 +585,13 @@
             form.append('description', payload.description);
             form.append('date', date);
             form.append('time', payload.time);
-            const photoFile = els.meetingFormPhoto && els.meetingFormPhoto.files && els.meetingFormPhoto.files[0];
+            let photoFile = els.meetingFormPhoto && els.meetingFormPhoto.files && els.meetingFormPhoto.files[0];
             if (photoFile) {
+                try {
+                    photoFile = await prepareChatPhoto(photoFile);
+                } catch (err) {
+                    /* HEIC/інший формат: шлемо оригінал, сервер перевірить тип */
+                }
                 form.append('photo', photoFile, photoFile.name || 'photo.jpg');
             }
             const data = await apiFetch(url, {
@@ -849,11 +865,12 @@
             }
 
             item.innerHTML = `
-                <img class="dialog-item__avatar" src="${dialog.avatar_url || avatarPlaceholder()}" alt="" onerror="this.onerror=null;this.src='${avatarPlaceholder()}'">
+                <img class="dialog-item__avatar" src="${escapeHtml(dialog.avatar_url || avatarPlaceholder())}" alt="">
                 <span class="dialog-item__name">${escapeHtml(dialog.other_display_name)}${dialog.other_age ? ' ' + dialog.other_age : ''}</span>
                 ${metaRight}
                 <span class="dialog-item__preview">${escapeHtml(dialog.last_message_preview) || 'Скажіть привіт!'}</span>
             `;
+            bindAvatarFallback(item.querySelector('.dialog-item__avatar'));
             item.addEventListener('click', () => {
                 state.activeMatchId = dialog.match_id || null;
                 state.activeMeetingId = dialog.meeting_id || null;
@@ -932,7 +949,7 @@
 
     function onCardPointerDown(event) {
         if (!event.isPrimary || !state.activeCandidateUserId || state.animating || state.swipeLocked) return;
-        if (event.target.closest('button, a, .swipe-card__meeting-btn, .swipe-card__info')) return;
+        if (event.target.closest('button, a, .swipe-card__meeting-btn')) return;
         cardDrag.dragging = true;
         cardDrag.moved = false;
         cardDrag.pointerId = event.pointerId;
@@ -1002,21 +1019,14 @@
         }
     }
 
-    function renderCandidateTags(tags, limit) {
-        if (!tags || !tags.length) return '';
-        const visible = Number.isFinite(limit) ? tags.slice(0, limit) : tags;
-        const chips = visible.map((tag) => {
-            const label = tag.level ? `${tag.name} · ${tag.level}` : tag.name;
-            const sharedClass = tag.is_shared ? ' swipe-card__tag--shared' : '';
-            return `<span class="swipe-card__tag${sharedClass}">${escapeHtml(label)}</span>`;
-        }).join('');
-        return `<div class="swipe-card__tags">${chips}</div>`;
-    }
-
-    function candidateSwipeTags(candidate) {
-        if (candidate.tags && candidate.tags.length) return candidate.tags;
-        if (candidate.skills && candidate.skills.length) return candidate.skills;
-        return [];
+    function formatMatchCount(count) {
+        const n = Number(count) || 0;
+        const mod10 = n % 10;
+        const mod100 = n % 100;
+        let word = 'співпадінь';
+        if (mod10 === 1 && mod100 !== 11) word = 'співпадіння';
+        else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) word = 'співпадіння';
+        return `${n} ${word}`;
     }
 
     function renderCandidate(candidate) {
@@ -1035,20 +1045,27 @@
         els.swipeCard.classList.remove('is-empty');
         const photos = candidate.photos && candidate.photos.length ? candidate.photos : [avatarPlaceholder()];
         const dots = photos.map((_, idx) => `<span class="swipe-card__dot ${idx === 0 ? 'is-active' : ''}"></span>`).join('');
+        const sharedCount = (candidate.tags || []).filter((tag) => tag.is_shared).length;
+        const meetingBtnHtml = candidate.active_meeting_id
+            ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>'
+            : '';
+        const matchesHtml = sharedCount
+            ? `<p class="swipe-card__matches">${escapeHtml(formatMatchCount(sharedCount))}</p>`
+            : '';
 
         els.swipeCard.innerHTML = `
             <img class="swipe-card__photo" src="${photos[0]}" alt="${escapeHtml(candidate.display_name)}">
             ${photos.length > 1 ? `<div class="swipe-card__dots">${dots}</div>` : ''}
             <div class="swipe-card__gradient"></div>
             <div class="swipe-card__info">
-                <div class="swipe-card__top">
-                    <div class="swipe-card__header">
-                        <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
-                        <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
-                    </div>
-                    ${candidate.active_meeting_id ? '<button type="button" class="swipe-card__meeting-btn" id="candidate-meeting-btn">Зустріч</button>' : ''}
+                <div class="swipe-card__text">
+                    <h2 class="swipe-card__name">${escapeHtml(candidate.display_name)} ${candidate.age || ''}</h2>
+                    <p class="swipe-card__bio">${escapeHtml(candidate.bio) || (candidate.city ? escapeHtml(candidate.city) : '')}</p>
                 </div>
-                ${renderCandidateTags(candidateSwipeTags(candidate), 3)}
+                <div class="swipe-card__aside">
+                    ${meetingBtnHtml}
+                    ${matchesHtml}
+                </div>
             </div>
         `;
 
@@ -1355,11 +1372,13 @@
         els.chatMessages.innerHTML = '<p class="chat-empty-state">Завантаження історії…</p>';
         if (hint) {
             els.chatPartnerName.textContent = `${hint.displayName || ''}${hint.age ? ' ' + hint.age : ''}`;
+            bindAvatarFallback(els.chatPartnerAvatar);
             if (hint.avatarUrl) {
                 els.chatPartnerAvatar.src = hint.avatarUrl;
                 els.chatPartnerAvatar.hidden = false;
             } else if (hint.kind === 'meeting') {
-                els.chatPartnerAvatar.hidden = true;
+                els.chatPartnerAvatar.src = avatarPlaceholder();
+                els.chatPartnerAvatar.hidden = false;
             }
         }
         try {
@@ -1368,12 +1387,14 @@
             state.activeMeetingId = data.meeting_id || state.activeMeetingId;
             state.activeMatchId = data.match_id || state.activeMatchId;
             els.chatPartnerName.textContent = `${data.other_user.display_name}${data.other_user.age ? ' ' + data.other_user.age : ''}`;
+            bindAvatarFallback(els.chatPartnerAvatar);
             if (data.kind === 'meeting') {
                 if (data.other_user.avatar_url) {
                     els.chatPartnerAvatar.src = data.other_user.avatar_url;
                     els.chatPartnerAvatar.hidden = false;
                 } else {
-                    els.chatPartnerAvatar.hidden = true;
+                    els.chatPartnerAvatar.src = avatarPlaceholder();
+                    els.chatPartnerAvatar.hidden = false;
                 }
                 els.chatPartnerStatus.textContent = data.is_chat_open ? 'Груповий чат зустрічі' : 'Чат закрито';
             } else {

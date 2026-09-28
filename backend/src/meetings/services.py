@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from core.media import public_media_url
 from meetings.models import Meeting, MeetingParticipant, MeetingStatus
 from messaging.models import Conversation
 from profiles.services import MAX_PHOTO_BYTES, resolve_image_content_type
@@ -132,8 +133,26 @@ def serialize_meeting(meeting, viewer):
         'chat_closes_at': meeting.chat_closes_at.isoformat(),
         'is_chat_open': meeting.is_chat_open,
         'participant_count': meeting.participants.count(),
-        'photo_url': meeting.photo_url or '',
+        'photo_url': public_media_url(meeting.photo_url),
     }
+
+
+def _save_meeting_photo_locally(meeting_id, uploaded_file):
+    ext = Path(uploaded_file.name or '').suffix.lower()
+    if ext not in {'.jpg', '.jpeg', '.png', '.webp'}:
+        ext = '.jpg'
+    filename = f'{uuid.uuid4().hex}{ext}'
+    rel_dir = Path('meetings') / str(meeting_id)
+    dest_dir = Path(settings.MEDIA_ROOT) / rel_dir
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / filename
+    uploaded_file.seek(0)
+    with dest.open('wb+') as out:
+        for chunk in uploaded_file.chunks():
+            out.write(chunk)
+    public_id = f'local:{rel_dir.as_posix()}/{filename}'
+    url = public_media_url(f'{settings.MEDIA_URL}{rel_dir.as_posix()}/{filename}')
+    return public_id, url
 
 
 def save_meeting_photo(meeting_id, uploaded_file):
@@ -148,28 +167,18 @@ def save_meeting_photo(meeting_id, uploaded_file):
     if settings.CLOUDINARY_URL:
         import cloudinary.uploader
 
-        result = cloudinary.uploader.upload(
-            uploaded_file,
-            folder=f'crushme/meetings/{meeting_id}',
-            resource_type='image',
-        )
-        return result['public_id'], result['secure_url']
+        try:
+            uploaded_file.seek(0)
+            result = cloudinary.uploader.upload(
+                uploaded_file,
+                folder=f'crushme/meetings/{meeting_id}',
+                resource_type='image',
+            )
+            return result['public_id'], result['secure_url']
+        except Exception:
+            uploaded_file.seek(0)
 
-    ext = Path(uploaded_file.name or '').suffix.lower()
-    if ext not in {'.jpg', '.jpeg', '.png', '.webp'}:
-        ext = '.jpg'
-    filename = f'{uuid.uuid4().hex}{ext}'
-    rel_dir = Path('meetings') / str(meeting_id)
-    dest_dir = Path(settings.MEDIA_ROOT) / rel_dir
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / filename
-    uploaded_file.seek(0)
-    with dest.open('wb+') as out:
-        for chunk in uploaded_file.chunks():
-            out.write(chunk)
-    public_id = f'local:{rel_dir.as_posix()}/{filename}'
-    url = f'{settings.MEDIA_URL}{rel_dir.as_posix()}/{filename}'
-    return public_id, url
+    return _save_meeting_photo_locally(meeting_id, uploaded_file)
 
 
 def _attach_meeting_photo(meeting, uploaded):
