@@ -2,25 +2,30 @@
 import os
 
 from django import template
+from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.templatetags.static import static
 
 register = template.Library()
 
+# Якщо mtime на сервері не змінився після pull — цей суфікс усе одно скидає кеш.
+ASSET_RELEASE = 'figma-card-20260928'
+
 
 @register.simple_tag
 def vstatic(path):
-    """{% vstatic 'css/home.css' %} — {% static %} + ?v=<mtime> для кешбастингу."""
+    """{% vstatic 'css/home.css' %} — {% static %} + ?v=<mtime>-release для кешбастингу."""
     url = static(path)
+    version_parts = [ASSET_RELEASE]
 
     absolute_path = finders.find(path)
-    if not absolute_path:
-        return url
-
-    try:
-        version = int(os.path.getmtime(absolute_path))
-    except OSError:
-        return url
+    if absolute_path:
+        try:
+            version_parts.append(str(int(os.path.getmtime(absolute_path))))
+        except OSError:
+            pass
+    elif getattr(settings, 'DEBUG', False):
+        version_parts.append('dev')
 
     separator = '&' if '?' in url else '?'
-    return f'{url}{separator}v={version}'
+    return f'{url}{separator}v={"-".join(version_parts)}'

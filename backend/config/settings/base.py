@@ -128,7 +128,9 @@ TIME_ZONE = 'Europe/Kyiv'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = '/static/'
+# /app/static/ — Django, бо nginx на crush.pp.ua alias /static/ на старі файли
+# (через це на проді лишались чіпи на картці і серце+зірка разом).
+STATIC_URL = '/app/static/'
 STATICFILES_DIRS = [
     PROJECT_ROOT / 'frontend' / 'static',
 ]
