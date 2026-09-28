@@ -20,7 +20,7 @@ from meetings.services import (
 )
 from messaging.models import Conversation
 from messaging.services import conversations_for_user, create_message, is_participant
-from profiles.models import SearchMode
+from profiles.models import Photo, PhotoStatus, SearchMode
 
 TINY_PNG = bytes.fromhex(
     '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489'
@@ -275,6 +275,20 @@ class MeetingApiTests(TestCase):
         meeting.save(update_fields=['photo_url', 'updated_at'])
         dialogs = conversations_for_user(self.alice, SearchMode.BFF)
         self.assertEqual(dialogs[0]['avatar_url'], '/app/media/meetings/42/cover.jpg')
+
+    def test_meeting_without_cover_uses_creator_photo_in_chat(self):
+        Photo.objects.create(
+            profile=self.alice.profile,
+            cloudinary_public_id='test:alice',
+            url='/static/img/test-portraits/sofia-1.jpg',
+            order=0,
+            is_primary=True,
+            status=PhotoStatus.APPROVED,
+        )
+        _create_meeting(self.alice, title='Мовний обмін')
+        dialogs = conversations_for_user(self.alice, SearchMode.BFF)
+        self.assertEqual(len(dialogs), 1)
+        self.assertEqual(dialogs[0]['avatar_url'], '/static/img/test-portraits/sofia-1.jpg')
 
     def test_join_chat_endpoint(self):
         meeting = _create_meeting(self.alice)

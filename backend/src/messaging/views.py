@@ -68,8 +68,8 @@ def _get_owned_conversation(request, conversation_id):
     try:
         conversation = Conversation.objects.select_related(
             'match', 'match__user_a', 'match__user_b',
-            'meeting',
-        ).get(pk=conversation_id)
+            'meeting', 'meeting__creator', 'meeting__creator__profile',
+        ).prefetch_related('meeting__creator__profile__photos').get(pk=conversation_id)
     except Conversation.DoesNotExist:
         return None
     if not can_access_conversation(request.user, conversation):

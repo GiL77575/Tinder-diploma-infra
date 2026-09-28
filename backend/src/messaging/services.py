@@ -65,7 +65,18 @@ def _avatar_url(user):
     if profile is None:
         return None
     photo = profile.photos.first()
-    return photo.url if photo else None
+    if photo is None or not photo.url:
+        return None
+    return public_media_url(photo.url) or photo.url
+
+
+def _meeting_avatar_url(meeting):
+    """Обкладинка зустрічі; якщо її немає — фото організатора."""
+    cover = public_media_url(meeting.photo_url)
+    if cover:
+        return cover
+    creator = getattr(meeting, 'creator', None)
+    return _avatar_url(creator) if creator is not None else None
 
 
 def _format_timestamp(dt):
@@ -151,7 +162,7 @@ def _meeting_dialog_item(conversation, user, messages):
         'other_user_id': None,
         'other_display_name': meeting.title,
         'other_age': None,
-        'avatar_url': public_media_url(meeting.photo_url) or None,
+        'avatar_url': _meeting_avatar_url(meeting),
         'last_message_preview': (
             message_preview(last_message.text, last_message.image_url)
             if last_message else ''
@@ -188,8 +199,8 @@ def conversations_for_user(user, mode):
         meeting_conversations = (
             Conversation.objects
             .filter(meeting_id__in=meeting_ids, meeting__isnull=False)
-            .select_related('meeting')
-            .prefetch_related('messages')
+            .select_related('meeting', 'meeting__creator', 'meeting__creator__profile')
+            .prefetch_related('messages', 'meeting__creator__profile__photos')
         )
         for conversation in meeting_conversations:
             messages = list(conversation.messages.all())
@@ -427,7 +438,7 @@ def conversation_header_payload(conversation, viewer):
                 'id': None,
                 'display_name': meeting.title,
                 'age': None,
-                'avatar_url': public_media_url(meeting.photo_url) or None,
+                'avatar_url': _meeting_avatar_url(meeting),
             },
             'meeting': {
                 'id': meeting.id,

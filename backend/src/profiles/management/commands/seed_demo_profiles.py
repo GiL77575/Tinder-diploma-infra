@@ -559,6 +559,7 @@ class Command(BaseCommand):
             .filter(email__istartswith='bff-')
             .filter(profile__modes__mode=SearchMode.BFF)
             .select_related('profile')
+            .prefetch_related('profile__photos')
             .distinct()
             .order_by('id')
         )
@@ -576,19 +577,39 @@ class Command(BaseCommand):
             if index >= len(MEETING_TEMPLATES):
                 title = f'{template["title"]} ({index + 1})'
             try:
-                create_meeting(
+                meeting = create_meeting(
                     user,
                     title=title,
                     location=f'{city}, {template["place"]}',
                     description=template['description'],
                     starts_at=starts_at,
                 )
+                self._attach_meeting_cover(meeting, user)
                 created += 1
             except MeetingError as exc:
                 self.stdout.write(self.style.WARNING(
                     f'Не вдалося створити зустріч для {user.email}: {exc}',
                 ))
+        for user in candidates:
+            meeting = get_active_meeting(user)
+            if meeting is not None:
+                self._attach_meeting_cover(meeting, user)
         return created
+
+    def _attach_meeting_cover(self, meeting, user):
+        if meeting.photo_url:
+            return
+        profile = getattr(user, 'profile', None)
+        if profile is None:
+            return
+        photo = (
+            profile.photos.filter(is_primary=True).first()
+            or profile.photos.first()
+        )
+        if photo is None or not photo.url:
+            return
+        meeting.photo_url = photo.url
+        meeting.save(update_fields=['photo_url', 'updated_at'])
 
     def _future_meeting_start(self, days_ahead, hour):
         now = timezone.localtime(timezone.now())
