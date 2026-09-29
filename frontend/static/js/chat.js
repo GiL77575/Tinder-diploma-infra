@@ -213,11 +213,28 @@
         );
     }
 
-    function bindAvatarFallback(img) {
+    function meetingAvatarPlaceholder() {
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56">'
+            + '<rect width="56" height="56" rx="28" fill="#FFEE00"/>'
+            + '</svg>',
+        );
+    }
+
+    const MEETING_GROUP_ICON = `
+        <svg class="dialog-item__group-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="9" cy="8" r="3.1" stroke="#161616" stroke-width="2"/>
+            <circle cx="16.2" cy="9.2" r="2.4" stroke="#161616" stroke-width="2"/>
+            <path d="M4 19.2c.6-3.2 2.9-5.2 5-5.2s4.4 2 5 5.2" stroke="#161616" stroke-width="2" stroke-linecap="round"/>
+            <path d="M14.2 14.8c2.1 0 4 1.4 4.6 4.4" stroke="#161616" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    `;
+
+    function bindAvatarFallback(img, placeholder) {
         if (!img || img.dataset.fallbackBound) return;
         img.dataset.fallbackBound = '1';
         img.addEventListener('error', () => {
-            img.src = avatarPlaceholder();
+            img.src = placeholder || avatarPlaceholder();
         });
     }
 
@@ -871,6 +888,8 @@
             item.dataset.conversationId = dialog.conversation_id;
             item.dataset.kind = dialog.kind || 'match';
             item.dataset.mode = dialog.mode || (dialog.kind === 'meeting' ? 'bff' : state.mode);
+            const isMeeting = dialog.kind === 'meeting';
+            if (isMeeting) item.classList.add('dialog-item--meeting');
             if (dialog.unread_count > 0) item.classList.add('has-unread');
             if (dialog.conversation_id === state.conversationId) item.classList.add('is-active');
 
@@ -889,13 +908,23 @@
                 `;
             }
 
+            const nameText = `${escapeHtml(dialog.other_display_name)}${dialog.other_age ? ' ' + dialog.other_age : ''}`;
+            const avatarSrc = isMeeting
+                ? (dialog.avatar_url || meetingAvatarPlaceholder())
+                : (dialog.avatar_url || avatarPlaceholder());
+            const nameHtml = isMeeting
+                ? `<span class="dialog-item__name">${MEETING_GROUP_ICON}<span class="dialog-item__name-text">${nameText}</span></span>`
+                : `<span class="dialog-item__name">${nameText}</span>`;
             item.innerHTML = `
-                <img class="dialog-item__avatar" src="${escapeHtml(dialog.avatar_url || avatarPlaceholder())}" alt="">
-                <span class="dialog-item__name">${escapeHtml(dialog.other_display_name)}${dialog.other_age ? ' ' + dialog.other_age : ''}</span>
+                <img class="dialog-item__avatar" src="${escapeHtml(avatarSrc)}" alt="">
+                ${nameHtml}
                 ${metaRight}
                 <span class="dialog-item__preview">${escapeHtml(dialog.last_message_preview) || 'Скажіть привіт!'}</span>
             `;
-            bindAvatarFallback(item.querySelector('.dialog-item__avatar'));
+            bindAvatarFallback(
+                item.querySelector('.dialog-item__avatar'),
+                isMeeting ? meetingAvatarPlaceholder() : avatarPlaceholder(),
+            );
             item.addEventListener('click', () => {
                 if (!dialogBelongsToMode(dialog, state.mode)) return;
                 state.activeMatchId = dialog.match_id || null;

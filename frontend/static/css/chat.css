@@ -1238,21 +1238,64 @@ body.page-chat[data-mode="bff"] .matches-grid {
     color: var(--crush-purple);
 }
 
+/* Figma «Діалоги» романтика: Rectangle 538 — 401×56, left 196 vs рядок 383/205. */
 .dialog-item.is-active {
-    margin-left: 0;
-    margin-right: 0;
-    width: 100%;
-    max-width: 100%;
-    padding: 8px 10px;
+    margin-left: -9px;
+    margin-right: -9px;
+    width: calc(100% + 18px);
+    max-width: none;
+    min-height: 56px;
+    padding: 0 8px;
     box-sizing: border-box;
     background: rgba(232, 102, 255, 0.2);
     border: 1px solid #e866ff;
     border-radius: 6px;
+    align-items: center;
 }
 
+.dialog-item.is-active:hover .dialog-item__name {
+    color: #161616;
+}
+
+/* Figma «Діалоги/Групи»: вибраний рядок (Rectangle 538), лише дружба. */
 body.page-chat[data-mode="bff"] .dialog-item.is-active {
-    background: rgba(255, 238, 0, 0.28);
-    border-color: #ffee00;
+    margin-left: -9px;
+    margin-right: -9px;
+    width: calc(100% + 18px);
+    max-width: none;
+    min-height: 56px;
+    padding: 0 8px;
+    background: rgba(255, 249, 160, 0.55);
+    border: 1px solid #ffee00;
+    border-radius: 6px;
+    align-items: center;
+}
+
+body.page-chat[data-mode="bff"] .dialog-item.is-active:hover .dialog-item__name {
+    color: #161616;
+}
+
+body.page-chat[data-mode="bff"] .dialog-item--meeting .dialog-item__avatar {
+    background: #ffee00;
+}
+
+body.page-chat[data-mode="bff"] .dialog-item--meeting .dialog-item__name {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+body.page-chat[data-mode="bff"] .dialog-item__group-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+body.page-chat[data-mode="bff"] .dialog-item__name-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dialog-item__avatar {
