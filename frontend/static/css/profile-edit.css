@@ -312,7 +312,14 @@ body.page-edit .setup-page-backdrop {
     gap: 15px 20px;
 }
 
-/* Клік ловить label; input лише для :checked-стилів (scale ламає hit-test input). */
+/* Чіп ловить клік (span/input без pointer-events ламають hit-test під scale). */
+.page-edit label.chip {
+    position: relative;
+    z-index: 2;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
 .page-edit .chip input {
     position: absolute;
     inset: 0;
@@ -321,7 +328,7 @@ body.page-edit .setup-page-backdrop {
     margin: 0;
     opacity: 0;
     cursor: pointer;
-    z-index: 1;
+    z-index: 0;
     pointer-events: none;
 }
 
@@ -340,7 +347,7 @@ body.page-edit .setup-page-backdrop {
     font-weight: 400;
     color: var(--edit-muted);
     box-sizing: border-box;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 /* «Кого шукаєш» / мета / паління / алкоголь / формат — 3×240 як Figma 623/883/1143. */
@@ -377,7 +384,7 @@ body.page-edit .setup-page-backdrop {
     font-weight: 400;
     color: var(--edit-muted);
     box-sizing: border-box;
-    pointer-events: none;
+    pointer-events: auto;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -448,7 +455,7 @@ body.page-edit .setup-page-backdrop {
     background: var(--edit-surface);
     color: var(--edit-muted);
     box-sizing: border-box;
-    pointer-events: none;
+    pointer-events: auto;
     white-space: nowrap;
 }
 
@@ -529,10 +536,19 @@ body.page-edit .setup-page-backdrop {
     text-overflow: ellipsis;
 }
 
-.page-edit .chip input:checked + span {
-    background: rgba(231, 213, 255, 0.18);
-    border-color: var(--edit-purple);
-    color: var(--edit-purple);
+/* Специфічність вища за .chips--wide / :not(...) span — інакше активний стан не видно. */
+.page-edit .chip input:checked + span,
+.page-edit .chips .chip input:checked + span,
+.page-edit .chips:not(.chips--wrap):not(.chips--wide):not(.chips--col) .chip input:checked + span,
+.page-edit .chips.chips--wide .chip input:checked + span,
+.page-edit .chips.chips--col .chip input:checked + span,
+.page-edit .age-row__extra.chips.chips--col .chip input:checked + span,
+.page-edit .panel--dating .chips.chips--wrap .chip input:checked + span,
+.page-edit .panel--bff .chips.chips--wrap .chip input:checked + span,
+.page-edit .panel--bff fieldset.field:first-of-type .chips.chips--wrap .chip input:checked + span {
+    background: rgba(231, 213, 255, 0.35) !important;
+    border-color: var(--edit-purple) !important;
+    color: var(--edit-purple) !important;
     font-weight: 400;
 }
 

@@ -915,10 +915,9 @@
         if (btnSubmit) {
             btnSubmit.hidden = false;
         }
-        // Під crush-frame scale нативний клік по radio/checkbox часто «мовчить»
-        // (span з pointer-events:none → target = input → старий early-return нічого не робив).
-        // Ловимо на capture і самі перемикаємо стан.
-        form.addEventListener('click', (event) => {
+        // Під crush-frame scale нативний radio/checkbox часто не перемикається.
+        // pointerdown на capture — до того, як scale/overlay з’їдять click.
+        const activateChip = (event) => {
             const chip = event.target.closest('label.chip');
             if (!chip || !form.contains(chip)) {
                 return;
@@ -928,7 +927,6 @@
                 return;
             }
             event.preventDefault();
-            event.stopPropagation();
             if (input.type === 'checkbox') {
                 input.checked = !input.checked;
             } else if (
@@ -939,6 +937,13 @@
                 input.checked = true;
             }
             input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        form.addEventListener('pointerdown', activateChip, true);
+        form.addEventListener('click', (event) => {
+            if (event.target.closest('label.chip')) {
+                event.preventDefault();
+            }
         }, true);
     } else {
         const errorStep = Number(form.dataset.errorStep || 0);
