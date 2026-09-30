@@ -915,31 +915,31 @@
         if (btnSubmit) {
             btnSubmit.hidden = false;
         }
-        // Під crush-frame scale нативні label→input кліки інколи «мовчать».
-        // Клік по чіпу явно вмикає radio/checkbox.
-        form.querySelectorAll('label.chip').forEach((chip) => {
-            chip.addEventListener('click', (event) => {
-                const input = chip.querySelector('input[type="checkbox"], input[type="radio"]');
-                if (!input || input.disabled) {
-                    return;
-                }
-                if (event.target === input) {
-                    return;
-                }
-                event.preventDefault();
-                if (input.type === 'checkbox') {
-                    input.checked = !input.checked;
-                } else if (
-                    input.name === 'dating_age_preference' && input.checked
-                ) {
-                    // Повторний клік знімає «Без обмежень» / «Однолітки».
-                    input.checked = false;
-                } else {
-                    input.checked = true;
-                }
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        });
+        // Під crush-frame scale нативний клік по radio/checkbox часто «мовчить»
+        // (span з pointer-events:none → target = input → старий early-return нічого не робив).
+        // Ловимо на capture і самі перемикаємо стан.
+        form.addEventListener('click', (event) => {
+            const chip = event.target.closest('label.chip');
+            if (!chip || !form.contains(chip)) {
+                return;
+            }
+            const input = chip.querySelector('input[type="checkbox"], input[type="radio"]');
+            if (!input || input.disabled) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            if (input.type === 'checkbox') {
+                input.checked = !input.checked;
+            } else if (
+                input.name === 'dating_age_preference' && input.checked
+            ) {
+                input.checked = false;
+            } else {
+                input.checked = true;
+            }
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }, true);
     } else {
         const errorStep = Number(form.dataset.errorStep || 0);
         showStep(errorStep || 1);

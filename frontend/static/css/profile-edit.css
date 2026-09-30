@@ -312,7 +312,7 @@ body.page-edit .setup-page-backdrop {
     gap: 15px 20px;
 }
 
-/* Клік по всьому чіпу (romance + bff інтереси / «що шукаєш»). */
+/* Клік ловить label; input лише для :checked-стилів (scale ламає hit-test input). */
 .page-edit .chip input {
     position: absolute;
     inset: 0;
@@ -322,7 +322,7 @@ body.page-edit .setup-page-backdrop {
     opacity: 0;
     cursor: pointer;
     z-index: 1;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* Однорядкові чіпи (стать / орієнтація) — фіксована висота 30px. */
