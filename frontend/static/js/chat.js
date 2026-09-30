@@ -664,6 +664,7 @@
     }
 
     function setMode(mode, { silent } = {}) {
+        const modeChanged = state.mode !== mode;
         state.mode = mode;
         els.modeSwitch.dataset.active = mode;
         els.modeButtons.forEach((btn) => {
@@ -673,6 +674,10 @@
         applyModeChrome(mode);
         closeChat();
         state.dialogsFingerprint = '';
+        if (modeChanged) {
+            renderDialogs([]);
+            renderMatches([]);
+        }
         loadMatches();
         loadDialogs();
         loadNextCandidate();
@@ -853,7 +858,7 @@
             const data = await apiFetch(API.conversations(mode));
             if (loadId !== state.dialogsLoadId || state.mode !== mode) return;
             const dialogs = (data.conversations || []).filter((dialog) => dialogBelongsToMode(dialog, mode));
-            const fingerprint = dialogs.map((dialog) => [
+            const fingerprint = `${mode}::${dialogs.map((dialog) => [
                 dialog.conversation_id,
                 dialog.kind || '',
                 dialog.mode || '',
@@ -863,7 +868,7 @@
                 dialog.last_message_is_mine,
                 dialog.last_message_is_read,
                 dialog.avatar_url || '',
-            ].join(':')).join('|');
+            ].join(':')).join('|')}`;
             if (fingerprint === state.dialogsFingerprint) return;
             state.dialogsFingerprint = fingerprint;
             renderDialogs(dialogs);

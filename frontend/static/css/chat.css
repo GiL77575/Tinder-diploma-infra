@@ -1282,6 +1282,13 @@ body.page-chat[data-mode="bff"] .dialog-item--meeting .dialog-item__avatar {
     background: #ffee00;
 }
 
+.dialog-item__group-icon {
+    display: none;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
 body.page-chat[data-mode="bff"] .dialog-item--meeting .dialog-item__name {
     display: flex;
     align-items: center;
@@ -1289,9 +1296,7 @@ body.page-chat[data-mode="bff"] .dialog-item--meeting .dialog-item__name {
 }
 
 body.page-chat[data-mode="bff"] .dialog-item__group-icon {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
+    display: block;
 }
 
 body.page-chat[data-mode="bff"] .dialog-item__name-text {
