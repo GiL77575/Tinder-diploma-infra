@@ -95,6 +95,7 @@
         fullProfileTags: document.getElementById('full-profile-tags'),
         fullProfileSkills: document.getElementById('full-profile-skills'),
         fullProfileMeeting: document.getElementById('full-profile-meeting'),
+        fullProfileMeetingPeople: document.getElementById('full-profile-meeting-people'),
         fullProfileMeetingDate: document.getElementById('full-profile-meeting-date'),
         fullProfileMeetingDesc: document.getElementById('full-profile-meeting-desc'),
         fullProfileJoinBtn: document.getElementById('full-profile-join-btn'),
@@ -1228,11 +1229,41 @@
     function hideFullProfileMeeting() {
         if (!els.fullProfileMeeting) return;
         els.fullProfileMeeting.hidden = true;
+        if (els.fullProfileMeetingPeople) {
+            els.fullProfileMeetingPeople.innerHTML = '';
+            els.fullProfileMeetingPeople.hidden = true;
+        }
         if (els.fullProfileJoinBtn) {
             els.fullProfileJoinBtn.onclick = null;
             els.fullProfileJoinBtn.disabled = false;
             els.fullProfileJoinBtn.textContent = 'Приєднатися до групи та взяти участь у зустрічі';
         }
+    }
+
+    function renderMeetingPeople(participants) {
+        const root = els.fullProfileMeetingPeople;
+        if (!root) return;
+        root.innerHTML = '';
+        const list = Array.isArray(participants) ? participants : [];
+        if (!list.length) {
+            root.hidden = true;
+            return;
+        }
+        const plus = document.createElement('span');
+        plus.className = 'full-profile__meeting-plus';
+        plus.setAttribute('aria-hidden', 'true');
+        plus.innerHTML = '<svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 3.75v7.5M3.75 7.5h7.5" stroke="#161616" stroke-width="2" stroke-linecap="round"/></svg>';
+        root.appendChild(plus);
+        list.forEach((person) => {
+            const img = document.createElement('img');
+            img.className = 'full-profile__meeting-person';
+            img.src = person.avatar_url || avatarPlaceholder();
+            img.alt = person.display_name || '';
+            img.title = person.display_name || '';
+            bindAvatarFallback(img);
+            root.appendChild(img);
+        });
+        root.hidden = false;
     }
 
     async function renderFullProfileMeeting(candidate) {
@@ -1249,6 +1280,7 @@
             if (els.fullProfileMeetingDesc) {
                 els.fullProfileMeetingDesc.textContent = meeting.description || '';
             }
+            renderMeetingPeople(meeting.participants);
             if (els.fullProfileJoinBtn) {
                 if (meeting.can_join) {
                     els.fullProfileJoinBtn.disabled = false;
@@ -1580,13 +1612,22 @@
         return '';
     }
 
+    function isGroupIncomingMessage(message) {
+        return state.mode === 'bff' && state.chatKind === 'meeting' && !message.is_mine;
+    }
+
     function fillMessageBubble(bubble, message) {
         const hasImage = Boolean(message.image_url);
-        bubble.className = `msg ${message.is_mine ? 'msg--mine' : 'msg--theirs'}${hasImage ? ' msg--image' : ''}`;
+        const groupIncoming = isGroupIncomingMessage(message);
+        bubble.className = `msg ${message.is_mine ? 'msg--mine' : 'msg--theirs'}${hasImage ? ' msg--image' : ''}${groupIncoming ? ' msg--group' : ''}`;
         bubble.dataset.messageId = String(message.id);
         bubble.dataset.text = message.text || '';
         bubble.dataset.hasImage = hasImage ? '1' : '0';
         if (message.time_label) bubble.dataset.timeLabel = message.time_label;
+        if (groupIncoming) {
+            bubble.dataset.senderName = message.sender_display_name || '';
+            bubble.dataset.senderAvatar = message.sender_avatar_url || '';
+        }
         const checkStroke = '#E7D5FF';
         const checkIcon = message.is_mine
             ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12l5 5L14 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${message.is_read ? `<path d="M9 12l5 5L22 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}</svg>`
@@ -1598,11 +1639,22 @@
         const textHtml = (message.text || '').trim()
             ? `<span class="msg__text">${escapeHtml(message.text)}</span>`
             : '';
+        const senderHtml = groupIncoming
+            ? `<span class="msg__sender">${escapeHtml(message.sender_display_name || '')}</span>`
+            : '';
+        const avatarHtml = groupIncoming
+            ? `<img class="msg__avatar" src="${escapeHtml(message.sender_avatar_url || avatarPlaceholder())}" alt="">`
+            : '';
         bubble.innerHTML = `
+            ${avatarHtml}
+            ${senderHtml}
             ${imageHtml}
             ${textHtml}
             <span class="msg__meta">${editedHtml}${escapeHtml(message.time_label || '')}${checkIcon}</span>
         `;
+        if (groupIncoming) {
+            bindAvatarFallback(bubble.querySelector('.msg__avatar'));
+        }
     }
 
     function appendMessage(message) {
@@ -1625,6 +1677,8 @@
         fillMessageBubble(bubble, Object.assign({}, message, {
             time_label: message.time_label || bubble.dataset.timeLabel || '',
             is_mine: message.is_mine !== undefined ? message.is_mine : bubble.classList.contains('msg--mine'),
+            sender_display_name: message.sender_display_name || bubble.dataset.senderName || '',
+            sender_avatar_url: message.sender_avatar_url || bubble.dataset.senderAvatar || '',
         }));
     }
 

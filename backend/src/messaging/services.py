@@ -98,13 +98,17 @@ def message_preview(text='', image_url=''):
 
 
 def serialize_message(message, viewer):
-    """Повідомлення для JSON: текст, фото, час, чи моє, чи прочитане."""
+    """Повідомлення для JSON: текст, фото, час, хто надіслав, чи моє, чи прочитане."""
+    sender = message.sender
+    profile = getattr(sender, 'profile', None)
     return {
         'id': message.id,
         'conversation_id': message.conversation_id,
         'text': message.text,
         'image_url': message.image_url or '',
         'sender_id': message.sender_id,
+        'sender_display_name': profile.display_name if profile else sender.username,
+        'sender_avatar_url': _avatar_url(sender),
         'is_mine': message.sender_id == viewer.id,
         'is_read': message.read_at is not None,
         'is_edited': message.edited_at is not None,
@@ -222,7 +226,9 @@ def conversations_for_user(user, mode):
 
 def messages_for_conversation(conversation, viewer):
     """Історія повідомлень чату, від найстарішого до найновішого."""
-    messages = conversation.messages.select_related('sender').all()
+    messages = conversation.messages.select_related(
+        'sender', 'sender__profile',
+    ).prefetch_related('sender__profile__photos').all()
     return [serialize_message(message, viewer) for message in messages]
 
 

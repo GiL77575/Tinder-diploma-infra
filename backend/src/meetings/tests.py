@@ -16,6 +16,7 @@ from meetings.services import (
     create_meeting,
     join_meeting,
     leave_meeting,
+    serialize_meeting,
     update_meeting,
 )
 from messaging.models import Conversation
@@ -114,6 +115,16 @@ class MeetingJoinLeaveTests(TestCase):
     def test_creator_cannot_leave(self):
         with self.assertRaises(MeetingError):
             leave_meeting(self.alice, self.meeting)
+
+    def test_serialize_includes_joined_participants(self):
+        join_meeting(self.bob, self.meeting)
+        payload = serialize_meeting(self.meeting, self.carol)
+        ids = [item['user_id'] for item in payload['participants']]
+        self.assertEqual(payload['participant_count'], 2)
+        self.assertEqual(ids, [self.alice.id, self.bob.id])
+        self.assertTrue(payload['participants'][0]['is_creator'])
+        self.assertEqual(payload['participants'][0]['display_name'], 'Аліса')
+        self.assertIn('avatar_url', payload['participants'][0])
 
 
 class MeetingEditCancelTests(TestCase):

@@ -1012,8 +1012,11 @@ body.page-chat[data-mode="bff"] .panel__title-icon--heart {
     mix-blend-mode: screen;
 }
 
-.panel__title-icon--chat {
-    mix-blend-mode: screen;
+.dialogs-panel .panel__title-icon--chat {
+    width: 24px;
+    height: 20px;
+    mix-blend-mode: normal;
+    overflow: visible;
 }
 
 .panel__empty {
@@ -2009,6 +2012,74 @@ body.page-chat[data-mode="bff"] .chat-view__deco-img--bff {
     color: #e7d5ff;
 }
 
+/* Figma груповий чат дружби: вхідне «Повідомлення від Наталії» — аватар + ім’я. */
+body.page-chat[data-mode="bff"] .msg.msg--group {
+    display: grid;
+    grid-template-columns: 47px minmax(0, 1fr) auto;
+    grid-template-areas:
+        "avatar sender sender"
+        "avatar text meta";
+    column-gap: 8px;
+    row-gap: 2px;
+    align-items: start;
+    width: 300px;
+    max-width: min(300px, 100%);
+    min-height: 63px;
+    padding: 8px 12px 8px 4px;
+    box-sizing: border-box;
+    background: #fffdfe;
+    border-radius: 14px;
+    color: #161616;
+    line-height: 20px;
+}
+
+body.page-chat[data-mode="bff"] .msg.msg--group.msg--image {
+    grid-template-areas:
+        "avatar sender sender"
+        "avatar image image"
+        "avatar text meta";
+    max-width: min(300px, 100%);
+}
+
+body.page-chat[data-mode="bff"] .msg--group .msg__avatar {
+    grid-area: avatar;
+    width: 47px;
+    height: 47px;
+    border-radius: 50%;
+    object-fit: cover;
+    align-self: center;
+    background: #e9e2f6;
+}
+
+body.page-chat[data-mode="bff"] .msg--group .msg__sender {
+    grid-area: sender;
+    font-size: 14px;
+    line-height: 18px;
+    font-weight: 400;
+    color: #e866ff;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.page-chat[data-mode="bff"] .msg--group .msg__text {
+    grid-area: text;
+    color: #161616;
+    font-size: 16px;
+    line-height: 20px;
+}
+
+body.page-chat[data-mode="bff"] .msg--group .msg__image-btn {
+    grid-area: image;
+}
+
+body.page-chat[data-mode="bff"] .msg--group .msg__meta {
+    grid-area: meta;
+    align-self: end;
+    color: #8c8c8c;
+}
+
 .msg__edited {
     font-size: 12px;
     font-weight: 400;
@@ -2407,8 +2478,9 @@ body.page-chat[data-mode="bff"] .chat-view__deco-img--bff {
     background: #fffdfe;
     border: 3px solid #e866ff;
     border-radius: 23px;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     box-sizing: border-box;
 }
 
@@ -2468,6 +2540,27 @@ body.page-chat[data-mode="bff"] .full-profile__close {
     box-sizing: border-box;
     align-items: start;
     justify-content: start;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #c4c4c4 transparent;
+}
+
+.full-profile__layout::-webkit-scrollbar {
+    width: 8px;
+}
+
+.full-profile__layout::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 18px 0;
+}
+
+.full-profile__layout::-webkit-scrollbar-thumb {
+    background: #c4c4c4;
+    border-radius: 8px;
 }
 
 .full-profile__layout:has(.full-profile__thumbs:empty) {
@@ -2838,6 +2931,13 @@ body.page-chat[data-mode="bff"] .full-profile__skill {
     flex-wrap: wrap;
 }
 
+.full-profile__meeting-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
 .full-profile__meeting-title {
     margin: 0;
     font-family: var(--font-body);
@@ -2845,6 +2945,47 @@ body.page-chat[data-mode="bff"] .full-profile__skill {
     font-size: 24px;
     line-height: 30px;
     color: #9747ff;
+}
+
+.full-profile__meeting-people {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.full-profile__meeting-people[hidden] {
+    display: none;
+}
+
+.full-profile__meeting-plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.full-profile__meeting-plus svg {
+    display: block;
+    width: 15px;
+    height: 15px;
+}
+
+.full-profile__meeting-person {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-sizing: border-box;
+    border: 1px solid #8c8c8c;
+    background: #fffdfe;
+    flex-shrink: 0;
+}
+
+.full-profile__meeting-person + .full-profile__meeting-person {
+    margin-left: -8px;
 }
 
 .full-profile__meeting-date {

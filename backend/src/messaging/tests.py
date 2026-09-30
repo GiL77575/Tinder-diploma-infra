@@ -9,7 +9,7 @@ from django.urls import reverse
 from matching.services import record_swipe
 from matching.tests import make_user_with_profile
 from messaging.models import Conversation, Message
-from messaging.services import conversations_for_user, mark_conversation_read
+from messaging.services import conversations_for_user, mark_conversation_read, messages_for_conversation
 from profiles.models import SearchMode
 
 # Мінімальний валідний 1×1 PNG для тестів завантаження фото.
@@ -217,6 +217,35 @@ class DialogListOrderingTests(TestCase):
             item['kind'] == 'meeting' and item['other_display_name'] == 'Виставка в музеї'
             for item in bff_resp.json()['conversations']
         ))
+
+
+class GroupChatMessageTests(TestCase):
+    def test_meeting_history_includes_sender_name(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from meetings.services import create_meeting
+
+        natalia = make_user_with_profile('natalia-group@example.com', 'Наталія')
+        meeting = create_meeting(
+            natalia,
+            title='Зустріч у суботу',
+            location='Київ',
+            description='Збираємось у суботу',
+            starts_at=timezone.now() + timedelta(hours=24),
+        )
+        conversation = Conversation.objects.get(meeting=meeting)
+        Message.objects.create(
+            conversation=conversation,
+            sender=natalia,
+            text='Всім привіт! Все в силі?',
+        )
+        items = messages_for_conversation(conversation, natalia)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['sender_display_name'], 'Наталія')
+        self.assertEqual(items[0]['sender_id'], natalia.id)
+        self.assertIn('sender_avatar_url', items[0])
 
 
 class ChatConsumerTests(TransactionTestCase):

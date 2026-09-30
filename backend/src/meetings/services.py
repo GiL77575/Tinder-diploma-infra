@@ -98,6 +98,17 @@ def user_can_access_meeting_chat(user, meeting):
     return is_meeting_participant(user, meeting)
 
 
+def _participant_avatar_url(user):
+    """Головне фото учасника зустрічі або None."""
+    profile = getattr(user, 'profile', None)
+    if profile is None:
+        return None
+    photo = profile.photos.first()
+    if photo is None or not photo.url:
+        return None
+    return public_media_url(photo.url) or photo.url
+
+
 def serialize_meeting(meeting, viewer):
     """JSON для popup і sidebar."""
     meeting.ensure_completed_if_due()
@@ -115,6 +126,21 @@ def serialize_meeting(meeting, viewer):
     )
     can_open_chat = is_participant and meeting.is_chat_open
     local_start = timezone.localtime(meeting.starts_at)
+    participants = []
+    for part in (
+        meeting.participants
+        .select_related('user', 'user__profile')
+        .prefetch_related('user__profile__photos')
+        .order_by('joined_at')
+    ):
+        user = part.user
+        profile = getattr(user, 'profile', None)
+        participants.append({
+            'user_id': user.id,
+            'display_name': profile.display_name if profile else user.username,
+            'avatar_url': _participant_avatar_url(user),
+            'is_creator': user.id == meeting.creator_id,
+        })
     return {
         'id': meeting.id,
         'title': meeting.title,
@@ -132,7 +158,8 @@ def serialize_meeting(meeting, viewer):
         'can_open_chat': can_open_chat,
         'chat_closes_at': meeting.chat_closes_at.isoformat(),
         'is_chat_open': meeting.is_chat_open,
-        'participant_count': meeting.participants.count(),
+        'participant_count': len(participants),
+        'participants': participants,
         'photo_url': public_media_url(meeting.photo_url),
     }
 
