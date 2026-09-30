@@ -468,15 +468,6 @@ body.page-chat[data-mode="bff"] .dialogs-panel {
     background: #FFFDFE;
 }
 
-.create-meeting-btn--danger {
-    color: #b42318;
-    border-color: #b42318;
-}
-
-.create-meeting-btn--danger:hover {
-    background: #fef3f2;
-}
-
 .meeting-overlay {
     position: fixed;
     inset: 0;
@@ -604,12 +595,6 @@ body.page-chat[data-mode="bff"] .dialogs-panel {
     line-height: 29px;
     text-align: center;
     color: #8C8C8C;
-}
-
-.meeting-form__row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
 }
 
 .meeting-form__field {
@@ -850,18 +835,6 @@ body.page-chat[data-mode="bff"] .dialogs-panel {
 .meeting-form__field--group-name > span {
     display: block;
     margin-bottom: 10px;
-}
-
-.visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
 }
 
 .meeting-form__error {

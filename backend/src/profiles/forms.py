@@ -169,11 +169,9 @@ class ProfileSetupForm(forms.Form):
         return value
 
     def clean_display_name(self):
-        """Прибирає зайві пробіли в імені."""
         return self.cleaned_data['display_name'].strip()
 
     def clean_city(self):
-        """Прибирає зайві пробіли в місті."""
         return self.cleaned_data['city'].strip()
 
     def _dating_section_empty(self, cleaned):
@@ -281,6 +279,19 @@ class ProfileSetupForm(forms.Form):
         max_age = cleaned.get('max_age')
         if min_age and max_age and min_age > max_age:
             self.add_error('max_age', 'Максимальний вік має бути не меншим за мінімальний.')
+
+        # Чіпи «Без обмежень» / «Однолітки» підставляють ефективний діапазон у min/max.
+        preference = cleaned.get('dating_age_preference') or ''
+        if preference == AgePreference.NO_LIMIT:
+            cleaned['min_age'] = 18
+            cleaned['max_age'] = 99
+        elif preference == AgePreference.PEERS:
+            birth_date = cleaned.get('birth_date')
+            if birth_date is not None:
+                viewer_age = calculate_age(birth_date)
+                if viewer_age is not None:
+                    cleaned['min_age'] = max(18, viewer_age - 3)
+                    cleaned['max_age'] = min(99, viewer_age + 3)
 
         skip_dating = self.data.get('skip_dating') == '1' or self._dating_section_empty(cleaned)
         cleaned['skip_dating'] = skip_dating

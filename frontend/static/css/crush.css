@@ -160,23 +160,6 @@ body.page-auth .crush-viewport::before {
     z-index: 1;
 }
 
-/* Розсипані контурні сердечка на фоні — спільний декор-компонент
-   (форма підключається як #heart-outline з img/brand/heart-outline.svg,
-   позиції для конкретної сторінки задаються в її власному css). */
-.deco-hearts {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    color: var(--crush-purple);
-    pointer-events: none;
-}
-
-.deco-heart {
-    position: absolute;
-    fill: none;
-    overflow: visible;
-}
-
 /* Спільний хедер поза crush-frame — логотип синхронізований з масштабом кадру */
 .landing-header {
     position: absolute;
@@ -194,8 +177,7 @@ body.page-auth .crush-viewport::before {
  * Усередині .crush-frame: design-px (transform кадру масштабує сам).
  */
 .landing-logo,
-.page-setup .setup-logo,
-.crush-brand {
+.page-setup .setup-logo {
     position: absolute;
     left: calc(var(--crush-frame-x, 0px) + var(--crush-brand-left) * var(--crush-frame-scale, 1));
     top: calc(var(--crush-frame-y, 0px) + var(--crush-brand-top) * var(--crush-frame-scale, 1));
@@ -220,7 +202,6 @@ body.page-auth .crush-viewport::before {
     object-position: left center;
 }
 
-/* Підказка: повна розшифровка CRUSH */
 .crush-logo__tooltip {
     position: absolute;
     left: 0;
@@ -272,15 +253,15 @@ body.page-auth .crush-viewport::before {
     border-width: calc(6px * var(--crush-frame-scale, 1));
 }
 
-:is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo, .crush-brand):hover .crush-logo__tooltip,
-:is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo, .crush-brand):focus-visible .crush-logo__tooltip {
+:is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo):hover .crush-logo__tooltip,
+:is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo):focus-visible .crush-logo__tooltip {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
 }
 
 @media (hover: none) {
-    :is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo, .crush-brand):focus-visible .crush-logo__tooltip {
+    :is(.landing-logo, .chat-logo, .edit-logo, .setup-logo, .profile-logo):focus-visible .crush-logo__tooltip {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
@@ -289,8 +270,7 @@ body.page-auth .crush-viewport::before {
 
 .crush-frame .chat-logo,
 .crush-frame .profile-logo,
-.crush-frame .edit-logo,
-.crush-frame .crush-brand {
+.crush-frame .edit-logo {
     position: relative;
     left: auto;
     top: auto;
@@ -347,22 +327,11 @@ body.page-auth .crush-viewport::before {
     color: #ae72ff;
 }
 
-/* Brand mark (профіль / дрібні місця) */
-.brand {
-    font-family: var(--font-brand);
-    font-weight: 400;
-    font-size: 1.4rem;
-    line-height: 1.2;
-    color: var(--crush-purple);
-    letter-spacing: 0;
-}
-
 /* Shared buttons — розміри підганяє сторінка (auth / nav / actions) */
 .btn-primary,
 .btn-secondary,
 .btn-submit,
-.btn-google,
-.btn-ghost {
+.btn-google {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -406,13 +375,6 @@ body.page-auth .crush-viewport::before {
 
 .btn-secondary:active {
     background: var(--crush-secondary-active);
-}
-
-.btn-ghost {
-    background: var(--crush-white);
-    color: var(--crush-ink);
-    border: 1px solid var(--crush-line);
-    font-weight: 600;
 }
 
 .btn-google {

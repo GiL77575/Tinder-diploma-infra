@@ -244,7 +244,8 @@
             {% for value, label in partner_attitude_choices %}
                 <label class="chip">
                     <input type="radio" name="dating_smoking_attitude" value="{{ value }}" {% if form.dating_smoking_attitude.value == value %}checked{% endif %}>
-                    <span>{{ label }}</span>
+                    {# У Figma для smoking positive — «Палю», не «Позитивне». #}
+                    <span>{% if value == 'positive' %}Палю{% else %}{{ label }}{% endif %}</span>
                 </label>
             {% endfor %}
         </div>
@@ -268,7 +269,8 @@
             {% for value, label in meeting_format_choices %}
                 <label class="chip">
                     <input type="radio" name="dating_meeting_format" value="{{ value }}" {% if form.dating_meeting_format.value == value %}checked{% endif %}>
-                    <span>{{ label }}</span>
+                    {# Figma: «Обидва варіанта» #}
+                    <span>{% if value == 'both' %}Обидва варіанта{% else %}{{ label }}{% endif %}</span>
                 </label>
             {% endfor %}
         </div>

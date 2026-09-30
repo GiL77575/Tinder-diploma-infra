@@ -85,7 +85,7 @@ body.page-edit .setup-page-backdrop {
     height: 100%;
 }
 
-/* Cards: left calc(50% - 933/2 + 43.5) = 537px */
+/* Картки: left calc(50% - 933/2 + 43.5) = 537px */
 .edit-card {
     position: absolute;
     left: 537px;
@@ -94,30 +94,37 @@ body.page-edit .setup-page-backdrop {
     background: var(--edit-surface);
     border-radius: 60px;
     box-sizing: border-box;
+    z-index: 0;
+    isolation: isolate;
 }
 
 .edit-card--photos {
     top: 68px;
     height: 761px;
     border: 1px solid var(--edit-line);
+    z-index: 0;
 }
 
 .edit-card--about {
     top: 849px;
     height: 1163px;
     border: 3px solid var(--edit-line);
+    z-index: 1;
 }
 
 .edit-card--dating {
     top: 2032px;
     height: 1368px;
     border: 3px solid #e866ff;
+    /* Вище за BFF: якщо інтереси трохи вилазять за висоту картки — кліки не «з’їдає» жовта картка. */
+    z-index: 3;
 }
 
 .edit-card--bff {
     top: 3421px;
     height: 2007px;
     border: 3px solid #ffee00;
+    z-index: 2;
 }
 
 .edit-card__title-row {
@@ -168,24 +175,26 @@ body.page-edit .setup-page-backdrop {
 
 .page-edit .setup-logo,
 .page-edit .setup-logout,
-.page-edit .setup-card,
-.page-edit .edit-glow,
-.page-edit .edit-header,
-.page-edit .edit-header-spacer,
-.page-edit .edit-bar,
-.page-edit .edit-bar-spacer {
+.page-edit .setup-card {
     display: none !important;
 }
 
-/* All panels visible inside their cards */
 .page-edit .edit-card .panel {
     display: block !important;
     margin: 0;
     width: 760px;
 }
 
+/* Setup wizard ховає h2 (крок у табах) — на edit заголовок секції потрібен, як у Figma. */
 .page-edit .edit-card .panel > h2 {
-    margin-bottom: 8px;
+    display: block !important;
+    margin: 0 0 8px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 45px;
+    color: var(--edit-ink);
+    text-align: left;
 }
 
 .page-edit .edit-card .hint {
@@ -198,6 +207,7 @@ body.page-edit .setup-page-backdrop {
     line-height: 20px;
     color: var(--edit-muted);
     letter-spacing: 0;
+    text-align: left;
 }
 
 .page-edit .edit-card--dating .hint,
@@ -206,10 +216,12 @@ body.page-edit .setup-page-backdrop {
     line-height: 23px;
     letter-spacing: 0.02em;
     width: 674px;
+    max-width: 100%;
     margin-bottom: 24px;
+    text-align: left;
 }
 
-/* Photos: setup already has 3×2 240×264 — keep and center */
+/* Фото: сітка 3×2 240×264 зі setup — центруємо на edit */
 .page-edit .edit-card--photos .panel {
     width: 760px;
 }
@@ -233,7 +245,6 @@ body.page-edit .setup-page-backdrop {
     line-height: 18px;
 }
 
-/* Fields */
 .page-edit .field {
     gap: 10px;
     margin-bottom: 20px;
@@ -301,11 +312,22 @@ body.page-edit .setup-page-backdrop {
     gap: 15px 20px;
 }
 
+/* Клік по всьому чіпу (romance + bff інтереси / «що шукаєш»). */
+.page-edit .chip input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+/* Однорядкові чіпи (стать / орієнтація) — фіксована висота 30px. */
 .page-edit .chip span,
-.page-edit .chips:not(.chips--wrap) .chip span,
-.page-edit .chips.chips--wide .chip span,
-.page-edit .panel--dating .chips.chips--wrap .chip span,
-.page-edit .panel--bff .chips.chips--wrap .chip span {
+.page-edit .chips:not(.chips--wrap):not(.chips--wide):not(.chips--col) .chip span {
     width: auto;
     min-width: 153px;
     height: 30px;
@@ -318,11 +340,193 @@ body.page-edit .setup-page-backdrop {
     font-weight: 400;
     color: var(--edit-muted);
     box-sizing: border-box;
+    pointer-events: none;
+}
+
+/* «Кого шукаєш» / мета / паління / алкоголь / формат — 3×240 як Figma 623/883/1143. */
+.page-edit .chips.chips--wide {
+    display: grid;
+    grid-template-columns: 240px 240px 240px;
+    justify-content: space-between;
+    column-gap: 20px;
+    width: 760px;
+    margin-top: 15px;
+}
+
+.page-edit .chips.chips--wide .chip {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 30px;
+    min-width: 0;
 }
 
 .page-edit .chips.chips--wide .chip span {
-    min-width: 239px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 14px;
+    border: 1px solid var(--edit-line);
+    background: var(--edit-surface);
+    font-size: 16px;
+    line-height: 20px;
+    font-weight: 400;
+    color: var(--edit-muted);
+    box-sizing: border-box;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Вік: чіпи «Без обмежень» / «Однолітки» зверху колонки, як у Figma (біля лейблів). */
+.page-edit .age-row {
+    display: grid;
+    grid-template-columns: 240px 240px 240px;
+    gap: 20px;
+    align-items: start;
+    width: 760px;
+    margin-bottom: 20px;
+}
+
+.page-edit .age-row .field {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 0;
+}
+
+.page-edit .age-row .field > span {
+    font-size: 20px;
+    line-height: 25px;
+}
+
+.page-edit .age-row .field input {
     width: 240px;
+    height: 42px;
+    min-height: 42px;
+    font-size: 16px;
+    border-radius: 9px;
+    border: 1px solid var(--edit-line);
+    background: var(--edit-field);
+    box-sizing: border-box;
+}
+
+/* Figma Rectangle 518 у edit: 240×30 (не 153 зі setup wizard). */
+.page-edit .age-row__extra.chips.chips--col {
+    width: 240px;
+    /* Лейбл 25px + gap 15px — чіпи на одній лінії з інпутами. */
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0;
+}
+
+.page-edit .age-row__extra.chips.chips--col .chip {
+    position: relative;
+    display: flex;
+    width: 240px;
+    height: 30px;
+}
+
+.page-edit .age-row__extra.chips.chips--col .chip span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: 240px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 14px;
+    border: 1px solid var(--edit-line);
+    background: var(--edit-surface);
+    color: var(--edit-muted);
+    box-sizing: border-box;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Fieldsets у dating/bff — ритм як у Figma */
+.page-edit .panel--dating > .field,
+.page-edit .panel--bff > .field {
+    margin-bottom: 20px;
+}
+
+.page-edit .panel--dating fieldset.field,
+.page-edit .panel--bff fieldset.field {
+    margin-bottom: 20px;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.page-edit .panel--dating fieldset.field > legend,
+.page-edit .panel--bff fieldset.field > legend {
+    padding: 0;
+    margin-bottom: 0;
+}
+
+/* Інтереси: колонки Figma 154/153/153/240 — «Кар'єра та бізнес» у 4-й без переносу. */
+.page-edit .panel--dating .chips.chips--wrap,
+.page-edit .panel--bff .chips.chips--wrap {
+    display: grid;
+    grid-template-columns: 154px 153px 153px 240px;
+    justify-content: space-between;
+    column-gap: 20px;
+    row-gap: 15px;
+    width: 760px;
+}
+
+.page-edit .panel--dating .chips.chips--wrap .chip,
+.page-edit .panel--bff .chips.chips--wrap .chip {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+.page-edit .panel--dating .chips.chips--wrap .chip span,
+.page-edit .panel--bff .chips.chips--wrap .chip span {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    min-height: 30px;
+    padding: 0 8px;
+    line-height: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+/* «Що шукаєш» — 3 колонки × 240px. */
+.page-edit .panel--bff fieldset.field:first-of-type .chips.chips--wrap {
+    display: grid;
+    grid-template-columns: 240px 240px 240px;
+    justify-content: space-between;
+    column-gap: 20px;
+    row-gap: 15px;
+    width: 760px;
+}
+
+.page-edit .panel--bff fieldset.field:first-of-type .chips.chips--wrap .chip {
+    width: 100%;
+    max-width: none;
+}
+
+.page-edit .panel--bff fieldset.field:first-of-type .chips.chips--wrap .chip span {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    min-height: 30px;
+    padding: 0 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .page-edit .chip input:checked + span {
@@ -372,41 +576,6 @@ body.page-edit .setup-page-backdrop {
 .page-edit .list-row select,
 .page-edit .list-row .compact-select {
     width: 100%;
-}
-
-.page-edit .age-row {
-    display: grid;
-    grid-template-columns: 240px 240px 240px;
-    gap: 20px;
-    align-items: end;
-    width: 760px;
-    margin-bottom: 20px;
-}
-
-.page-edit .age-row .field {
-    margin-bottom: 0;
-}
-
-.page-edit .age-row .field input {
-    width: 240px;
-    height: 42px;
-    min-height: 42px;
-    font-size: 16px;
-    border-radius: 9px;
-    border: 1px solid var(--edit-line);
-    background: var(--edit-field);
-}
-
-.page-edit .age-row__extra {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding-bottom: 0;
-}
-
-.page-edit .age-row__extra .chip span {
-    width: 240px;
-    min-width: 240px;
 }
 
 .page-edit .field textarea {
@@ -539,22 +708,22 @@ body.page-edit .setup-page-backdrop {
 .edit-actions__btn--cancel {
     width: 415px;
     background: #fffdfe;
-    border: 1px solid #161616;
+    border: 1px solid #8c8c8c;
     color: var(--edit-ink);
 }
 
 .edit-actions__btn--save {
     width: 500px;
-    background: #fffde4;
-    color: #161616;
-    border: 1px solid #161616;
-    filter: var(--crush-drop-shadow-sm);
-    font-style: italic;
-    font-weight: 400;
+    background: #9747ff;
+    color: #fffdfe;
+    border: none;
+    filter: drop-shadow(0px 2px 10px rgba(0, 0, 0, 0.25));
+    font-style: normal;
+    font-weight: 700;
 }
 
 .edit-actions__btn--cancel:hover {
-    background: #d7d7d7;
+    background: #f3f3f3;
 }
 
 .edit-actions__btn--cancel:active {
@@ -562,11 +731,11 @@ body.page-edit .setup-page-backdrop {
 }
 
 .edit-actions__btn--save:hover {
-    background: #fff68b;
+    background: #8639f0;
 }
 
 .edit-actions__btn--save:active {
-    background: #ffee00;
+    background: #7a2ee6;
 }
 
 .edit-form__error,

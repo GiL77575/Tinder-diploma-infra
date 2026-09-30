@@ -3,10 +3,14 @@
 from django.db.models import Q
 
 from matching.models import Block, Like, Match
-from profiles.models import ModerationStatus, Profile, SearchMode, TagCategory
+from profiles.models import AgePreference, ModerationStatus, Profile, SearchMode, TagCategory
 
 # Скільки спільних інтересів потрібно для показу анкети в режимі знайомств.
 MIN_SHARED_DATING_INTERESTS = 2
+# «Однолітки»: ±N років від віку переглядача.
+PEERS_AGE_DELTA = 3
+DATING_AGE_FLOOR = 18
+DATING_AGE_CEILING = 99
 
 
 def _avatar_url(profile):
@@ -48,11 +52,35 @@ def _shared_tag_ids(tags_a, tags_b, require_same_level=False):
     return shared
 
 
+def dating_age_range(viewer_profile, viewer_mode):
+    """
+    Ефективний діапазон віку для dating-стрічки.
+    - no_limit → 18–99
+    - peers → вік переглядача ± PEERS_AGE_DELTA (не вужче 18–99)
+    - інакше → min_age/max_age з анкети
+    """
+    preference = (viewer_mode.age_preference or '').strip()
+    if preference == AgePreference.NO_LIMIT:
+        return DATING_AGE_FLOOR, DATING_AGE_CEILING
+
+    if preference == AgePreference.PEERS:
+        viewer_age = viewer_profile.age
+        if viewer_age is None:
+            return viewer_mode.min_age, viewer_mode.max_age
+        low = max(DATING_AGE_FLOOR, viewer_age - PEERS_AGE_DELTA)
+        high = min(DATING_AGE_CEILING, viewer_age + PEERS_AGE_DELTA)
+        if low > high:
+            return DATING_AGE_FLOOR, DATING_AGE_CEILING
+        return low, high
+
+    return viewer_mode.min_age, viewer_mode.max_age
+
+
 def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     """
     Критерії показу анкети в режимі знайомств:
     - те саме місто, що й у переглядача;
-    - вік кандидата в межах діапазону, вказаного переглядачем при реєстрації;
+    - вік кандидата в межах діапазону (min/max, «Без обмежень» або «Однолітки»);
     - 2 і більше спільних інтереси.
     Повертає список id спільних інтересів або None, якщо анкета не підходить.
     """
@@ -68,7 +96,8 @@ def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags
     candidate_age = candidate_profile.age
     if candidate_age is None:
         return None
-    if not (viewer_mode.min_age <= candidate_age <= viewer_mode.max_age):
+    min_age, max_age = dating_age_range(viewer_profile, viewer_mode)
+    if not (min_age <= candidate_age <= max_age):
         return None
 
     viewer_interests = viewer_tags.get((SearchMode.DATING, TagCategory.INTEREST), {})

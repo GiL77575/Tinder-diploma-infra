@@ -166,23 +166,19 @@
         window.scrollTo(0, 0);
     }
 
-    /** Показує текст помилки під кнопками кроку. */
     function setError(message) {
         stepError.textContent = message;
         stepError.hidden = false;
     }
 
-    /** Повертає обраний radio/checkbox з таким name або null. */
     function checked(name) {
         return form.querySelector(`input[name="${name}"]:checked`);
     }
 
-    /** Чи є хоча б одне нове або вже збережене фото. */
     function hasAnyPhoto() {
         return photoBlobs.some(Boolean) || Boolean(form.querySelector('input[name="keep_photos"]'));
     }
 
-    /** Повертає вік у повних роках за ISO-датою YYYY-MM-DD або null. */
     function getAgeFromIso(isoDate) {
         const parts = isoDate.split('-').map(Number);
         if (parts.length !== 3 || parts.some((part) => !part)) {
@@ -198,7 +194,6 @@
         return age;
     }
 
-    /** Компактні dropdown (день / місяць / рік) замість нативного select. */
     function initBirthDatePicker() {
         const hidden = form.querySelector('input[name="birth_date"]');
         const birthDateRoot = form.querySelector('.birth-date');
@@ -372,7 +367,6 @@
         syncBirthDateHidden = syncHidden;
     }
 
-    /** Компактний dropdown для select рівня хобі / мов. */
     function initLevelCompactSelects() {
         form.querySelectorAll('.level-row select').forEach((nativeSelect) => {
             if (nativeSelect.dataset.compactSelect === '1') {
@@ -499,6 +493,77 @@
     initBirthDatePicker();
     initLevelCompactSelects();
 
+    /** Чіпи «Без обмежень» / «Однолітки» підставляють ефективний діапазон у min/max. */
+    function initAgePreferenceSync() {
+        const minInput = form.querySelector('input[name="min_age"]');
+        const maxInput = form.querySelector('input[name="max_age"]');
+        const prefInputs = Array.from(
+            form.querySelectorAll('input[name="dating_age_preference"]'),
+        );
+        if (!minInput || !maxInput || !prefInputs.length) {
+            return;
+        }
+
+        const PEERS_DELTA = 3;
+        let syncingFromPref = false;
+
+        function applyPreference(value) {
+            syncingFromPref = true;
+            if (value === 'no_limit') {
+                minInput.value = '18';
+                maxInput.value = '99';
+            } else if (value === 'peers') {
+                syncBirthDateHidden();
+                const birth = form.birth_date && form.birth_date.value;
+                const age = birth ? getAgeFromIso(birth) : null;
+                if (age !== null) {
+                    minInput.value = String(Math.max(18, age - PEERS_DELTA));
+                    maxInput.value = String(Math.min(99, age + PEERS_DELTA));
+                }
+            }
+            syncingFromPref = false;
+        }
+
+        function clearPreference() {
+            prefInputs.forEach((input) => {
+                input.checked = false;
+            });
+        }
+
+        prefInputs.forEach((input) => {
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    applyPreference(input.value);
+                }
+            });
+        });
+
+        [minInput, maxInput].forEach((input) => {
+            input.addEventListener('input', () => {
+                if (!syncingFromPref) {
+                    clearPreference();
+                }
+            });
+        });
+
+        const birthHidden = form.querySelector('input[name="birth_date"]');
+        if (birthHidden) {
+            birthHidden.addEventListener('change', () => {
+                const selected = prefInputs.find((item) => item.checked);
+                if (selected && selected.value === 'peers') {
+                    applyPreference('peers');
+                }
+            });
+        }
+
+        const selected = prefInputs.find((item) => item.checked);
+        if (selected) {
+            applyPreference(selected.value);
+        }
+    }
+
+    initAgePreferenceSync();
+
     document.addEventListener('click', (event) => {
         if (event.target.closest('.compact-select') || event.target.closest('.birth-date__field')) {
             return;
@@ -512,7 +577,6 @@
         }
     });
 
-    /** Повертає текст помилки для кроку або порожній рядок. */
     function validateStep(step) {
         syncBirthDateHidden();
         if (step === 1) {
@@ -594,7 +658,7 @@
         return '';
     }
 
-    /** Зменшує фото, зберігаючи пропорції. Кадр у слоті 240×264 — без квадратної обрізки. */
+    /** Зменшує фото зі збереженням пропорцій (слот 240×264 — без квадратної обрізки). */
     function preparePhoto(file) {
         return new Promise((resolve, reject) => {
             const image = new Image();
@@ -634,7 +698,6 @@
         });
     }
 
-    /** Записує оброблені фото в hidden input перед відправкою форми. */
     function syncPhotoInput() {
         const transfer = new DataTransfer();
         photoBlobs.filter(Boolean).forEach((blob, index) => {
@@ -643,7 +706,6 @@
         photosInput.files = transfer.files;
     }
 
-    /** Показує «+» у порожньому слоті галереї. */
     function ensurePlus(slot) {
         let plus = slot.querySelector('.photo-slot__plus');
         if (!plus) {
@@ -656,7 +718,6 @@
         return plus;
     }
 
-    /** Додає кнопку видалення фото, якщо її ще немає. */
     function ensureRemoveButton(slot) {
         if (slot.querySelector('.js-remove-photo')) {
             return;
@@ -668,7 +729,6 @@
         slot.append(remove);
     }
 
-    /** Очищає слот: прев’ю, keep_photos і кнопку видалення. */
     function clearSlotMedia(slot) {
         slot.querySelectorAll('img').forEach((img) => img.remove());
         slot.querySelectorAll('input[name="keep_photos"]').forEach((input) => input.remove());
@@ -677,7 +737,6 @@
         slot.classList.remove('is-filled');
     }
 
-    /** Малює прев’ю нового фото в слоті. */
     function renderSlot(index) {
         const slot = slots[index];
         const blob = photoBlobs[index];
@@ -750,7 +809,6 @@
         sync();
     });
 
-    /** Лічильник символів для textarea (наприклад 12/500). */
     function bindCounter(name, counterId) {
         const field = form.querySelector(`[name="${name}"]`);
         const counter = document.getElementById(counterId);
@@ -857,6 +915,31 @@
         if (btnSubmit) {
             btnSubmit.hidden = false;
         }
+        // Під crush-frame scale нативні label→input кліки інколи «мовчать».
+        // Клік по чіпу явно вмикає radio/checkbox.
+        form.querySelectorAll('label.chip').forEach((chip) => {
+            chip.addEventListener('click', (event) => {
+                const input = chip.querySelector('input[type="checkbox"], input[type="radio"]');
+                if (!input || input.disabled) {
+                    return;
+                }
+                if (event.target === input) {
+                    return;
+                }
+                event.preventDefault();
+                if (input.type === 'checkbox') {
+                    input.checked = !input.checked;
+                } else if (
+                    input.name === 'dating_age_preference' && input.checked
+                ) {
+                    // Повторний клік знімає «Без обмежень» / «Однолітки».
+                    input.checked = false;
+                } else {
+                    input.checked = true;
+                }
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
     } else {
         const errorStep = Number(form.dataset.errorStep || 0);
         showStep(errorStep || 1);

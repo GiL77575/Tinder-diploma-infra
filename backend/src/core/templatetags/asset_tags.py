@@ -9,12 +9,11 @@ from django.templatetags.static import static
 register = template.Library()
 
 # Якщо mtime на сервері не змінився після pull — цей суфікс усе одно скидає кеш.
-ASSET_RELEASE = 'figma-card-20260928'
+ASSET_RELEASE = 'dating-age-pref-logic-20260930'
 
 
 @register.simple_tag
 def vstatic(path):
-    """{% vstatic 'css/home.css' %} — {% static %} + ?v=<mtime>-release для кешбастингу."""
     url = static(path)
     version_parts = [ASSET_RELEASE]
 

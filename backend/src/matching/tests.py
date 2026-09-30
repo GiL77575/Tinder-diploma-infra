@@ -10,6 +10,7 @@ from matching.models import Like, Match
 from matching.services import discover_candidates_queryset, matches_for_user, next_candidate, record_swipe
 from messaging.models import Conversation
 from profiles.models import (
+    AgePreference,
     BffLookingFor,
     HobbyLevel,
     LanguageLevel,
@@ -241,6 +242,43 @@ class DatingFilterTests(TestCase):
         candidate.profile.save()
         profile, _ = next_candidate(self.viewer, SearchMode.DATING)
         self.assertIsNone(profile)
+
+    def test_no_limit_ignores_min_max_age(self):
+        """«Без обмежень» показує кандидатів поза збереженим min/max."""
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            age_preference=AgePreference.NO_LIMIT,
+            min_age=20,
+            max_age=40,
+        )
+        candidate = self._make_candidate(
+            'no.limit@example.com', 'Олег', tags=(self.book, self.hiking),
+        )
+        candidate.profile.birth_date = date(1960, 1, 1)
+        candidate.profile.save()
+        profile, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertEqual(profile.user_id, candidate.id)
+
+    def test_peers_keeps_near_viewer_age(self):
+        """«Однолітки» лишає кандидатів ±3 роки від віку переглядача."""
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            age_preference=AgePreference.PEERS,
+            min_age=18,
+            max_age=99,
+        )
+        # viewer birth_date = 1998-05-12 → ~28 у 2026; ±3 → ~25–31
+        peer = self._make_candidate(
+            'peer.ok@example.com', 'Катя', tags=(self.book, self.hiking),
+        )
+        peer.profile.birth_date = date(1999, 6, 1)
+        peer.profile.save()
+        too_young = self._make_candidate(
+            'peer.young@example.com', 'Ліза', tags=(self.book, self.hiking),
+        )
+        too_young.profile.birth_date = date(2010, 1, 1)
+        too_young.profile.save()
+
+        profile, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertEqual(profile.user_id, peer.id)
 
     def test_excludes_less_than_two_shared_interests(self):
         self._make_candidate(
