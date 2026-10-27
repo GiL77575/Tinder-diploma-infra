@@ -3,7 +3,16 @@
 from django.db.models import Q
 
 from matching.models import Block, Like, Match
-from profiles.models import Gender, LookingFor, ModerationStatus, Profile, SearchMode, TagCategory
+from profiles.models import (
+    AgePreference,
+    Gender,
+    LookingFor,
+    ModerationStatus,
+    Orientation,
+    Profile,
+    SearchMode,
+    TagCategory,
+)
 
 # Скільки спільних інтересів потрібно для показу анкети в режимі знайомств.
 MIN_SHARED_DATING_INTERESTS = 2
@@ -11,6 +20,8 @@ MIN_SHARED_DATING_INTERESTS = 2
 PEERS_AGE_DELTA = 3
 DATING_AGE_FLOOR = 18
 DATING_AGE_CEILING = 99
+# Якщо строгих збігів менше за цей поріг — пропонуємо схожі анкети.
+SIMILAR_OFFER_THRESHOLD = 3
 
 
 def _avatar_url(profile):
@@ -79,6 +90,7 @@ def dating_age_range(viewer_profile, viewer_mode):
 def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
     """
     Критерії показу анкети в режимі знайомств:
+    - стать з «Кого шукаєш» (хлопця / дівчину / обох);
     - те саме місто, що й у переглядача;
     - вік кандидата в межах діапазону (min/max, «Без обмежень» або «Однолітки»);
     - 2 і більше спільних інтереси.
@@ -86,6 +98,8 @@ def _dating_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags
     """
     viewer_mode = viewer_profile.get_mode(SearchMode.DATING)
     if viewer_mode is None:
+        return None
+    if not _passes_gender_filter(viewer_profile, candidate_profile, SearchMode.DATING):
         return None
 
     if not viewer_profile.city or not candidate_profile.city:
@@ -178,11 +192,44 @@ def _wanted_genders(viewer_profile, mode):
 
 
 def _passes_gender_filter(viewer_profile, candidate_profile, mode):
-    """True, якщо кандидат підходить за єдиним фільтром статі (або фільтра немає)."""
+    """True, якщо кандидат підходить за статевими уподобаннями переглядача (або фільтра немає)."""
     wanted = _wanted_genders(viewer_profile, mode)
     if wanted is None:
         return True
     return candidate_profile.gender in wanted
+
+
+def _orientations_compatible(viewer_orientation, candidate_orientation):
+    """
+    Сумісність орієнтацій для dating-стрічки.
+    Бісексуальність і «Інше» не відсікають; гетеро не бачить гей-анкети і навпаки.
+    """
+    open_values = {Orientation.BISEXUAL, Orientation.OTHER, ''}
+    viewer = (viewer_orientation or '').strip()
+    candidate = (candidate_orientation or '').strip()
+    if not viewer or not candidate:
+        return True
+    if viewer in open_values or candidate in open_values:
+        return True
+    return viewer == candidate
+
+
+def _passes_orientation_filter(viewer_profile, candidate_profile, mode):
+    """True, якщо орієнтація кандидата сумісна з орієнтацією переглядача."""
+    if mode != SearchMode.DATING:
+        return True
+    return _orientations_compatible(viewer_profile.orientation, candidate_profile.orientation)
+
+
+def _passes_similar_filters(viewer_profile, candidate_profile, mode):
+    """
+    Мінімальні критерії «схожої» анкети: стать з «Кого шукаєш» і орієнтація.
+    Місто, вік і спільні інтереси не вимагаються.
+    """
+    return (
+        _passes_gender_filter(viewer_profile, candidate_profile, mode)
+        and _passes_orientation_filter(viewer_profile, candidate_profile, mode)
+    )
 
 
 def _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode):
@@ -349,26 +396,61 @@ def discover_candidates_queryset(user, mode):
     )
 
 
+def _iter_unswiped_profiles(user, mode, shuffle=False):
+    """Профілі з пулу discover, ще не свайпнуті цим користувачем у цьому режимі."""
+    viewer_profile = getattr(user, 'profile', None)
+    if viewer_profile is None:
+        return None, None, None
+    viewer_tags = _tag_level_maps(viewer_profile)
+    candidates = discover_candidates_queryset(user, mode)
+    if shuffle:
+        candidates = candidates.order_by('?')
+    return viewer_profile, viewer_tags, candidates
+
+
+def count_strict_candidates(user, mode):
+    """Скільки ще не свайпнутих анкет проходять повні фільтри режиму."""
+    viewer_profile, viewer_tags, candidates = _iter_unswiped_profiles(user, mode)
+    if viewer_profile is None:
+        return 0
+    return sum(
+        1
+        for candidate_profile in candidates
+        if _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode) is not None
+    )
+
+
+def has_similar_candidates(user, mode):
+    """Чи є не свайпнуті анкети, придатні як «схожі» (стать + орієнтація)."""
+    viewer_profile, viewer_tags, candidates = _iter_unswiped_profiles(user, mode)
+    if viewer_profile is None:
+        return False
+    for candidate_profile in candidates:
+        if not _passes_similar_filters(viewer_profile, candidate_profile, mode):
+            continue
+        if _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode) is None:
+            return True
+    return False
+
+
 def next_candidate(user, mode, relaxed=False):
     """
     Перший кандидат для свайпу.
     Звичайний режим:
     - Dating: те саме місто, вік у діапазоні переглядача, 2+ спільні інтереси;
     - BFF: та сама тема пошуку, спільне хобі й мова з тим самим рівнем.
-    Розширений (relaxed): усі анкети режиму, лише фільтр статі з «Кого шукаєш»
-    (у дружбі статі немає — показуємо всі доступні BFF-анкети).
+    Розширений (relaxed / «схожі»): стать з «Кого шукаєш» і сумісна орієнтація;
+    місто, вік і інтереси можуть не збігатися. У BFF статі немає — усі доступні
+    BFF-анкети. Вже свайпнуті анкети не повторюються.
     Повертає (профіль, спільні_теги) або (None, None), якщо нікого немає.
     """
-    viewer_profile = getattr(user, 'profile', None)
+    viewer_profile, viewer_tags, candidates = _iter_unswiped_profiles(user, mode, shuffle=True)
     if viewer_profile is None:
         return None, None
 
-    viewer_tags = _tag_level_maps(viewer_profile)
-    candidates = discover_candidates_queryset(user, mode).order_by('?')
-
     for candidate_profile in candidates:
         if relaxed:
-            if not _passes_gender_filter(viewer_profile, candidate_profile, mode):
+            if not _passes_similar_filters(viewer_profile, candidate_profile, mode):
                 continue
             shared_tags = _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode)
             return candidate_profile, shared_tags or {}

@@ -8,6 +8,9 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from matching.services import (
+    SIMILAR_OFFER_THRESHOLD,
+    count_strict_candidates,
+    has_similar_candidates,
     matches_for_user,
     next_candidate,
     record_swipe,
@@ -53,15 +56,20 @@ def discover_next_view(request):
 
     relaxed = request.GET.get('relaxed') in ('1', 'true')
     profile, shared_tags = next_candidate(request.user, mode, relaxed=relaxed)
+    if relaxed:
+        return JsonResponse({
+            'candidate': serialize_candidate(profile, mode, shared_tags) if profile else None,
+            'can_browse': False,
+        })
+
+    remaining_strict = count_strict_candidates(request.user, mode)
+    few_matches = remaining_strict < SIMILAR_OFFER_THRESHOLD
+    can_browse = few_matches and has_similar_candidates(request.user, mode)
     if profile is None:
-        can_browse = False
-        if not relaxed:
-            browse_profile, _ = next_candidate(request.user, mode, relaxed=True)
-            can_browse = browse_profile is not None
         return JsonResponse({'candidate': None, 'can_browse': can_browse})
     return JsonResponse({
         'candidate': serialize_candidate(profile, mode, shared_tags),
-        'can_browse': False,
+        'can_browse': can_browse,
     })
 
 

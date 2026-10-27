@@ -7,7 +7,14 @@ from django.test import TestCase
 from django.urls import reverse
 
 from matching.models import Like, Match
-from matching.services import discover_candidates_queryset, matches_for_user, next_candidate, record_swipe
+from matching.services import (
+    count_strict_candidates,
+    discover_candidates_queryset,
+    has_similar_candidates,
+    matches_for_user,
+    next_candidate,
+    record_swipe,
+)
 from messaging.models import Conversation
 from profiles.models import (
     AgePreference,
@@ -15,6 +22,7 @@ from profiles.models import (
     HobbyLevel,
     LanguageLevel,
     LookingFor,
+    Orientation,
     Profile,
     ProfileMode,
     ProfileTag,
@@ -288,6 +296,23 @@ class DatingFilterTests(TestCase):
         profile, _ = next_candidate(self.viewer, SearchMode.DATING)
         self.assertIsNone(profile)
 
+    def test_looking_for_male_excludes_women(self):
+        """«Шукаю хлопця» не показує жінок навіть за містом, віком і інтересами."""
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            looking_for=LookingFor.MALE,
+        )
+        woman = self._make_candidate(
+            'same.gender@example.com', 'Іра', tags=(self.book, self.hiking),
+        )
+        man = self._make_candidate(
+            'wanted.gender@example.com', 'Ігор', tags=(self.book, self.hiking),
+        )
+        man.profile.gender = 'male'
+        man.profile.save()
+        profile, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertEqual(profile.user_id, man.id)
+        self.assertNotEqual(profile.user_id, woman.id)
+
 
 class BffFilterTests(TestCase):
     """BFF: та сама тема пошуку, спільне хобі й мова з тим самим рівнем."""
@@ -362,7 +387,7 @@ class BffFilterTests(TestCase):
 
 
 class RelaxedDiscoverTests(TestCase):
-    """Коли немає збігів інтересів — розширений перегляд лише за статтю."""
+    """Коли строгих збігів менше 3 — схожі анкети за статтю та орієнтацією."""
 
     def setUp(self):
         self.book = Tag.objects.create(name='Релакс-книги', category=TagCategory.INTEREST)
@@ -473,3 +498,75 @@ class RelaxedDiscoverTests(TestCase):
         browsed = self.client.get(reverse('discover_next'), {'mode': 'dating', 'relaxed': '1'})
         self.assertEqual(browsed.status_code, 200)
         self.assertEqual(browsed.json()['candidate']['user_id'], woman.id)
+
+    def test_relaxed_includes_other_city_when_gender_and_orientation_match(self):
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            looking_for=LookingFor.MALE,
+        )
+        man = self._dating_candidate('city.man@example.com', 'Тарас', 'male', tags=(self.chess,))
+        man.profile.orientation = Orientation.STRAIGHT
+        man.profile.city = 'Львів'
+        man.profile.save()
+        strict, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertIsNone(strict)
+        relaxed, _ = next_candidate(self.viewer, SearchMode.DATING, relaxed=True)
+        self.assertEqual(relaxed.user_id, man.id)
+
+    def test_relaxed_skips_incompatible_orientation(self):
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            looking_for=LookingFor.MALE,
+        )
+        gay_man = self._dating_candidate('gay.man@example.com', 'Максим', 'male', tags=(self.chess,))
+        gay_man.profile.orientation = Orientation.GAY
+        gay_man.profile.city = 'Львів'
+        gay_man.profile.save()
+        relaxed, _ = next_candidate(self.viewer, SearchMode.DATING, relaxed=True)
+        self.assertIsNone(relaxed)
+
+    def test_few_strict_matches_offer_similar_without_duplicates(self):
+        match = self._dating_candidate(
+            'few.strict@example.com', 'Іра', 'female', tags=(self.book, self.hiking),
+        )
+        extra = self._dating_candidate(
+            'few.extra@example.com', 'Софія', 'female', tags=(self.chess,),
+        )
+        extra.profile.city = 'Одеса'
+        extra.profile.save()
+
+        self.assertEqual(count_strict_candidates(self.viewer, SearchMode.DATING), 1)
+        self.assertTrue(has_similar_candidates(self.viewer, SearchMode.DATING))
+
+        self.client.force_login(self.viewer)
+        first = self.client.get(reverse('discover_next'), {'mode': 'dating'})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()['candidate']['user_id'], match.id)
+        self.assertTrue(first.json()['can_browse'])
+
+        record_swipe(self.viewer, match.id, SearchMode.DATING, False)
+        empty = self.client.get(reverse('discover_next'), {'mode': 'dating'})
+        self.assertIsNone(empty.json()['candidate'])
+        self.assertTrue(empty.json()['can_browse'])
+
+        similar = self.client.get(reverse('discover_next'), {'mode': 'dating', 'relaxed': '1'})
+        self.assertEqual(similar.json()['candidate']['user_id'], extra.id)
+
+        record_swipe(self.viewer, extra.id, SearchMode.DATING, False)
+        again = self.client.get(reverse('discover_next'), {'mode': 'dating', 'relaxed': '1'})
+        self.assertIsNone(again.json()['candidate'])
+
+    def test_three_strict_matches_do_not_offer_similar_yet(self):
+        for idx in range(3):
+            self._dating_candidate(
+                f'strict.pool.{idx}@example.com', f'Анна{idx}', 'female',
+                tags=(self.book, self.hiking),
+            )
+        extra = self._dating_candidate(
+            'pool.extra@example.com', 'Оксана', 'female', tags=(self.chess,),
+        )
+        extra.profile.city = 'Харків'
+        extra.profile.save()
+        self.client.force_login(self.viewer)
+        first = self.client.get(reverse('discover_next'), {'mode': 'dating'})
+        self.assertIsNotNone(first.json()['candidate'])
+        self.assertFalse(first.json()['can_browse'])
+        self.assertEqual(count_strict_candidates(self.viewer, SearchMode.DATING), 3)

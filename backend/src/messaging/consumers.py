@@ -14,6 +14,8 @@ from messaging.services import (
     message_preview,
     participant_user_ids,
     serialize_message,
+    serialize_reaction_groups,
+    set_message_reaction,
 )
 
 
@@ -57,6 +59,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self._handle_send_message(payload.get('text', ''))
         elif action == 'read':
             await self._handle_mark_read()
+        elif action == 'react':
+            await self._handle_react(payload.get('message_id'), payload.get('emoji', ''))
         else:
             await self._send_error(f'Невідомий тип події: {action}')
 
@@ -99,15 +103,44 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 },
             )
 
+    async def _handle_react(self, message_id, emoji):
+        try:
+            groups, msg_id = await self._set_reaction(message_id, emoji)
+        except ValueError as exc:
+            await self._send_error(str(exc))
+            return
+        await self.channel_layer.group_send(
+            self.conversation_group,
+            {
+                'type': 'chat.reactions_updated',
+                'message_id': msg_id,
+                'conversation_id': int(self.conversation_id),
+                'reactions': groups,
+            },
+        )
+
     async def _send_error(self, message):
         await self.send(text_data=json.dumps({'type': 'error', 'message': message}))
 
+    def _message_for_socket(self, message):
+        """is_mine і mine-реакції — з погляду цього з'єднання, не автора події."""
+        payload = dict(message)
+        payload['is_mine'] = payload.get('sender_id') == self.user.id
+        reactions = []
+        for item in payload.get('reactions') or []:
+            user_ids = item.get('user_ids') or []
+            reactions.append({
+                'emoji': item['emoji'],
+                'count': item['count'],
+                'mine': self.user.id in user_ids if user_ids else bool(item.get('mine')),
+            })
+        payload['reactions'] = reactions
+        return payload
+
     async def chat_message(self, event):
-        message = dict(event['message'])
-        message['is_mine'] = message['sender_id'] == self.user.id
         await self.send(text_data=json.dumps({
             'type': 'message',
-            'message': message,
+            'message': self._message_for_socket(event['message']),
             'mode': event.get('mode'),
         }))
 
@@ -119,11 +152,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def chat_message_edited(self, event):
-        message = dict(event['message'])
-        message['is_mine'] = message['sender_id'] == self.user.id
         await self.send(text_data=json.dumps({
             'type': 'message_edited',
-            'message': message,
+            'message': self._message_for_socket(event['message']),
             'mode': event.get('mode'),
         }))
 
@@ -132,6 +163,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'message_deleted',
             'message_id': event['message_id'],
             'conversation_id': event['conversation_id'],
+        }))
+
+    async def chat_reactions_updated(self, event):
+        viewer_id = self.user.id
+        reactions = [
+            {
+                'emoji': group['emoji'],
+                'count': group['count'],
+                'mine': viewer_id in group.get('user_ids', []),
+            }
+            for group in event.get('reactions') or []
+        ]
+        await self.send(text_data=json.dumps({
+            'type': 'reactions_updated',
+            'message_id': event['message_id'],
+            'conversation_id': event['conversation_id'],
+            'reactions': reactions,
         }))
 
     @database_sync_to_async
@@ -173,6 +221,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _mark_read(self):
         conversation = Conversation.objects.get(pk=self.conversation_id)
         return mark_conversation_read(conversation, self.user)
+
+    @database_sync_to_async
+    def _set_reaction(self, message_id, emoji):
+        conversation = (
+            Conversation.objects
+            .select_related(
+                'match', 'match__user_a', 'match__user_b',
+                'meeting',
+            )
+            .get(pk=self.conversation_id)
+        )
+        if not is_participant(self.user, conversation):
+            raise ValueError('Немає доступу до чату.')
+        message = set_message_reaction(conversation, self.user, message_id, emoji)
+        return serialize_reaction_groups(message), message.id
 
 
 class InboxConsumer(AsyncWebsocketConsumer):

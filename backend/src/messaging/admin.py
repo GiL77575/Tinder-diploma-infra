@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 
-from messaging.models import Conversation, Message, PushSubscription
+from messaging.models import Conversation, Message, MessageReaction, PushSubscription
 
 
 class MessageInline(admin.TabularInline):
@@ -38,12 +38,19 @@ class ConversationAdmin(admin.ModelAdmin):
         return last.created_at if last else obj.created_at
 
 
+class MessageReactionInline(admin.TabularInline):
+    model = MessageReaction
+    extra = 0
+    autocomplete_fields = ('user',)
+
+
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = ('id', 'conversation', 'sender', 'short_text', 'has_image', 'created_at', 'read_at')
     list_filter = ('conversation__match__mode',)
     search_fields = ('text', 'sender__email', 'sender__username')
     autocomplete_fields = ('conversation', 'sender')
+    inlines = (MessageReactionInline,)
 
     @admin.display(description='Текст')
     def short_text(self, obj):
@@ -56,6 +63,13 @@ class MessageAdmin(admin.ModelAdmin):
     @admin.display(description='Фото', boolean=True)
     def has_image(self, obj):
         return bool(obj.image_url)
+
+
+@admin.register(MessageReaction)
+class MessageReactionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'message', 'user', 'emoji', 'created_at')
+    search_fields = ('emoji', 'user__email', 'user__username')
+    autocomplete_fields = ('message', 'user')
 
 
 @admin.register(PushSubscription)

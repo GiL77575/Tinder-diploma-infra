@@ -11,6 +11,7 @@ from messaging.services import (
     broadcast_message_deleted,
     broadcast_message_edited,
     broadcast_new_message,
+    broadcast_reactions_updated,
     can_access_conversation,
     conversations_for_user,
     conversation_header_payload,
@@ -21,6 +22,7 @@ from messaging.services import (
     messages_for_conversation,
     open_conversation_for_match,
     save_chat_image,
+    set_message_reaction,
 )
 from profiles.models import SearchMode
 
@@ -193,3 +195,31 @@ def conversation_delete_message_view(request, conversation_id, message_id):
         return JsonResponse({'error': str(exc)}, status=404)
 
     return JsonResponse(broadcast_message_deleted(conversation, deleted_id, request.user))
+
+
+@login_required
+@require_POST
+def conversation_react_message_view(request, conversation_id, message_id):
+    """Ставить, змінює або знімає емодзі-реакцію на повідомлення."""
+    conversation = _get_owned_conversation(request, conversation_id)
+    if conversation is None:
+        return JsonResponse({'error': 'Чат не знайдено або немає доступу.'}, status=404)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Невірний формат запиту.'}, status=400)
+
+    try:
+        message = set_message_reaction(
+            conversation, request.user, message_id, payload.get('emoji', ''),
+        )
+    except ValueError as exc:
+        text = str(exc)
+        status = 404 if text in ('Повідомлення не знайдено.', 'Немає доступу до чату.') else 400
+        return JsonResponse({'error': text}, status=status)
+
+    return JsonResponse({
+        'message_id': message.id,
+        'reactions': broadcast_reactions_updated(conversation, message, request.user),
+    })

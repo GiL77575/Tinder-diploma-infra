@@ -17,6 +17,7 @@
         conversationSendPhoto: (id) => `/app/conversations/${id}/photo/`,
         conversationEditMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/edit/`,
         conversationDeleteMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/delete/`,
+        conversationReactMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/react/`,
         unmatch: (id) => `/app/unmatch/${id}/`,
         meetingMine: '/app/meetings/mine/',
         meetingCreate: '/app/meetings/create/',
@@ -35,6 +36,8 @@
     const SWIPE_MOVE_DEADZONE = 6;
     const HTTP_SYNC_MS = 2500;
     const WS_MAX_RECONNECT = 8;
+    const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍', '👏', '🎉'];
+    const SIMILAR_OFFER_THRESHOLD = 3;
 
     const body = document.body;
     const urlMode = new URLSearchParams(window.location.search).get('mode');
@@ -55,6 +58,7 @@
         matchesLoadId: 0,
         candidateLoadId: 0,
         discoverRelaxed: false,
+        discoverSeenCount: 0,
         activeMatchId: null,
         activeMeetingId: null,
         myMeeting: null,
@@ -681,6 +685,7 @@
         state.dialogsFingerprint = '';
         if (modeChanged) {
             state.discoverRelaxed = false;
+            state.discoverSeenCount = 0;
             renderDialogs([]);
             renderMatches([]);
         }
@@ -1083,12 +1088,12 @@
         try {
             const data = await apiFetch(API.discover(mode, state.discoverRelaxed));
             if (loadId !== state.candidateLoadId || state.mode !== mode) return;
-            renderCandidate(data.candidate, { canBrowse: Boolean(data.can_browse) && !state.discoverRelaxed });
+            renderCandidate(data.candidate, { canBrowse: shouldOfferSimilar(data) });
         } catch (err) {
             try {
                 const data = await apiFetch(API.discover(mode, state.discoverRelaxed));
                 if (loadId !== state.candidateLoadId || state.mode !== mode) return;
-                renderCandidate(data.candidate, { canBrowse: Boolean(data.can_browse) && !state.discoverRelaxed });
+                renderCandidate(data.candidate, { canBrowse: shouldOfferSimilar(data) });
             } catch (retryErr) {
                 if (loadId !== state.candidateLoadId || state.mode !== mode) return;
                 els.swipeCard.classList.add('is-empty');
@@ -1105,6 +1110,16 @@
         if (mod10 === 1 && mod100 !== 11) word = 'співпадіння';
         else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) word = 'співпадіння';
         return `${n} ${word}`;
+    }
+
+    function shouldOfferSimilar(data) {
+        if (!state.discoverRelaxed && data && data.candidate) {
+            if (data.candidate.user_id !== state.activeCandidateUserId) {
+                state.discoverSeenCount += 1;
+            }
+        }
+        if (state.discoverRelaxed || !data || !data.can_browse) return false;
+        return !data.candidate && state.discoverSeenCount < SIMILAR_OFFER_THRESHOLD;
     }
 
     function bindBrowseProfilesButton() {
@@ -1127,8 +1142,7 @@
         if (canBrowse) {
             els.swipeCard.innerHTML = `
                 <div class="swipe-card__placeholder swipe-card__placeholder--browse">
-                    <p>Наразі за обраними вами інтересами немає анкет, але вони з’являться згодом.</p>
-                    <p>Пропонуємо переглянути профілі, які можуть вас зацікавити.</p>
+                    <p>За вашими параметрами знайдено мало анкет, але ви можете переглянути схожі.</p>
                     <button type="button" class="swipe-browse-btn" id="browse-profiles-btn">Переглянути</button>
                 </div>
             `;
@@ -1670,6 +1684,7 @@
             ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12l5 5L14 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${message.is_read ? `<path d="M9 12l5 5L22 8" stroke="${checkStroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}</svg>`
             : '';
         const editedHtml = message.is_edited ? '<span class="msg__edited">ред.</span>' : '';
+        const reactionsHtml = renderReactionsHtml(message.reactions || []);
         const imageHtml = hasImage
             ? `<button type="button" class="msg__image-btn" data-image-url="${escapeHtml(message.image_url)}"><img class="msg__image" src="${escapeHtml(message.image_url)}" alt="Фото"></button>`
             : '';
@@ -1688,10 +1703,54 @@
             ${imageHtml}
             ${textHtml}
             <span class="msg__meta">${editedHtml}${escapeHtml(message.time_label || '')}${checkIcon}</span>
+            ${reactionsHtml}
         `;
+        bubble.dataset.reactions = JSON.stringify(message.reactions || []);
         if (groupIncoming) {
             bindAvatarFallback(bubble.querySelector('.msg__avatar'));
         }
+    }
+
+    function renderReactionsHtml(reactions) {
+        const chips = (reactions || []).map((item) => {
+            const mineClass = item.mine ? ' is-mine' : '';
+            const pressed = item.mine ? 'true' : 'false';
+            return `<button type="button" class="msg__reaction${mineClass}" data-emoji="${escapeHtml(item.emoji)}" aria-pressed="${pressed}">${escapeHtml(item.emoji)} <span>${item.count}</span></button>`;
+        }).join('');
+        return `<div class="msg__reactions">${chips}<button type="button" class="msg__reaction-add" aria-label="Додати реакцію">+</button></div>`;
+    }
+
+    function applyReactions(messageId, reactions) {
+        const bubble = els.chatMessages.querySelector(`[data-message-id="${messageId}"]`);
+        if (!bubble) return;
+        bubble.dataset.reactions = JSON.stringify(reactions || []);
+        const row = bubble.querySelector('.msg__reactions');
+        const html = renderReactionsHtml(reactions || []);
+        if (row) {
+            row.outerHTML = html;
+        } else {
+            bubble.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    function sendReaction(messageId, emoji) {
+        hideMsgMenu();
+        if (!messageId || !state.conversationId) return;
+        if (!REACTION_EMOJIS.includes(emoji) && emoji !== '') return;
+        if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+            state.ws.send(JSON.stringify({
+                type: 'react',
+                message_id: Number(messageId),
+                emoji,
+            }));
+            return;
+        }
+        apiFetch(API.conversationReactMessage(state.conversationId, messageId), {
+            method: 'POST',
+            body: JSON.stringify({ emoji }),
+        }).then((data) => {
+            applyReactions(messageId, data.reactions || []);
+        }).catch((err) => alert(err.message));
     }
 
     function appendMessage(message) {
@@ -1711,11 +1770,18 @@
     function updateMessageBubble(message) {
         const bubble = els.chatMessages.querySelector(`[data-message-id="${message.id}"]`);
         if (!bubble) return;
+        let storedReactions = [];
+        try {
+            storedReactions = JSON.parse(bubble.dataset.reactions || '[]');
+        } catch (e) {
+            storedReactions = [];
+        }
         fillMessageBubble(bubble, Object.assign({}, message, {
             time_label: message.time_label || bubble.dataset.timeLabel || '',
             is_mine: message.is_mine !== undefined ? message.is_mine : bubble.classList.contains('msg--mine'),
             sender_display_name: message.sender_display_name || bubble.dataset.senderName || '',
             sender_avatar_url: message.sender_avatar_url || bubble.dataset.senderAvatar || '',
+            reactions: message.reactions || storedReactions,
         }));
     }
 
@@ -1767,12 +1833,30 @@
         els.chatMoreBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     }
 
+    function highlightOwnReactionInMenu(bubble) {
+        let mine = '';
+        try {
+            const items = JSON.parse(bubble.dataset.reactions || '[]');
+            const own = items.find((item) => item.mine);
+            mine = own ? own.emoji : '';
+        } catch (e) {
+            mine = '';
+        }
+        els.msgMenu.querySelectorAll('.msg-menu__emoji').forEach((btn) => {
+            btn.classList.toggle('is-active', btn.dataset.emoji === mine);
+        });
+    }
+
     function showMsgMenu(event, bubble) {
         if (!els.msgMenu) return;
+        const isMine = bubble.classList.contains('msg--mine');
         const hasText = Boolean((bubble.dataset.text || '').trim());
         const editBtn = els.msgMenu.querySelector('[data-action="edit"]');
-        if (editBtn) editBtn.hidden = !hasText;
+        const deleteBtn = els.msgMenu.querySelector('[data-action="delete"]');
+        if (editBtn) editBtn.hidden = !(isMine && hasText);
+        if (deleteBtn) deleteBtn.hidden = !isMine;
         state.menuMessageId = bubble.dataset.messageId;
+        highlightOwnReactionInMenu(bubble);
         els.msgMenu.hidden = false;
         const point = viewportToFramePoint(event.clientX, event.clientY);
         const menuW = els.msgMenu.offsetWidth || 176;
@@ -1939,7 +2023,8 @@
             }
             const sameText = (message.text || '') === (existing.dataset.text || '');
             const wasEdited = Boolean(existing.querySelector('.msg__edited'));
-            if (!sameText || Boolean(message.is_edited) !== wasEdited) {
+            const sameReactions = (existing.dataset.reactions || '[]') === JSON.stringify(message.reactions || []);
+            if (!sameText || Boolean(message.is_edited) !== wasEdited || !sameReactions) {
                 updateMessageBubble(message);
             }
         });
@@ -2132,6 +2217,11 @@
                     );
                 }
                 break;
+            case 'reactions_updated':
+                if (Number(payload.conversation_id) === Number(state.conversationId)) {
+                    applyReactions(payload.message_id, payload.reactions || []);
+                }
+                break;
             case 'message_deleted':
                 if (Number(payload.conversation_id) === Number(state.conversationId)) {
                     removeMessageBubble(payload.message_id);
@@ -2314,12 +2404,30 @@
 
     if (els.chatMessages) {
         els.chatMessages.addEventListener('click', (evt) => {
+            const addBtn = evt.target.closest('.msg__reaction-add');
+            if (addBtn) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                const bubble = addBtn.closest('.msg');
+                if (!bubble) return;
+                hideChatMoreMenu();
+                showMsgMenu(evt, bubble);
+                return;
+            }
+            const reactionBtn = evt.target.closest('.msg__reaction');
+            if (reactionBtn) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                const bubble = reactionBtn.closest('.msg');
+                if (bubble) sendReaction(bubble.dataset.messageId, reactionBtn.dataset.emoji);
+                return;
+            }
             const btn = evt.target.closest('.msg__image-btn');
             if (!btn) return;
             openLightbox(btn.dataset.imageUrl);
         });
         els.chatMessages.addEventListener('contextmenu', (evt) => {
-            const bubble = evt.target.closest('.msg--mine');
+            const bubble = evt.target.closest('.msg');
             if (!bubble) return;
             evt.preventDefault();
             hideChatMoreMenu();
@@ -2329,6 +2437,12 @@
 
     if (els.msgMenu) {
         els.msgMenu.addEventListener('click', (evt) => {
+            const emojiBtn = evt.target.closest('[data-emoji]');
+            if (emojiBtn) {
+                evt.preventDefault();
+                sendReaction(state.menuMessageId, emojiBtn.dataset.emoji);
+                return;
+            }
             const actionBtn = evt.target.closest('[data-action]');
             if (!actionBtn) return;
             const bubble = els.chatMessages.querySelector(`[data-message-id="${state.menuMessageId}"]`);
@@ -2386,7 +2500,7 @@
             }
         }
         if (!els.msgMenu || els.msgMenu.hidden) return;
-        if (els.msgMenu.contains(evt.target)) return;
+        if (els.msgMenu.contains(evt.target) || evt.target.closest('.msg__reaction-add')) return;
         hideMsgMenu();
     });
     window.addEventListener('resize', hideMsgMenu);

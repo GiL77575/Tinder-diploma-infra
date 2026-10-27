@@ -136,7 +136,23 @@
 }
 
 .page-auth .password-wrapper input {
-    padding-right: 48px;
+    padding-right: 52px;
+}
+
+/* Ховаємо нативне око Edge/IE і кнопки autofill — лишаємо лише наше з макета. */
+.page-auth .password-wrapper input::-ms-reveal,
+.page-auth .password-wrapper input::-ms-clear {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.page-auth .password-wrapper input::-webkit-credentials-auto-fill-button,
+.page-auth .password-wrapper input::-webkit-strong-password-auto-fill-button {
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
 }
 
 .page-auth .btn-submit,
@@ -216,23 +232,44 @@
 
 .toggle-password {
     position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 12px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     background: none;
     border: none;
     cursor: pointer;
     color: #8c8c8c;
     line-height: 0;
+    overflow: visible;
 }
 
 .toggle-password svg {
     display: block;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    overflow: visible;
     pointer-events: none;
+}
+
+.toggle-password .eye-slash {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    opacity: 0;
+    transition:
+        stroke-dashoffset 0.28s ease,
+        opacity 0.18s ease;
+}
+
+/* Пароль сховано — риска перекреслює око (як у макеті). */
+.toggle-password.is-password-hidden .eye-slash {
+    stroke-dashoffset: 0;
+    opacity: 1;
 }

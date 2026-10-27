@@ -9,11 +9,12 @@ from django.utils import timezone
 
 from core.media import public_media_url
 from matching.models import Match
-from messaging.models import Conversation, Message
+from messaging.models import Conversation, Message, MessageReaction
 from profiles.models import SearchMode
 from profiles.services import MAX_PHOTO_BYTES, resolve_image_content_type
 
 PHOTO_PREVIEW = '📷 Фото'
+ALLOWED_MESSAGE_REACTIONS = ('❤️', '😂', '😮', '😢', '🔥', '👍', '👏', '🎉')
 
 
 def get_or_create_conversation_for_match(match):
@@ -97,6 +98,31 @@ def message_preview(text='', image_url=''):
     return ''
 
 
+def serialize_reaction_groups(message):
+    """Групи реакцій: emoji, count, user_ids (для WS і підрахунку «моєї»)."""
+    groups = {}
+    reactions = sorted(message.reactions.all(), key=lambda item: item.created_at)
+    for reaction in reactions:
+        groups.setdefault(reaction.emoji, []).append(reaction.user_id)
+    return [
+        {'emoji': emoji, 'count': len(user_ids), 'user_ids': user_ids}
+        for emoji, user_ids in groups.items()
+    ]
+
+
+def reactions_for_viewer(message, viewer):
+    """Реакції для клієнта: лічильники й позначка, чи є реакція поточного користувача."""
+    return [
+        {
+            'emoji': group['emoji'],
+            'count': group['count'],
+            'mine': viewer.id in group['user_ids'],
+            'user_ids': group['user_ids'],
+        }
+        for group in serialize_reaction_groups(message)
+    ]
+
+
 def serialize_message(message, viewer):
     """Повідомлення для JSON: текст, фото, час, хто надіслав, чи моє, чи прочитане."""
     sender = message.sender
@@ -114,6 +140,7 @@ def serialize_message(message, viewer):
         'is_edited': message.edited_at is not None,
         'created_at': message.created_at.isoformat(),
         'time_label': _format_timestamp(message.created_at),
+        'reactions': reactions_for_viewer(message, viewer),
     }
 
 
@@ -228,7 +255,7 @@ def messages_for_conversation(conversation, viewer):
     """Історія повідомлень чату, від найстарішого до найновішого."""
     messages = conversation.messages.select_related(
         'sender', 'sender__profile',
-    ).prefetch_related('sender__profile__photos').all()
+    ).prefetch_related('sender__profile__photos', 'reactions').all()
     return [serialize_message(message, viewer) for message in messages]
 
 
@@ -379,6 +406,45 @@ def delete_own_message(conversation, user, message_id):
     return message_id
 
 
+def set_message_reaction(conversation, user, message_id, emoji):
+    """
+    Ставить, змінює або знімає реакцію користувача на повідомлення.
+    Повторний вибір того самого емодзі знімає реакцію. Порожній emoji — теж зняти.
+    """
+    if conversation.is_meeting_chat:
+        from meetings.services import assert_conversation_writable
+        assert_conversation_writable(conversation)
+    if not is_participant(user, conversation):
+        raise ValueError('Немає доступу до чату.')
+    if not message_id:
+        raise ValueError('Повідомлення не знайдено.')
+
+    message = conversation.messages.filter(pk=message_id).first()
+    if message is None:
+        raise ValueError('Повідомлення не знайдено.')
+
+    emoji = (emoji or '').strip()
+    existing = MessageReaction.objects.filter(message=message, user=user).first()
+    if not emoji or (existing is not None and existing.emoji == emoji):
+        if existing is not None:
+            existing.delete()
+    else:
+        if emoji not in ALLOWED_MESSAGE_REACTIONS:
+            raise ValueError('Ця реакція недоступна.')
+        MessageReaction.objects.update_or_create(
+            message=message,
+            user=user,
+            defaults={'emoji': emoji},
+        )
+
+    return (
+        Message.objects
+        .prefetch_related('reactions')
+        .select_related('sender', 'sender__profile')
+        .get(pk=message.id)
+    )
+
+
 def broadcast_message_edited(conversation, message, editor):
     """Розсилає відредаговане повідомлення в чат і оновлює прев’ю діалогу."""
     message_data = serialize_message(message, editor)
@@ -406,6 +472,21 @@ def broadcast_message_deleted(conversation, message_id, actor):
     )
     _notify_dialog_preview(conversation, actor)
     return {'message_id': message_id, 'conversation_id': conversation.id}
+
+
+def broadcast_reactions_updated(conversation, message, actor):
+    """Розсилає актуальні реакції повідомлення всім клієнтам чату."""
+    groups = serialize_reaction_groups(message)
+    _group_send(
+        f'conversation_{conversation.id}',
+        {
+            'type': 'chat.reactions_updated',
+            'message_id': message.id,
+            'conversation_id': conversation.id,
+            'reactions': groups,
+        },
+    )
+    return reactions_for_viewer(message, actor)
 
 
 def broadcast_new_message(conversation, message, sender):

@@ -2051,7 +2051,8 @@ body.page-chat[data-mode="bff"] .msg.msg--group {
     grid-template-columns: 47px minmax(0, 1fr) auto;
     grid-template-areas:
         "avatar sender sender"
-        "avatar text meta";
+        "avatar text meta"
+        "avatar reactions reactions";
     column-gap: 8px;
     row-gap: 2px;
     align-items: start;
@@ -2070,7 +2071,8 @@ body.page-chat[data-mode="bff"] .msg.msg--group.msg--image {
     grid-template-areas:
         "avatar sender sender"
         "avatar image image"
-        "avatar text meta";
+        "avatar text meta"
+        "avatar reactions reactions";
     max-width: min(300px, 100%);
 }
 
@@ -2113,6 +2115,93 @@ body.page-chat[data-mode="bff"] .msg--group .msg__meta {
     color: #8c8c8c;
 }
 
+body.page-chat[data-mode="bff"] .msg--group .msg__reactions {
+    grid-area: reactions;
+}
+
+.msg__reactions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.msg__reaction,
+.msg__reaction-add {
+    margin: 0;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: rgba(22, 22, 22, 0.06);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.msg--mine .msg__reaction,
+.msg--mine .msg__reaction-add {
+    background: rgba(255, 253, 254, 0.16);
+    color: #fffdfe;
+}
+
+.msg__reaction.is-mine {
+    border-color: var(--crush-purple);
+    background: #f3e8ff;
+    color: #161616;
+}
+
+.msg--mine .msg__reaction.is-mine {
+    border-color: #fffdfe;
+    background: rgba(255, 253, 254, 0.28);
+    color: #fffdfe;
+}
+
+.msg__reaction-add {
+    min-width: 28px;
+    font-weight: 700;
+    opacity: 0.72;
+}
+
+.msg__reaction-add:hover,
+.msg-menu__emoji:hover,
+.msg-menu__emoji:focus-visible {
+    background: var(--chat-panel);
+    outline: none;
+}
+
+.msg-menu__reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 4px 4px 8px;
+    border-bottom: 1px solid var(--chat-border);
+    margin-bottom: 4px;
+}
+
+.msg-menu__emoji {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 20px;
+    line-height: 36px;
+    cursor: pointer;
+}
+
+.msg-menu__emoji.is-active {
+    background: var(--chat-panel);
+}
+
+.msg-menu:not(:has([data-action]:not([hidden]))) .msg-menu__reactions {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 4px;
+}
+
 .msg__edited {
     font-size: 12px;
     font-weight: 400;
@@ -2127,7 +2216,7 @@ body.page-chat[data-mode="bff"] .msg--group .msg__meta {
 .msg-menu {
     position: absolute;
     z-index: 40;
-    min-width: 176px;
+    min-width: 308px;
     padding: 6px;
     background: var(--chat-surface);
     border: 1px solid var(--chat-border);

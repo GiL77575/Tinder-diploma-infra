@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from matching.services import record_swipe
 from matching.tests import make_user_with_profile
-from messaging.models import Conversation, Message
+from messaging.models import Conversation, Message, MessageReaction
 from messaging.services import conversations_for_user, mark_conversation_read, messages_for_conversation
 from profiles.models import SearchMode
 
@@ -520,3 +520,140 @@ class MessageEditDeleteTests(TestCase):
         )
         self.assertEqual(delete.status_code, 200)
         self.assertFalse(Message.objects.filter(pk=message.id).exists())
+
+
+class MessageReactionTests(TestCase):
+    """Реакції: додати, змінити, зняти; dating, bff і груповий чат зустрічі."""
+
+    def setUp(self):
+        self.alice = make_user_with_profile('alice.react@example.com', 'Аліса')
+        self.bob = make_user_with_profile('bob.react@example.com', 'Боб')
+        self.stranger = make_user_with_profile('stranger.react@example.com', 'Чужий')
+        self.match = make_match(self.alice, self.bob)
+        self.conversation = Conversation.objects.get(match=self.match)
+        self.message = Message.objects.create(
+            conversation=self.conversation,
+            sender=self.alice,
+            text='привіт',
+        )
+
+    def _url(self, conversation=None, message=None):
+        conversation = conversation or self.conversation
+        message = message or self.message
+        return reverse('conversation_react_message', args=[conversation.id, message.id])
+
+    def test_participant_can_add_and_see_own_reaction(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            self._url(),
+            data={'emoji': '❤️'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()['reactions']
+        self.assertEqual(len(payload), 1)
+        self.assertEqual(payload[0]['emoji'], '❤️')
+        self.assertEqual(payload[0]['count'], 1)
+        self.assertTrue(payload[0]['mine'])
+        history = self.client.get(
+            reverse('conversation_messages', args=[self.conversation.id]),
+        )
+        self.assertEqual(history.json()['messages'][0]['reactions'][0]['emoji'], '❤️')
+
+    def test_same_emoji_toggles_off(self):
+        self.client.force_login(self.bob)
+        self.client.post(self._url(), data={'emoji': '👍'}, content_type='application/json')
+        response = self.client.post(
+            self._url(),
+            data={'emoji': '👍'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.json()['reactions'], [])
+        self.assertFalse(MessageReaction.objects.filter(message=self.message).exists())
+
+    def test_changing_emoji_keeps_one_reaction_per_user(self):
+        self.client.force_login(self.alice)
+        self.client.post(self._url(), data={'emoji': '😂'}, content_type='application/json')
+        response = self.client.post(
+            self._url(),
+            data={'emoji': '🎉'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(MessageReaction.objects.filter(message=self.message, user=self.alice).count(), 1)
+        self.assertEqual(response.json()['reactions'][0]['emoji'], '🎉')
+
+    def test_counts_two_users_same_emoji(self):
+        self.client.force_login(self.alice)
+        self.client.post(self._url(), data={'emoji': '🔥'}, content_type='application/json')
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            self._url(),
+            data={'emoji': '🔥'},
+            content_type='application/json',
+        )
+        item = response.json()['reactions'][0]
+        self.assertEqual(item['count'], 2)
+        self.assertTrue(item['mine'])
+
+    def test_rejects_unknown_emoji(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            self._url(),
+            data={'emoji': '💩'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_stranger_cannot_react(self):
+        self.client.force_login(self.stranger)
+        response = self.client.post(
+            self._url(),
+            data={'emoji': '❤️'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(MessageReaction.objects.filter(message=self.message).exists())
+
+    def test_reactions_work_in_bff_match_chat(self):
+        match = make_match(self.alice, self.bob, SearchMode.BFF)
+        conversation = Conversation.objects.get(match=match)
+        message = Message.objects.create(
+            conversation=conversation, sender=self.alice, text='йдемо?',
+        )
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            self._url(conversation, message),
+            data={'emoji': '👏'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['reactions'][0]['emoji'], '👏')
+
+    def test_reactions_work_in_meeting_group_chat(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from meetings.services import create_meeting, join_meeting
+
+        meeting = create_meeting(
+            self.alice,
+            title='Кава',
+            location='Київ',
+            description='Поболтаємо',
+            starts_at=timezone.now() + timedelta(hours=24),
+        )
+        join_meeting(self.bob, meeting)
+        conversation = Conversation.objects.get(meeting=meeting)
+        message = Message.objects.create(
+            conversation=conversation, sender=self.alice, text='чекаю',
+        )
+        self.client.force_login(self.bob)
+        response = self.client.post(
+            self._url(conversation, message),
+            data={'emoji': '😮'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['reactions'][0]['mine'])

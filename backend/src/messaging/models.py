@@ -85,6 +85,37 @@ class Message(models.Model):
         return f'Message {self.pk} in conversation {self.conversation_id}'
 
 
+class MessageReaction(models.Model):
+    """Одна емодзі-реакція користувача на повідомлення (додати / змінити / зняти)."""
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='reactions',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='message_reactions',
+    )
+    emoji = models.CharField(max_length=16)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['message', 'user'],
+                name='messaging_onereaction_per_user_message',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['message', 'emoji']),
+        ]
+
+    def __str__(self):
+        return f'{self.emoji} on message {self.message_id} by {self.user_id}'
+
+
 class PushSubscription(models.Model):
     """Web Push підписка браузера користувача."""
 
