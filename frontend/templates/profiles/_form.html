@@ -33,13 +33,13 @@
     <p class="hint">Спільні дані для обох режимів. Ім’я в профілі може відрізнятися від логіна</p>
 
     <label class="field">
-        <span>Ім’я в профілі</span>
-        <input type="text" name="display_name" maxlength="100" placeholder="Ваше ім’я" value="{{ form.display_name.value|default_if_none:'' }}">
+        <span>Ім’я в профілі <span class="req" title="Обов’язкове поле">*</span></span>
+        <input type="text" name="display_name" maxlength="100" placeholder="Ваше ім’я" value="{{ form.display_name.value|default_if_none:'' }}" required>
         {{ form.display_name.errors }}
     </label>
 
     <div class="field birth-date">
-        <span>Дата народження</span>
+        <span>Дата народження <span class="req" title="Обов’язкове поле">*</span></span>
         <div class="birth-date__row">
             <div class="birth-date__field" data-part="day">
                 <button type="button" class="birth-date__trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -69,8 +69,8 @@
         {{ form.birth_date.errors }}
     </div>
 
-    <fieldset class="field">
-        <legend>Стать</legend>
+    <fieldset class="field" aria-required="true">
+        <legend>Стать <span class="req" title="Обов’язкове поле">*</span></legend>
         <div class="chips">
             {% for value, label in genders %}
                 <label class="chip">
@@ -82,8 +82,8 @@
         {{ form.gender.errors }}
     </fieldset>
 
-    <fieldset class="field">
-        <legend>Орієнтація</legend>
+    <fieldset class="field" aria-required="true">
+        <legend>Орієнтація <span class="req" title="Обов’язкове поле">*</span></legend>
         <div class="chips">
             {% for value, label in orientations %}
                 <label class="chip">
@@ -97,8 +97,8 @@
 
     <div class="list-card">
         <label class="list-row">
-            <span>Місто</span>
-            <input type="text" name="city" maxlength="100" placeholder="Необов’язково" value="{{ form.city.value|default_if_none:'' }}">
+            <span>Місто <span class="req" title="Обов’язкове поле">*</span></span>
+            <input type="text" name="city" maxlength="100" placeholder="Обов’язково" value="{{ form.city.value|default_if_none:'' }}" required>
         </label>
         {{ form.city.errors }}
         <label class="list-row">
@@ -193,8 +193,8 @@
     </fieldset>
     {% endif %}
 
-    <fieldset class="field">
-        <legend>Кого шукаєш</legend>
+    <fieldset class="field" aria-required="true">
+        <legend>Кого шукаєш <span class="req" title="Обов’язкове поле">*</span></legend>
         <div class="chips chips--wide">
             {% for value, label in looking_for_choices %}
                 <label class="chip">
@@ -275,13 +275,13 @@
     </fieldset>
 
     <label class="field">
-        <span>Опис для знайомств <small id="dating-bio-count">0/500</small></span>
+        <span>Опис для знайомств <span class="req" title="Обов’язкове поле">*</span> <small id="dating-bio-count">0/500</small></span>
         <textarea name="dating_bio" maxlength="500" rows="4" placeholder="Коротко про себе в романтичному режимі. (це буде видно на екрані свайпа і при перегляді профілю).">{{ form.dating_bio.value|default_if_none:'' }}</textarea>
         {{ form.dating_bio.errors }}
     </label>
 
     <fieldset class="field">
-        <legend>Загальні інтереси</legend>
+        <legend>Загальні інтереси <span class="req" title="Обов’язкове поле">*</span></legend>
         <div class="chips chips--wrap">
             {% for item in dating_interest_options %}
                 <label class="chip">

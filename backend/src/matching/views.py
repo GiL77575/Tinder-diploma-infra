@@ -51,10 +51,18 @@ def discover_next_view(request):
     if not _valid_mode(mode):
         return JsonResponse({'error': 'Невірний режим.'}, status=400)
 
-    profile, shared_tags = next_candidate(request.user, mode)
+    relaxed = request.GET.get('relaxed') in ('1', 'true')
+    profile, shared_tags = next_candidate(request.user, mode, relaxed=relaxed)
     if profile is None:
-        return JsonResponse({'candidate': None})
-    return JsonResponse({'candidate': serialize_candidate(profile, mode, shared_tags)})
+        can_browse = False
+        if not relaxed:
+            browse_profile, _ = next_candidate(request.user, mode, relaxed=True)
+            can_browse = browse_profile is not None
+        return JsonResponse({'candidate': None, 'can_browse': can_browse})
+    return JsonResponse({
+        'candidate': serialize_candidate(profile, mode, shared_tags),
+        'can_browse': False,
+    })
 
 
 @login_required

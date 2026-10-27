@@ -13,6 +13,7 @@ from profiles.models import (
     BffLookingFor,
     HobbyLevel,
     LanguageLevel,
+    LookingFor,
     Profile,
     ProfileMode,
     ProfileTag,
@@ -320,3 +321,117 @@ class BffFilterTests(TestCase):
         )
         profile, _ = next_candidate(self.viewer, SearchMode.BFF)
         self.assertIsNone(profile)
+
+
+class RelaxedDiscoverTests(TestCase):
+    """Коли немає збігів інтересів — розширений перегляд лише за статтю."""
+
+    def setUp(self):
+        self.book = Tag.objects.create(name='Релакс-книги', category=TagCategory.INTEREST)
+        self.hiking = Tag.objects.create(name='Релакс-походи', category=TagCategory.INTEREST)
+        self.chess = Tag.objects.create(name='Релакс-шахи', category=TagCategory.INTEREST)
+        self.english = Tag.objects.create(name='Релакс-англійська', category=TagCategory.LANGUAGE)
+        self.hobby = Tag.objects.create(name='Релакс-хобі', category=TagCategory.HOBBY)
+
+        self.viewer = make_user_with_profile('viewer.relax@example.com', 'Оля')
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            looking_for=LookingFor.FEMALE,
+            min_age=18,
+            max_age=99,
+        )
+        ProfileTag.objects.create(profile=self.viewer.profile, tag=self.book, mode=SearchMode.DATING)
+        ProfileTag.objects.create(profile=self.viewer.profile, tag=self.hiking, mode=SearchMode.DATING)
+
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.BFF).update(
+            looking_for=BffLookingFor.LANGUAGE,
+        )
+        ProfileTag.objects.create(
+            profile=self.viewer.profile, tag=self.english, mode=SearchMode.BFF, level=LanguageLevel.B1,
+        )
+        ProfileTag.objects.create(
+            profile=self.viewer.profile, tag=self.hobby, mode=SearchMode.BFF, level=HobbyLevel.NOVICE,
+        )
+
+    def _dating_candidate(self, email, name, gender, tags=()):
+        user = make_user_with_profile(email, name)
+        user.profile.gender = gender
+        user.profile.save()
+        for tag in tags:
+            ProfileTag.objects.create(profile=user.profile, tag=tag, mode=SearchMode.DATING)
+        return user
+
+    def _bff_candidate(self, email, name, looking_for, language_level, hobby_level):
+        user = make_user_with_profile(email, name)
+        ProfileMode.objects.filter(profile=user.profile, mode=SearchMode.BFF).update(looking_for=looking_for)
+        ProfileTag.objects.create(
+            profile=user.profile, tag=self.english, mode=SearchMode.BFF, level=language_level,
+        )
+        ProfileTag.objects.create(
+            profile=user.profile, tag=self.hobby, mode=SearchMode.BFF, level=hobby_level,
+        )
+        return user
+
+    def test_strict_dating_empty_relaxed_only_wanted_gender(self):
+        woman = self._dating_candidate(
+            'woman.relax@example.com', 'Катя', 'female', tags=(self.chess,),
+        )
+        self._dating_candidate(
+            'man.relax@example.com', 'Ігор', 'male', tags=(self.chess,),
+        )
+        strict, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertIsNone(strict)
+        relaxed, shared = next_candidate(self.viewer, SearchMode.DATING, relaxed=True)
+        self.assertEqual(relaxed.user_id, woman.id)
+        self.assertEqual(shared, {})
+
+    def test_relaxed_dating_everyone_includes_any_gender(self):
+        ProfileMode.objects.filter(profile=self.viewer.profile, mode=SearchMode.DATING).update(
+            looking_for=LookingFor.EVERYONE,
+        )
+        man = self._dating_candidate('any.man@example.com', 'Богдан', 'male', tags=(self.chess,))
+        strict, _ = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertIsNone(strict)
+        relaxed, _ = next_candidate(self.viewer, SearchMode.DATING, relaxed=True)
+        self.assertEqual(relaxed.user_id, man.id)
+
+    def test_relaxed_does_not_repeat_already_swiped(self):
+        woman = self._dating_candidate('swiped.woman@example.com', 'Леся', 'female', tags=(self.chess,))
+        record_swipe(self.viewer, woman.id, SearchMode.DATING, False)
+        relaxed, _ = next_candidate(self.viewer, SearchMode.DATING, relaxed=True)
+        self.assertIsNone(relaxed)
+
+    def test_strict_match_is_preferred_over_relaxed(self):
+        match = self._dating_candidate(
+            'real.match@example.com', 'Іра', 'female', tags=(self.book, self.hiking),
+        )
+        self._dating_candidate(
+            'weak.match@example.com', 'Софія', 'female', tags=(self.chess,),
+        )
+        profile, shared = next_candidate(self.viewer, SearchMode.DATING)
+        self.assertEqual(profile.user_id, match.id)
+        self.assertIn(self.book.id, shared['interests'])
+
+    def test_bff_relaxed_shows_profiles_without_hobby_match(self):
+        friend = self._bff_candidate(
+            'friend.relax@example.com', 'Марта',
+            looking_for=BffLookingFor.TRAVEL,
+            language_level=LanguageLevel.C1,
+            hobby_level=HobbyLevel.PRO,
+        )
+        strict, _ = next_candidate(self.viewer, SearchMode.BFF)
+        self.assertIsNone(strict)
+        relaxed, _ = next_candidate(self.viewer, SearchMode.BFF, relaxed=True)
+        self.assertEqual(relaxed.user_id, friend.id)
+
+    def test_discover_api_offers_browse_then_returns_relaxed_candidate(self):
+        woman = self._dating_candidate(
+            'api.woman@example.com', 'Ніна', 'female', tags=(self.chess,),
+        )
+        self.client.force_login(self.viewer)
+        empty = self.client.get(reverse('discover_next'), {'mode': 'dating'})
+        self.assertEqual(empty.status_code, 200)
+        self.assertIsNone(empty.json()['candidate'])
+        self.assertTrue(empty.json()['can_browse'])
+        browsed = self.client.get(reverse('discover_next'), {'mode': 'dating', 'relaxed': '1'})
+        self.assertEqual(browsed.status_code, 200)
+        self.assertEqual(browsed.json()['candidate']['user_id'], woman.id)

@@ -3,7 +3,7 @@
 from django.db.models import Q
 
 from matching.models import Block, Like, Match
-from profiles.models import ModerationStatus, Profile, SearchMode, TagCategory
+from profiles.models import Gender, LookingFor, ModerationStatus, Profile, SearchMode, TagCategory
 
 # Скільки спільних інтересів потрібно для показу анкети в режимі знайомств.
 MIN_SHARED_DATING_INTERESTS = 2
@@ -130,6 +130,30 @@ def _bff_match(viewer_profile, viewer_tags, candidate_profile, candidate_tags):
         'languages': shared_languages,
         'interests': shared_interests,
     }
+
+
+def _wanted_genders(viewer_profile, mode):
+    """
+    Статі для розширеного перегляду без збігів інтересів.
+    Dating бере «Кого шукаєш»; BFF не має вибору статі — фільтр не ставимо.
+    """
+    if mode != SearchMode.DATING:
+        return None
+    dating = viewer_profile.get_mode(SearchMode.DATING)
+    looking = (getattr(dating, 'looking_for', None) or '').strip()
+    if looking == LookingFor.MALE:
+        return {Gender.MALE}
+    if looking == LookingFor.FEMALE:
+        return {Gender.FEMALE}
+    return None
+
+
+def _passes_gender_filter(viewer_profile, candidate_profile, mode):
+    """True, якщо кандидат підходить за єдиним фільтром статі (або фільтра немає)."""
+    wanted = _wanted_genders(viewer_profile, mode)
+    if wanted is None:
+        return True
+    return candidate_profile.gender in wanted
 
 
 def _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode):
@@ -296,11 +320,14 @@ def discover_candidates_queryset(user, mode):
     )
 
 
-def next_candidate(user, mode):
+def next_candidate(user, mode, relaxed=False):
     """
-    Перший кандидат для свайпу, що проходить фільтри обраного режиму:
+    Перший кандидат для свайпу.
+    Звичайний режим:
     - Dating: те саме місто, вік у діапазоні переглядача, 2+ спільні інтереси;
     - BFF: та сама тема пошуку, спільне хобі й мова з тим самим рівнем.
+    Розширений (relaxed): усі анкети режиму, лише фільтр статі з «Кого шукаєш»
+    (у дружбі статі немає — показуємо всі доступні BFF-анкети).
     Повертає (профіль, спільні_теги) або (None, None), якщо нікого немає.
     """
     viewer_profile = getattr(user, 'profile', None)
@@ -311,6 +338,11 @@ def next_candidate(user, mode):
     candidates = discover_candidates_queryset(user, mode).order_by('?')
 
     for candidate_profile in candidates:
+        if relaxed:
+            if not _passes_gender_filter(viewer_profile, candidate_profile, mode):
+                continue
+            shared_tags = _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode)
+            return candidate_profile, shared_tags or {}
         shared_tags = _match_for_mode(viewer_profile, viewer_tags, candidate_profile, mode)
         if shared_tags is not None:
             return candidate_profile, shared_tags

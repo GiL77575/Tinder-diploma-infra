@@ -499,6 +499,12 @@ body.page-setup .setup-page-backdrop {
     padding: 0;
 }
 
+.page-setup .req {
+    color: #e866ff;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
 /* "Ім'я в профілі" — велике поле за Figma (Rectangle 125): фон #F8F8F8,
    рамка rgba(0,0,0,.51), радіус 12, текст/плейсхолдер 20/25 */
 .page-setup .field input[type="text"] {

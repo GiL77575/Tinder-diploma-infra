@@ -4,7 +4,11 @@
 
     const API = {
         matches: (mode) => `/app/matches/?mode=${encodeURIComponent(mode)}`,
-        discover: (mode) => `/app/discover/?mode=${encodeURIComponent(mode)}`,
+        discover: (mode, relaxed) => {
+            const params = new URLSearchParams({ mode });
+            if (relaxed) params.set('relaxed', '1');
+            return `/app/discover/?${params.toString()}`;
+        },
         like: '/app/like/',
         conversations: (mode) => `/app/conversations/?mode=${encodeURIComponent(mode)}`,
         conversationOpen: '/app/conversations/open/',
@@ -50,6 +54,7 @@
         dialogsLoadId: 0,
         matchesLoadId: 0,
         candidateLoadId: 0,
+        discoverRelaxed: false,
         activeMatchId: null,
         activeMeetingId: null,
         myMeeting: null,
@@ -675,6 +680,7 @@
         closeChat();
         state.dialogsFingerprint = '';
         if (modeChanged) {
+            state.discoverRelaxed = false;
             renderDialogs([]);
             renderMatches([]);
         }
@@ -1075,14 +1081,14 @@
         els.swipeActions.hidden = true;
         if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
         try {
-            const data = await apiFetch(API.discover(mode));
+            const data = await apiFetch(API.discover(mode, state.discoverRelaxed));
             if (loadId !== state.candidateLoadId || state.mode !== mode) return;
-            renderCandidate(data.candidate);
+            renderCandidate(data.candidate, { canBrowse: Boolean(data.can_browse) && !state.discoverRelaxed });
         } catch (err) {
             try {
-                const data = await apiFetch(API.discover(mode));
+                const data = await apiFetch(API.discover(mode, state.discoverRelaxed));
                 if (loadId !== state.candidateLoadId || state.mode !== mode) return;
-                renderCandidate(data.candidate);
+                renderCandidate(data.candidate, { canBrowse: Boolean(data.can_browse) && !state.discoverRelaxed });
             } catch (retryErr) {
                 if (loadId !== state.candidateLoadId || state.mode !== mode) return;
                 els.swipeCard.classList.add('is-empty');
@@ -1101,15 +1107,41 @@
         return `${n} ${word}`;
     }
 
-    function renderCandidate(candidate) {
+    function bindBrowseProfilesButton() {
+        const browseBtn = els.swipeCard.querySelector('#browse-profiles-btn');
+        if (!browseBtn) return;
+        browseBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            state.discoverRelaxed = true;
+            loadNextCandidate();
+        });
+    }
+
+    function renderEmptyCandidate({ canBrowse } = {}) {
+        state.activeCandidateUserId = null;
+        state.activeCandidate = null;
+        els.swipeActions.hidden = true;
+        if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
+        els.swipeCard.classList.add('is-empty');
+        if (canBrowse) {
+            els.swipeCard.innerHTML = `
+                <div class="swipe-card__placeholder swipe-card__placeholder--browse">
+                    <p>Наразі за обраними вами інтересами немає анкет, але вони з’являться згодом.</p>
+                    <p>Пропонуємо переглянути профілі, які можуть вас зацікавити.</p>
+                    <button type="button" class="swipe-browse-btn" id="browse-profiles-btn">Переглянути</button>
+                </div>
+            `;
+            bindBrowseProfilesButton();
+            return;
+        }
+        els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Анкети закінчилися<br>Спробуйте пізніше</p></div>';
+    }
+
+    function renderCandidate(candidate, { canBrowse } = {}) {
         closeFullProfile();
         if (!candidate) {
-            state.activeCandidateUserId = null;
-            state.activeCandidate = null;
-            els.swipeActions.hidden = true;
-            if (els.expandProfileBtn) els.expandProfileBtn.hidden = true;
-            els.swipeCard.classList.add('is-empty');
-            els.swipeCard.innerHTML = '<div class="swipe-card__placeholder"><p>Анкети закінчилися<br>Спробуйте пізніше</p></div>';
+            renderEmptyCandidate({ canBrowse });
             return;
         }
         state.activeCandidateUserId = candidate.user_id;
