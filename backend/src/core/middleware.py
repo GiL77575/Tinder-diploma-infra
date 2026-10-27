@@ -1,17 +1,14 @@
-"""Middleware for reverse-proxy / public host fixes."""
+"""Middleware для reverse-proxy: фіксує публічний Host."""
 
 from django.conf import settings
 
 
 class PublicHostMiddleware:
-    """Force the public hostname so OAuth callbacks never use a private IP.
+    """Підставляє PUBLIC_HOST замість приватного IP у Host / X-Forwarded-*.
 
-    When nginx (or another proxy) forwards X-Forwarded-Host / Host as the
-    backend address (e.g. 10.239.88.223), Google rejects the redirect_uri:
-    ``device_id and device_name are required for private IP``.
-
-    Set PUBLIC_HOST=crush.pp.ua to pin the external domain (must match
-    Google Cloud Console authorized redirect URIs and django Site.domain).
+    Інакше Google OAuth відхиляє redirect_uri з адреси на кшталт 10.x
+    («device_id and device_name are required for private IP»).
+    PUBLIC_HOST має збігатися з Google Console і django Site.domain.
     """
 
     def __init__(self, get_response):
@@ -22,7 +19,7 @@ class PublicHostMiddleware:
         if self.public_host:
             request.META['HTTP_HOST'] = self.public_host
             request.META['HTTP_X_FORWARDED_HOST'] = self.public_host
-            # Google OAuth requires https://crush.pp.ua/... not http://
+            # OAuth callback має бути https://..., не http://
             request.META['HTTP_X_FORWARDED_PROTO'] = 'https'
             request.META['wsgi.url_scheme'] = 'https'
         return self.get_response(request)

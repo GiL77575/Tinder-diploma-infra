@@ -12,7 +12,7 @@ class CoreConfig(AppConfig):
 
     @staticmethod
     def _sync_site_domain():
-        """Keep django.contrib.sites in sync with PUBLIC_HOST for allauth OAuth."""
+        """Підганяє django.contrib.sites під PUBLIC_HOST (потрібно для allauth OAuth)."""
         from django.conf import settings
 
         public_host = getattr(settings, 'PUBLIC_HOST', '').strip()
@@ -33,5 +33,5 @@ class CoreConfig(AppConfig):
                 site.name = public_host
                 site.save(update_fields=['domain', 'name'])
         except Exception:
-            # DB may be unavailable during migrate / first boot
+            # Під час migrate / першого старту БД ще може бути недоступна
             pass

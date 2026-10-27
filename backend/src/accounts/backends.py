@@ -11,7 +11,6 @@ class EmailOrUsernameModelBackend(ModelBackend):
     """Стандартний Django backend, але логін може бути email або username."""
 
     def authenticate(self, request, username=None, password=None, **kwargs):
-        """Повертає користувача, якщо пароль правильний."""
         if username is None:
             username = kwargs.get('email')
         try:

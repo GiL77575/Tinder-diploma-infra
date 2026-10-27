@@ -43,6 +43,8 @@ class AssetTagTests(SimpleTestCase):
     def test_vstatic_includes_release_token(self):
         from django.template import Context, Template
 
+        from core.templatetags.asset_tags import ASSET_RELEASE
+
         html = Template('{% load asset_tags %}{% vstatic "js/chat.js" %}').render(Context())
         self.assertTrue(html.startswith('/app/static/js/chat.js?'))
-        self.assertIn('figma-card-20260928', html)
+        self.assertIn(ASSET_RELEASE, html)

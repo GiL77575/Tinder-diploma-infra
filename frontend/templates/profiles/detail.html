@@ -112,7 +112,7 @@
                     {% if dating %}
                         <ul class="profile-chips profile-chips--dating">
                             {% if dating.looking_for_label %}
-                                <li>Шукаю {{ dating.looking_for_label|lower }}{% if dating.min_age and dating.max_age %} {{ dating.min_age }}-{{ dating.max_age }}{% endif %}</li>
+                                <li>Шукаю {{ dating.looking_for_label|lower }}{% if dating.age_preference == 'no_limit' %} без обмежень віку{% elif dating.age_preference == 'peers' %} однолітків{% elif dating.min_age and dating.max_age %} {{ dating.min_age }}-{{ dating.max_age }}{% endif %}</li>
                             {% endif %}
                             {% if dating.relationship_goal %}<li>{{ dating.get_relationship_goal_display }}</li>{% endif %}
                             {% if dating.meeting_format %}<li>{{ dating.get_meeting_format_display }}</li>{% endif %}
