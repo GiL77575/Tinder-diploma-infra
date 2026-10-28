@@ -343,6 +343,49 @@ class ChatConsumerTests(TransactionTestCase):
 
         asyncio.run(scenario())
 
+    def test_open_chat_marks_incoming_message_read(self):
+        """Якщо отримувач уже в чаті, нове повідомлення не лишається непрочитаним."""
+        from channels.testing import WebsocketCommunicator
+
+        from messaging.consumers import ChatConsumer
+
+        async def scenario():
+            sender = WebsocketCommunicator(
+                ChatConsumer.as_asgi(), f'/ws/chat/{self.conversation.id}/',
+            )
+            sender.scope['url_route'] = {'kwargs': {'conversation_id': self.conversation.id}}
+            sender.scope['user'] = self.alice
+            connected, _ = await sender.connect()
+            self.assertTrue(connected)
+
+            recipient = WebsocketCommunicator(
+                ChatConsumer.as_asgi(), f'/ws/chat/{self.conversation.id}/',
+            )
+            recipient.scope['url_route'] = {'kwargs': {'conversation_id': self.conversation.id}}
+            recipient.scope['user'] = self.bob
+            connected, _ = await recipient.connect()
+            self.assertTrue(connected)
+
+            await sender.send_json_to({'type': 'message', 'text': 'я вже в чаті'})
+            await sender.receive_json_from()
+            incoming = await recipient.receive_json_from()
+            self.assertEqual(incoming['type'], 'message')
+            read_event = await recipient.receive_json_from()
+            self.assertEqual(read_event['type'], 'read')
+            self.assertEqual(read_event['reader_id'], self.bob.id)
+
+            await sender.disconnect()
+            await recipient.disconnect()
+
+        asyncio.run(scenario())
+        message = Message.objects.get(conversation=self.conversation, text='я вже в чаті')
+        self.assertIsNotNone(message.read_at)
+        bob_item = next(
+            item for item in conversations_for_user(self.bob, SearchMode.DATING)
+            if item['conversation_id'] == self.conversation.id
+        )
+        self.assertEqual(bob_item['unread_count'], 0)
+
 
 class InboxConsumerTests(TransactionTestCase):
     """Постійний inbox-канал: отримує оновлення діалогу навіть без відкритого чату."""

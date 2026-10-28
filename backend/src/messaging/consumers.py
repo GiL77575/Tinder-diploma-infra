@@ -143,6 +143,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message': self._message_for_socket(event['message']),
             'mode': event.get('mode'),
         }))
+        if event['message'].get('sender_id') == self.user.id:
+            return
+        updated = await self._mark_read()
+        if updated:
+            await self.channel_layer.group_send(
+                self.conversation_group,
+                {
+                    'type': 'chat.read',
+                    'conversation_id': int(self.conversation_id),
+                    'reader_id': self.user.id,
+                },
+            )
 
     async def chat_read(self, event):
         await self.send(text_data=json.dumps({

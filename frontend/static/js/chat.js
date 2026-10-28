@@ -907,12 +907,17 @@
             item.dataset.mode = dialog.mode || (dialog.kind === 'meeting' ? 'bff' : state.mode);
             const isMeeting = dialog.kind === 'meeting';
             if (isMeeting) item.classList.add('dialog-item--meeting');
-            if (dialog.unread_count > 0) item.classList.add('has-unread');
-            if (dialog.conversation_id === state.conversationId) item.classList.add('is-active');
+            const isOpenChat = isViewingConversation(dialog.conversation_id);
+            const unreadCount = isOpenChat ? 0 : (dialog.unread_count || 0);
+            if (unreadCount > 0) item.classList.add('has-unread');
+            if (isOpenChat) item.classList.add('is-active');
+            if (isOpenChat && dialog.unread_count > 0) {
+                markOpenConversationRead(dialog.conversation_id);
+            }
 
             let metaRight = `<span class="dialog-item__time">${escapeHtml(dialog.last_message_time || '')}</span>`;
-            if (dialog.unread_count > 0) {
-                metaRight += `<span class="dialog-item__badge">${dialog.unread_count}</span>`;
+            if (unreadCount > 0) {
+                metaRight += `<span class="dialog-item__badge">${unreadCount}</span>`;
             } else if (dialog.last_message_is_mine) {
                 metaRight = `
                     <span class="dialog-item__meta-top">
@@ -958,12 +963,34 @@
         });
     }
 
+    function isViewingConversation(conversationId) {
+        return state.conversationId != null && Number(state.conversationId) === Number(conversationId);
+    }
+
+    function clearDialogUnread(conversationId) {
+        const match = Array.from(els.dialogsList.querySelectorAll('.dialog-item'))
+            .find((el) => Number(el.dataset.conversationId) === Number(conversationId));
+        if (!match) return;
+        match.classList.remove('has-unread');
+        const badge = match.querySelector('.dialog-item__badge');
+        if (badge) badge.remove();
+    }
+
+    function markOpenConversationRead(conversationId) {
+        if (!isViewingConversation(conversationId)) return;
+        clearDialogUnread(conversationId);
+        if (websocketIsOpen(state.ws)) {
+            state.ws.send(JSON.stringify({ type: 'read' }));
+        }
+        apiFetch(API.conversationRead(conversationId), { method: 'POST' }).catch(() => {});
+    }
+
     function bumpDialogPreview(conversationId, preview, timeLabel, senderId, mode) {
         if (mode && mode !== state.mode) return;
         const cached = Array.from(els.dialogsList.querySelectorAll('.dialog-item'));
         const match = cached.find((el) => Number(el.dataset.conversationId) === Number(conversationId));
-        const isMine = senderId === state.myUserId;
-        const isOpenChat = state.conversationId === Number(conversationId);
+        const isMine = Number(senderId) === Number(state.myUserId);
+        const isOpenChat = isViewingConversation(conversationId);
         if (match) {
             const itemMode = match.dataset.mode;
             const itemKind = match.dataset.kind;
@@ -974,7 +1001,10 @@
             const timeEl = match.querySelector('.dialog-item__time');
             if (previewEl) previewEl.textContent = preview;
             if (timeEl) timeEl.textContent = timeLabel;
-            if (!isMine && !isOpenChat) {
+            if (isOpenChat) {
+                clearDialogUnread(conversationId);
+                if (!isMine) markOpenConversationRead(conversationId);
+            } else if (!isMine) {
                 match.classList.add('has-unread');
                 let badge = match.querySelector('.dialog-item__badge');
                 if (!badge) {
@@ -2079,11 +2109,14 @@
         if (state.httpSyncBusy || document.hidden) return;
         state.httpSyncBusy = true;
         try {
+            if (state.conversationId) {
+                await apiFetch(API.conversationRead(state.conversationId), { method: 'POST' });
+            }
             await loadDialogs();
             if (!state.conversationId) return;
             const conversationId = state.conversationId;
             const data = await apiFetch(API.conversationMessages(conversationId));
-            if (state.conversationId !== conversationId) return;
+            if (!isViewingConversation(conversationId)) return;
             mergeMessagesFromHttp(data.messages || []);
         } catch (err) {
             /* WS уже впав; наступний тік спробує знову */
@@ -2184,10 +2217,10 @@
     function handleWsEvent(payload) {
         switch (payload.type) {
             case 'message':
-                if (Number(payload.message.conversation_id) === Number(state.conversationId)) {
+                if (isViewingConversation(payload.message.conversation_id)) {
                     appendMessage(payload.message);
-                    if (!payload.message.is_mine && state.ws) {
-                        state.ws.send(JSON.stringify({ type: 'read' }));
+                    if (!payload.message.is_mine) {
+                        markOpenConversationRead(payload.message.conversation_id);
                     }
                 }
                 bumpDialogPreview(
