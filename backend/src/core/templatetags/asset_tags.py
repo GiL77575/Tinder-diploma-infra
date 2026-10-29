@@ -9,7 +9,7 @@ from django.templatetags.static import static
 register = template.Library()
 
 # Якщо mtime на сервері не змінився після pull — цей суфікс усе одно скидає кеш.
-ASSET_RELEASE = 'edit-chip-checked-fix-20260930b'
+ASSET_RELEASE = 'group-msg-flex-shrink-20261029'
 
 
 @register.simple_tag

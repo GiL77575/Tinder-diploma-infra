@@ -1776,28 +1776,20 @@
         if (groupIncoming) {
             const senderId = message.sender_id ? String(message.sender_id) : '';
             const senderName = escapeHtml(message.sender_display_name || '');
-            bubble.innerHTML = `
-                <button type="button" class="msg__avatar-btn" data-user-id="${escapeHtml(senderId)}" aria-label="Відкрити профіль ${senderName}">
-                    <img class="msg__avatar" src="${escapeHtml(message.sender_avatar_url || avatarPlaceholder())}" alt="">
-                </button>
-                <div class="msg__stack">
-                    <span class="msg__sender">${senderName}</span>
-                    ${imageHtml}
-                    <div class="msg__line">
-                        ${textHtml}
-                        ${metaHtml}
-                    </div>
-                    ${reactionsHtml}
-                </div>
-            `;
+            // Без пробілів між тегами — інакше в grid/flex з’являються анонімні вузли й верстка ламається.
+            bubble.innerHTML = [
+                `<button type="button" class="msg__avatar-btn" data-user-id="${escapeHtml(senderId)}" aria-label="Відкрити профіль ${senderName}"><img class="msg__avatar" src="${escapeHtml(message.sender_avatar_url || avatarPlaceholder())}" alt=""></button>`,
+                '<div class="msg__body">',
+                `<span class="msg__sender">${senderName}</span>`,
+                imageHtml,
+                textHtml,
+                metaHtml,
+                reactionsHtml,
+                '</div>',
+            ].join('');
             bindAvatarFallback(bubble.querySelector('.msg__avatar'));
         } else {
-            bubble.innerHTML = `
-                ${imageHtml}
-                ${textHtml}
-                ${metaHtml}
-                ${reactionsHtml}
-            `;
+            bubble.innerHTML = [imageHtml, textHtml, metaHtml, reactionsHtml].join('');
         }
         bubble.dataset.reactions = JSON.stringify(message.reactions || []);
     }
@@ -1821,11 +1813,13 @@
         bubble.dataset.reactions = JSON.stringify(reactions || []);
         const row = bubble.querySelector('.msg__reactions');
         const html = renderReactionsHtml(reactions || []);
+        const body = bubble.querySelector('.msg__body');
         if (row) {
             if (html) row.outerHTML = html;
             else row.remove();
         } else if (html) {
-            bubble.insertAdjacentHTML('beforeend', html);
+            if (body) body.insertAdjacentHTML('beforeend', html);
+            else bubble.insertAdjacentHTML('beforeend', html);
         }
     }
 
