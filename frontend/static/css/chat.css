@@ -2090,21 +2090,24 @@ body.page-chat[data-mode="bff"] .chat-view__deco-img--bff {
     color: #e7d5ff;
 }
 
-/* Груповий чат: аватар зліва, ім’я → текст → реакції стовпчиком (без наїзду). */
+/* Груповий чат: аватар зліва, ім’я → текст → реакції; час у куті без наїзду. */
 body.page-chat[data-mode="bff"] .msg.msg--group {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     gap: 8px;
-    width: 300px;
+    width: fit-content;
     max-width: min(300px, 100%);
+    min-width: 0;
     min-height: 63px;
-    padding: 8px 12px 8px 4px;
+    height: auto;
+    padding: 8px 12px 10px 4px;
     box-sizing: border-box;
+    overflow: visible;
     background: #fffdfe;
     border-radius: 14px;
     color: #161616;
-    line-height: 20px;
+    line-height: 1.35;
 }
 
 body.page-chat[data-mode="bff"] .msg.msg--group.msg--image {
@@ -2113,11 +2116,11 @@ body.page-chat[data-mode="bff"] .msg.msg--group.msg--image {
 
 body.page-chat[data-mode="bff"] .msg--group .msg__avatar-btn {
     flex-shrink: 0;
-    align-self: center;
+    align-self: flex-start;
     width: 47px;
     height: 47px;
+    margin: 4px 0 0;
     padding: 0;
-    margin: 0;
     border: none;
     border-radius: 50%;
     background: transparent;
@@ -2145,7 +2148,8 @@ body.page-chat[data-mode="bff"] .msg--group .msg__stack {
     align-items: stretch;
     gap: 2px;
     min-width: 0;
-    flex: 1;
+    flex: 0 1 auto;
+    max-width: 100%;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__sender {
@@ -2161,22 +2165,27 @@ body.page-chat[data-mode="bff"] .msg--group .msg__sender {
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__line {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    gap: 8px;
+    display: block;
+    position: relative;
+    width: 100%;
     min-width: 0;
+    min-height: 16px;
+    padding-right: 48px;
+    box-sizing: border-box;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__text {
     display: block;
-    flex: 1;
     min-width: 0;
+    max-width: 100%;
     color: #161616;
     font-size: 16px;
-    line-height: 20px;
+    line-height: 1.35;
     overflow-wrap: anywhere;
     word-break: break-word;
+    white-space: pre-wrap;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__image-btn {
@@ -2185,13 +2194,19 @@ body.page-chat[data-mode="bff"] .msg--group .msg__image-btn {
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__meta {
-    flex-shrink: 0;
-    align-self: flex-end;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    margin: 0;
     color: #8c8c8c;
+    line-height: 16px;
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__reactions {
     margin-top: 2px;
+    max-width: 100%;
 }
 
 .msg__reactions {
