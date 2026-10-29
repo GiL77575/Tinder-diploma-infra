@@ -10,6 +10,7 @@ from django.views.decorators.http import require_GET, require_POST
 from matching.services import (
     SIMILAR_OFFER_THRESHOLD,
     count_strict_candidates,
+    get_viewable_profile,
     has_similar_candidates,
     matches_for_user,
     next_candidate,
@@ -118,3 +119,17 @@ def unmatch_view(request, match_id):
     except ValueError as exc:
         return JsonResponse({'error': str(exc)}, status=404)
     return JsonResponse({'ok': True, **result})
+
+@login_required
+@require_GET
+def matched_profile_view(request, user_id):
+    """Повний профіль метча / учасника спільної зустрічі (для оверлею по кліку на аватар)."""
+    mode = request.GET.get('mode', SearchMode.DATING)
+    if not _valid_mode(mode):
+        return JsonResponse({'error': 'Невірний режим.'}, status=400)
+    try:
+        candidate = get_viewable_profile(request.user, user_id, mode)
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=404)
+    return JsonResponse({'candidate': candidate})
+

@@ -320,14 +320,14 @@ body.page-chat.is-chat-open .chat-deco {
 .chat-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 12px;
     width: var(--chat-sidebar-w);
     height: 948px;
     min-height: 0;
 }
 
 body.page-chat[data-mode="bff"] .chat-sidebar {
-    gap: 20px;
+    gap: 12px;
     height: 958px;
 }
 
@@ -360,30 +360,47 @@ body.page-chat.is-chat-open .chat-body {
 
 .matches-panel {
     background: var(--chat-panel);
-    height: 256px;
-    flex-shrink: 0;
+    /* Лише під аватари (1–2 ряди); без порожнечі, щоб «Діалоги» були одразу під метчами */
+    height: auto;
+    min-height: 0;
+    max-height: 256px;
+    flex: 0 0 auto;
+}
+
+.matches-panel:has(.matches-grid.is-expanded) {
+    max-height: none;
 }
 
 body.page-chat[data-mode="bff"] .matches-panel {
     height: 158px;
+    min-height: 158px;
+    max-height: 158px;
+}
+
+body.page-chat[data-mode="bff"] .matches-panel:has(.matches-grid.is-expanded) {
+    height: auto;
+    max-height: none;
 }
 
 .dialogs-panel {
-    height: 662px;
-    flex-shrink: 0;
+    /* Займає решту сайдбару під метчами (романтика і дружба) */
+    height: auto;
     min-height: 0;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     padding-left: 0;
     padding-right: 0;
 }
 
 body.page-chat[data-mode="bff"] .dialogs-panel {
-    height: 718px;
+    height: auto;
+    flex: 1 1 auto;
 }
 
 .dialogs-panel .panel__title {
     margin-left: 15px;
     margin-right: 15px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .create-meeting-btn {
@@ -1006,12 +1023,12 @@ body.page-chat[data-mode="bff"] .panel__title-icon--heart {
 }
 
 .matches-grid .panel__empty {
-    margin: 44px auto 0;
+    margin: 24px auto 12px;
 }
 
 .dialogs-list .panel__empty {
     width: 240px;
-    margin: 178px auto 0;
+    margin: 48px auto 0;
     line-height: 25px;
 }
 
@@ -1019,7 +1036,7 @@ body.page-chat[data-mode="bff"] .panel__title-icon--heart {
 
 .matches-wrap {
     position: relative;
-    flex: 1;
+    flex: 0 0 auto;
     min-height: 0;
     overflow: visible;
 }
@@ -1185,9 +1202,11 @@ body.page-chat[data-mode="bff"] .matches-grid {
     gap: 20px;
     overflow-x: hidden;
     overflow-y: auto;
+    flex: 1 1 auto;
     min-height: 0;
     padding-left: 15px;
     padding-right: 15px;
+    padding-bottom: 12px;
     box-sizing: border-box;
 }
 
@@ -1279,6 +1298,26 @@ body.page-chat[data-mode="bff"] .dialog-item__name-text {
     white-space: nowrap;
 }
 
+.dialog-item__avatar-wrap {
+    grid-row: 1 / 3;
+    grid-column: 1;
+    display: block;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dialog-item__avatar-wrap:focus-visible {
+    outline: 2px solid var(--crush-purple);
+    outline-offset: 2px;
+}
+
 .dialog-item__avatar {
     width: 56px;
     height: 56px;
@@ -1286,6 +1325,11 @@ body.page-chat[data-mode="bff"] .dialog-item__name-text {
     object-fit: cover;
     background: #e9e2f6;
     grid-row: 1 / 3;
+    display: block;
+}
+
+.dialog-item__avatar-wrap .dialog-item__avatar {
+    grid-row: auto;
 }
 
 .dialog-item__name {
@@ -1982,6 +2026,7 @@ body.page-chat[data-mode="bff"] .chat-view__deco-img--bff {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    cursor: pointer;
 }
 
 .msg--image {
@@ -2045,17 +2090,12 @@ body.page-chat[data-mode="bff"] .chat-view__deco-img--bff {
     color: #e7d5ff;
 }
 
-/* Figma груповий чат дружби: вхідне «Повідомлення від Наталії» — аватар + ім’я. */
+/* Груповий чат: аватар зліва, ім’я → текст → реакції стовпчиком (без наїзду). */
 body.page-chat[data-mode="bff"] .msg.msg--group {
-    display: grid;
-    grid-template-columns: 47px minmax(0, 1fr) auto;
-    grid-template-areas:
-        "avatar sender sender"
-        "avatar text meta"
-        "avatar reactions reactions";
-    column-gap: 8px;
-    row-gap: 2px;
-    align-items: start;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
     width: 300px;
     max-width: min(300px, 100%);
     min-height: 63px;
@@ -2068,26 +2108,48 @@ body.page-chat[data-mode="bff"] .msg.msg--group {
 }
 
 body.page-chat[data-mode="bff"] .msg.msg--group.msg--image {
-    grid-template-areas:
-        "avatar sender sender"
-        "avatar image image"
-        "avatar text meta"
-        "avatar reactions reactions";
     max-width: min(300px, 100%);
 }
 
+body.page-chat[data-mode="bff"] .msg--group .msg__avatar-btn {
+    flex-shrink: 0;
+    align-self: center;
+    width: 47px;
+    height: 47px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.page-chat[data-mode="bff"] .msg--group .msg__avatar-btn:focus-visible {
+    outline: 2px solid #e866ff;
+    outline-offset: 2px;
+}
+
 body.page-chat[data-mode="bff"] .msg--group .msg__avatar {
-    grid-area: avatar;
     width: 47px;
     height: 47px;
     border-radius: 50%;
     object-fit: cover;
-    align-self: center;
+    display: block;
     background: #e9e2f6;
 }
 
+body.page-chat[data-mode="bff"] .msg--group .msg__stack {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
 body.page-chat[data-mode="bff"] .msg--group .msg__sender {
-    grid-area: sender;
+    display: block;
     font-size: 14px;
     line-height: 18px;
     font-weight: 400;
@@ -2098,25 +2160,38 @@ body.page-chat[data-mode="bff"] .msg--group .msg__sender {
     white-space: nowrap;
 }
 
+body.page-chat[data-mode="bff"] .msg--group .msg__line {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
 body.page-chat[data-mode="bff"] .msg--group .msg__text {
-    grid-area: text;
+    display: block;
+    flex: 1;
+    min-width: 0;
     color: #161616;
     font-size: 16px;
     line-height: 20px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__image-btn {
-    grid-area: image;
+    display: block;
+    max-width: 100%;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__meta {
-    grid-area: meta;
-    align-self: end;
+    flex-shrink: 0;
+    align-self: flex-end;
     color: #8c8c8c;
 }
 
 body.page-chat[data-mode="bff"] .msg--group .msg__reactions {
-    grid-area: reactions;
+    margin-top: 2px;
 }
 
 .msg__reactions {
@@ -2127,8 +2202,7 @@ body.page-chat[data-mode="bff"] .msg--group .msg__reactions {
     margin-top: 4px;
 }
 
-.msg__reaction,
-.msg__reaction-add {
+.msg__reaction {
     margin: 0;
     padding: 2px 8px;
     border: 1px solid transparent;
@@ -2140,8 +2214,7 @@ body.page-chat[data-mode="bff"] .msg--group .msg__reactions {
     cursor: pointer;
 }
 
-.msg--mine .msg__reaction,
-.msg--mine .msg__reaction-add {
+.msg--mine .msg__reaction {
     background: rgba(255, 253, 254, 0.16);
     color: #fffdfe;
 }
@@ -2158,13 +2231,6 @@ body.page-chat[data-mode="bff"] .msg--group .msg__reactions {
     color: #fffdfe;
 }
 
-.msg__reaction-add {
-    min-width: 28px;
-    font-weight: 700;
-    opacity: 0.72;
-}
-
-.msg__reaction-add:hover,
 .msg-menu__emoji:hover,
 .msg-menu__emoji:focus-visible {
     background: var(--chat-panel);

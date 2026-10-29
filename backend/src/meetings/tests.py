@@ -80,9 +80,16 @@ class MeetingCreateTests(TestCase):
         new_meeting = _create_meeting(self.alice, title='Прогулянка')
         self.assertEqual(new_meeting.status, MeetingStatus.ACTIVE)
 
-    def test_past_starts_at_rejected(self):
-        with self.assertRaises(MeetingError):
-            _create_meeting(self.alice, starts_at=timezone.now() - timedelta(hours=1))
+    def test_past_starts_at_rolls_to_next_year(self):
+        """Минулий день+місяць цього року зберігається як наступний рік."""
+        now = timezone.localtime(timezone.now())
+        past = (now - timedelta(days=45)).replace(hour=18, minute=0, second=0, microsecond=0)
+        meeting = _create_meeting(self.alice, starts_at=past)
+        local = timezone.localtime(meeting.starts_at)
+        self.assertEqual(local.year, now.year + 1)
+        self.assertEqual(local.month, past.month)
+        self.assertEqual(local.day, past.day)
+        self.assertGreater(meeting.starts_at, timezone.now())
 
 
 class MeetingJoinLeaveTests(TestCase):

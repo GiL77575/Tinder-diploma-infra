@@ -40,6 +40,31 @@ def _parse_starts_at(value):
     return starts_at
 
 
+def _replace_year(starts_at, year):
+    """Підставляє рік, з урахуванням 29 лютого в невисокосний рік."""
+    try:
+        return starts_at.replace(year=year)
+    except ValueError:
+        return starts_at.replace(year=year, day=28)
+
+
+def normalize_meeting_starts_at(starts_at):
+    """
+    День+місяць у минулому (або час уже минув) → та сама дата наступного року.
+    Майбутні дати не змінює.
+    """
+    now = timezone.now()
+    if starts_at > now:
+        return starts_at
+    local_now = timezone.localtime(now)
+    candidate = _replace_year(starts_at, local_now.year)
+    if candidate <= now:
+        candidate = _replace_year(starts_at, local_now.year + 1)
+    if candidate <= now:
+        raise MeetingError('Дата і час зустрічі не можуть бути в минулому.')
+    return candidate
+
+
 def _validate_meeting_fields(title, location, description, starts_at, *, require_future=True):
     title = (title or '').strip()
     location = (location or '').strip()
@@ -56,8 +81,8 @@ def _validate_meeting_fields(title, location, description, starts_at, *, require
         raise MeetingError('Місце занадто довге.')
     if len(description) > 1000:
         raise MeetingError('Опис занадто довгий.')
-    if require_future and starts_at <= timezone.now():
-        raise MeetingError('Дата і час зустрічі не можуть бути в минулому.')
+    if require_future:
+        starts_at = normalize_meeting_starts_at(starts_at)
     return title, location, description, starts_at
 
 

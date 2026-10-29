@@ -19,6 +19,7 @@
         conversationDeleteMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/delete/`,
         conversationReactMessage: (cid, mid) => `/app/conversations/${cid}/messages/${mid}/react/`,
         unmatch: (id) => `/app/unmatch/${id}/`,
+        userProfile: (id, mode) => `/app/users/${id}/profile/?mode=${encodeURIComponent(mode)}`,
         meetingMine: '/app/meetings/mine/',
         meetingCreate: '/app/meetings/create/',
         meetingDetail: (id) => `/app/meetings/${id}/`,
@@ -378,12 +379,25 @@
         return new Date(year, month, 0).getDate();
     }
 
+    function meetingFormHourMinute() {
+        const raw = (els.meetingFormTime && els.meetingFormTime.value) || '18:00';
+        const parts = raw.split(':');
+        const hour = Number(parts[0]);
+        const minute = Number(parts[1] || 0);
+        return {
+            hour: Number.isFinite(hour) ? hour : 18,
+            minute: Number.isFinite(minute) ? minute : 0,
+        };
+    }
+
+    /** Минула дата (день+місяць+час уже пройшли) → наступний рік. */
     function resolveMeetingYear(month, day) {
         const now = new Date();
-        let year = now.getFullYear();
-        const candidate = new Date(year, Number(month) - 1, Number(day), 18, 0, 0);
-        if (candidate <= now) {
-            year += 1;
+        const year = now.getFullYear();
+        const { hour, minute } = meetingFormHourMinute();
+        const candidate = new Date(year, Number(month) - 1, Number(day), hour, minute, 0, 0);
+        if (Number.isNaN(candidate.getTime()) || candidate <= now) {
+            return year + 1;
         }
         return year;
     }
@@ -396,9 +410,14 @@
             els.meetingFormDate.value = '';
             return '';
         }
-        const year = resolveMeetingYear(month, day);
-        const maxDay = daysInMonth(year, Number(month));
-        const safeDay = Math.min(Number(day), maxDay);
+        const monthNum = Number(month);
+        let year = resolveMeetingYear(month, day);
+        let maxDay = daysInMonth(year, monthNum);
+        let safeDay = Math.min(Number(day), maxDay);
+        // Після clamp (напр. 31→28 лют) рік треба перерахувати ще раз.
+        year = resolveMeetingYear(month, String(safeDay).padStart(2, '0'));
+        maxDay = daysInMonth(year, monthNum);
+        safeDay = Math.min(Number(day), maxDay);
         const dayStr = String(safeDay).padStart(2, '0');
         if (dayStr !== day) {
             setMeetingSelectValue('day', dayStr, dayStr);
@@ -806,11 +825,12 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'match-avatar';
-            btn.title = `${match.display_name}${match.age ? ', ' + match.age : ''}`;
+            btn.title = `Профіль: ${match.display_name}${match.age ? ', ' + match.age : ''}`;
+            btn.setAttribute('aria-label', `Відкрити профіль ${match.display_name}`);
             btn.innerHTML = `
                 <img class="match-avatar__img" src="${match.avatar_url || avatarPlaceholder()}" alt="${escapeHtml(match.display_name)}">
             `;
-            btn.addEventListener('click', () => openConversationByMatch(match));
+            btn.addEventListener('click', () => openUserProfile(match.other_user_id));
 
             const unmatchBtn = document.createElement('button');
             unmatchBtn.type = 'button';
@@ -937,8 +957,12 @@
             const nameHtml = isMeeting
                 ? `<span class="dialog-item__name">${MEETING_GROUP_ICON}<span class="dialog-item__name-text">${nameText}</span></span>`
                 : `<span class="dialog-item__name">${nameText}</span>`;
+            const canOpenProfile = !isMeeting && dialog.other_user_id;
+            const avatarHtml = canOpenProfile
+                ? `<span class="dialog-item__avatar-wrap" role="button" tabindex="0" data-user-id="${dialog.other_user_id}" aria-label="Відкрити профіль ${escapeHtml(dialog.other_display_name)}"><img class="dialog-item__avatar" src="${escapeHtml(avatarSrc)}" alt=""></span>`
+                : `<img class="dialog-item__avatar" src="${escapeHtml(avatarSrc)}" alt="">`;
             item.innerHTML = `
-                <img class="dialog-item__avatar" src="${escapeHtml(avatarSrc)}" alt="">
+                ${avatarHtml}
                 ${nameHtml}
                 ${metaRight}
                 <span class="dialog-item__preview">${escapeHtml(dialog.last_message_preview) || 'Скажіть привіт!'}</span>
@@ -947,6 +971,18 @@
                 item.querySelector('.dialog-item__avatar'),
                 isMeeting ? meetingAvatarPlaceholder() : avatarPlaceholder(),
             );
+            const avatarWrap = item.querySelector('.dialog-item__avatar-wrap');
+            if (avatarWrap) {
+                const openProfile = (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    openUserProfile(avatarWrap.dataset.userId);
+                };
+                avatarWrap.addEventListener('click', openProfile);
+                avatarWrap.addEventListener('keydown', (evt) => {
+                    if (evt.key === 'Enter' || evt.key === ' ') openProfile(evt);
+                });
+            }
             item.addEventListener('click', () => {
                 if (!dialogBelongsToMode(dialog, state.mode)) return;
                 state.activeMatchId = dialog.match_id || null;
@@ -1270,6 +1306,20 @@
 
     function closeFullProfile() {
         if (els.fullProfileOverlay) els.fullProfileOverlay.hidden = true;
+    }
+
+    async function openUserProfile(userId) {
+        const id = Number(userId);
+        if (!id || !els.fullProfileOverlay) return;
+        if (Number(state.myUserId) === id) return;
+        try {
+            const data = await apiFetch(API.userProfile(id, state.mode));
+            if (!data.candidate) return;
+            renderFullProfile(data.candidate);
+            els.fullProfileOverlay.hidden = false;
+        } catch (err) {
+            console.error('Не вдалося відкрити профіль', err);
+        }
     }
 
     function renderFullProfileChips(tags) {
@@ -1708,6 +1758,7 @@
         if (groupIncoming) {
             bubble.dataset.senderName = message.sender_display_name || '';
             bubble.dataset.senderAvatar = message.sender_avatar_url || '';
+            if (message.sender_id) bubble.dataset.senderId = String(message.sender_id);
         }
         const checkStroke = '#E7D5FF';
         const checkIcon = message.is_mine
@@ -1721,33 +1772,47 @@
         const textHtml = (message.text || '').trim()
             ? `<span class="msg__text">${escapeHtml(message.text)}</span>`
             : '';
-        const senderHtml = groupIncoming
-            ? `<span class="msg__sender">${escapeHtml(message.sender_display_name || '')}</span>`
-            : '';
-        const avatarHtml = groupIncoming
-            ? `<img class="msg__avatar" src="${escapeHtml(message.sender_avatar_url || avatarPlaceholder())}" alt="">`
-            : '';
-        bubble.innerHTML = `
-            ${avatarHtml}
-            ${senderHtml}
-            ${imageHtml}
-            ${textHtml}
-            <span class="msg__meta">${editedHtml}${escapeHtml(message.time_label || '')}${checkIcon}</span>
-            ${reactionsHtml}
-        `;
-        bubble.dataset.reactions = JSON.stringify(message.reactions || []);
+        const metaHtml = `<span class="msg__meta">${editedHtml}${escapeHtml(message.time_label || '')}${checkIcon}</span>`;
         if (groupIncoming) {
+            const senderId = message.sender_id ? String(message.sender_id) : '';
+            const senderName = escapeHtml(message.sender_display_name || '');
+            bubble.innerHTML = `
+                <button type="button" class="msg__avatar-btn" data-user-id="${escapeHtml(senderId)}" aria-label="Відкрити профіль ${senderName}">
+                    <img class="msg__avatar" src="${escapeHtml(message.sender_avatar_url || avatarPlaceholder())}" alt="">
+                </button>
+                <div class="msg__stack">
+                    <span class="msg__sender">${senderName}</span>
+                    ${imageHtml}
+                    <div class="msg__line">
+                        ${textHtml}
+                        ${metaHtml}
+                    </div>
+                    ${reactionsHtml}
+                </div>
+            `;
             bindAvatarFallback(bubble.querySelector('.msg__avatar'));
+        } else {
+            bubble.innerHTML = `
+                ${imageHtml}
+                ${textHtml}
+                ${metaHtml}
+                ${reactionsHtml}
+            `;
         }
+        bubble.dataset.reactions = JSON.stringify(message.reactions || []);
     }
 
     function renderReactionsHtml(reactions) {
-        const chips = (reactions || []).map((item) => {
+        const list = reactions || [];
+        if (!list.length) return '';
+        const showCount = state.chatKind === 'meeting';
+        const chips = list.map((item) => {
             const mineClass = item.mine ? ' is-mine' : '';
             const pressed = item.mine ? 'true' : 'false';
-            return `<button type="button" class="msg__reaction${mineClass}" data-emoji="${escapeHtml(item.emoji)}" aria-pressed="${pressed}">${escapeHtml(item.emoji)} <span>${item.count}</span></button>`;
+            const countHtml = showCount ? ` <span>${item.count}</span>` : '';
+            return `<button type="button" class="msg__reaction${mineClass}" data-emoji="${escapeHtml(item.emoji)}" aria-pressed="${pressed}">${escapeHtml(item.emoji)}${countHtml}</button>`;
         }).join('');
-        return `<div class="msg__reactions">${chips}<button type="button" class="msg__reaction-add" aria-label="Додати реакцію">+</button></div>`;
+        return `<div class="msg__reactions">${chips}</div>`;
     }
 
     function applyReactions(messageId, reactions) {
@@ -1757,8 +1822,9 @@
         const row = bubble.querySelector('.msg__reactions');
         const html = renderReactionsHtml(reactions || []);
         if (row) {
-            row.outerHTML = html;
-        } else {
+            if (html) row.outerHTML = html;
+            else row.remove();
+        } else if (html) {
             bubble.insertAdjacentHTML('beforeend', html);
         }
     }
@@ -1811,6 +1877,7 @@
             is_mine: message.is_mine !== undefined ? message.is_mine : bubble.classList.contains('msg--mine'),
             sender_display_name: message.sender_display_name || bubble.dataset.senderName || '',
             sender_avatar_url: message.sender_avatar_url || bubble.dataset.senderAvatar || '',
+            sender_id: message.sender_id || bubble.dataset.senderId || '',
             reactions: message.reactions || storedReactions,
         }));
     }
@@ -2437,14 +2504,11 @@
 
     if (els.chatMessages) {
         els.chatMessages.addEventListener('click', (evt) => {
-            const addBtn = evt.target.closest('.msg__reaction-add');
-            if (addBtn) {
+            const avatarBtn = evt.target.closest('.msg__avatar-btn');
+            if (avatarBtn) {
                 evt.preventDefault();
                 evt.stopPropagation();
-                const bubble = addBtn.closest('.msg');
-                if (!bubble) return;
-                hideChatMoreMenu();
-                showMsgMenu(evt, bubble);
+                openUserProfile(avatarBtn.dataset.userId);
                 return;
             }
             const reactionBtn = evt.target.closest('.msg__reaction');
@@ -2455,9 +2519,15 @@
                 if (bubble) sendReaction(bubble.dataset.messageId, reactionBtn.dataset.emoji);
                 return;
             }
-            const btn = evt.target.closest('.msg__image-btn');
-            if (!btn) return;
-            openLightbox(btn.dataset.imageUrl);
+            const imageBtn = evt.target.closest('.msg__image-btn');
+            if (imageBtn) {
+                openLightbox(imageBtn.dataset.imageUrl);
+                return;
+            }
+            const bubble = evt.target.closest('.msg');
+            if (!bubble || !els.chatMessages.contains(bubble)) return;
+            hideChatMoreMenu();
+            showMsgMenu(evt, bubble);
         });
         els.chatMessages.addEventListener('contextmenu', (evt) => {
             const bubble = evt.target.closest('.msg');
@@ -2533,7 +2603,7 @@
             }
         }
         if (!els.msgMenu || els.msgMenu.hidden) return;
-        if (els.msgMenu.contains(evt.target) || evt.target.closest('.msg__reaction-add')) return;
+        if (els.msgMenu.contains(evt.target) || evt.target.closest('.msg')) return;
         hideMsgMenu();
     });
     window.addEventListener('resize', hideMsgMenu);

@@ -521,6 +521,96 @@ def matches_for_user(user, mode):
     return items
 
 
+def _users_are_matched(viewer, target_user_id, mode):
+    """Чи є метч між переглядачем і цільовим користувачем у цьому режимі."""
+    return Match.objects.filter(mode=mode).filter(
+        Q(user_a=viewer, user_b_id=target_user_id)
+        | Q(user_b=viewer, user_a_id=target_user_id)
+    ).exists()
+
+
+def _users_share_meeting(viewer, target_user_id):
+    """Чи були/є обидва учасниками однієї зустрічі (для аватара в груповому чаті)."""
+    from meetings.models import MeetingParticipant
+
+    viewer_meeting_ids = MeetingParticipant.objects.filter(
+        user=viewer,
+    ).values_list('meeting_id', flat=True)
+    return MeetingParticipant.objects.filter(
+        user_id=target_user_id,
+        meeting_id__in=viewer_meeting_ids,
+    ).exists()
+
+
+def can_view_user_profile(viewer, target_user_id, mode):
+    """
+    Профіль можна дивитись, якщо є метч у режимі або спільна зустріч.
+    Себе через цей ендпоінт не відкриваємо.
+    """
+    try:
+        target_id = int(target_user_id)
+    except (TypeError, ValueError):
+        return False
+    if viewer.id == target_id:
+        return False
+    if Block.objects.filter(
+        Q(blocker=viewer, blocked_id=target_id) | Q(blocker_id=target_id, blocked=viewer)
+    ).exists():
+        return False
+    if _users_are_matched(viewer, target_id, mode):
+        return True
+    return _users_share_meeting(viewer, target_id)
+
+
+def shared_tags_overlap(viewer_profile, candidate_profile, mode):
+    """Спільні теги для підсвітки в повному профілі (без строгих фільтрів discover)."""
+    viewer_tags = _tag_level_maps(viewer_profile)
+    candidate_tags = _tag_level_maps(candidate_profile)
+    if mode == SearchMode.DATING:
+        viewer_interests = viewer_tags.get((SearchMode.DATING, TagCategory.INTEREST), {})
+        candidate_interests = candidate_tags.get((SearchMode.DATING, TagCategory.INTEREST), {})
+        return {'interests': _shared_tag_ids(viewer_interests, candidate_interests)}
+
+    viewer_hobbies = viewer_tags.get((SearchMode.BFF, TagCategory.HOBBY), {})
+    candidate_hobbies = candidate_tags.get((SearchMode.BFF, TagCategory.HOBBY), {})
+    viewer_languages = viewer_tags.get((SearchMode.BFF, TagCategory.LANGUAGE), {})
+    candidate_languages = candidate_tags.get((SearchMode.BFF, TagCategory.LANGUAGE), {})
+    viewer_interests = viewer_tags.get((SearchMode.BFF, TagCategory.INTEREST), {})
+    candidate_interests = candidate_tags.get((SearchMode.BFF, TagCategory.INTEREST), {})
+    return {
+        'hobbies': _shared_tag_ids(viewer_hobbies, candidate_hobbies, require_same_level=True),
+        'languages': _shared_tag_ids(
+            viewer_languages, candidate_languages, require_same_level=True,
+        ),
+        'interests': _shared_tag_ids(viewer_interests, candidate_interests),
+    }
+
+
+def get_viewable_profile(viewer, target_user_id, mode):
+    """
+    Повний профіль друга/метча для оверлею.
+    Повертає dict serialize_candidate або кидає ValueError.
+    """
+    if not can_view_user_profile(viewer, target_user_id, mode):
+        raise ValueError('Профіль недоступний.')
+
+    profile = (
+        Profile.objects
+        .filter(user_id=target_user_id)
+        .select_related('user')
+        .prefetch_related('photos', 'modes', 'profile_tags__tag')
+        .first()
+    )
+    if profile is None:
+        raise ValueError('Профіль не знайдено.')
+
+    viewer_profile = getattr(viewer, 'profile', None)
+    shared = {}
+    if viewer_profile is not None:
+        shared = shared_tags_overlap(viewer_profile, profile, mode)
+    return serialize_candidate(profile, mode, shared)
+
+
 def serialize_match(match):
     """Матч для відповіді після успішного взаємного лайку."""
     conversation = getattr(match, 'conversation', None)

@@ -203,6 +203,49 @@ class UnmatchTests(TestCase):
         self.assertTrue(Match.objects.filter(pk=bff.id).exists())
 
 
+class MatchedProfileViewTests(TestCase):
+    """Повний профіль доступний метчу; чужим — 404."""
+
+    def setUp(self):
+        self.alice = make_user_with_profile('alice.profile@example.com', 'Аліса')
+        self.bob = make_user_with_profile('bob.profile@example.com', 'Боб')
+        self.stranger = make_user_with_profile('stranger.profile@example.com', 'Чужий')
+
+    def test_match_can_view_profile(self):
+        record_swipe(self.alice, self.bob.id, SearchMode.DATING, True)
+        record_swipe(self.bob, self.alice.id, SearchMode.DATING, True)
+        self.client.force_login(self.alice)
+        response = self.client.get(
+            reverse('matched_profile', args=[self.bob.id]),
+            {'mode': 'dating'},
+        )
+        self.assertEqual(response.status_code, 200)
+        candidate = response.json()['candidate']
+        self.assertEqual(candidate['user_id'], self.bob.id)
+        self.assertEqual(candidate['display_name'], 'Боб')
+
+    def test_stranger_cannot_view_profile(self):
+        record_swipe(self.alice, self.bob.id, SearchMode.DATING, True)
+        record_swipe(self.bob, self.alice.id, SearchMode.DATING, True)
+        self.client.force_login(self.stranger)
+        response = self.client.get(
+            reverse('matched_profile', args=[self.bob.id]),
+            {'mode': 'dating'},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_bff_match_can_view_profile(self):
+        record_swipe(self.alice, self.bob.id, SearchMode.BFF, True)
+        record_swipe(self.bob, self.alice.id, SearchMode.BFF, True)
+        self.client.force_login(self.bob)
+        response = self.client.get(
+            reverse('matched_profile', args=[self.alice.id]),
+            {'mode': 'bff'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['candidate']['user_id'], self.alice.id)
+
+
 class DatingFilterTests(TestCase):
     """Dating: те саме місто, вік у діапазоні, 2+ спільні інтереси."""
 

@@ -6,6 +6,7 @@ from matching.views import (
     dashboard_view,
     discover_next_view,
     like_view,
+    matched_profile_view,
     matches_list_view,
     unmatch_view,
 )
@@ -17,4 +18,5 @@ urlpatterns = [
     path('matches/', matches_list_view, name='matches_list'),
     path('matches/<int:match_id>/unmatch/', unmatch_view, name='unmatch'),
     path('unmatch/<int:match_id>/', unmatch_view, name='unmatch_alt'),
+    path('users/<int:user_id>/profile/', matched_profile_view, name='matched_profile'),
 ]
